@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<xml>
+	<!-- Хмурый -->
+	<specific_character id="bq_zaton_stalker_hmury" team_default="1">
+		<name>bq_zaton_stalker_hmury_name</name>
+		<icon>ui_inGame2_neutral_2</icon>
+		<map_icon x="1" y="0"></map_icon>
+		<bio>Опытный сталкер-одиночка. Детальная информация отсутствует.</bio>
+		<class>bq_zaton_stalker_hmury</class>
+		<community>stalker</community>
+		<terrain_sect>stalker_terrain</terrain_sect>
+		<snd_config>characters_voice\human_02\stalker\</snd_config>
+		<rank>35</rank>
+		<reputation>0</reputation>
+		<money min="1000" max="1000" infinitive="0" />
+		<visual>actors\stalker_neutral\stalker_neutral_2</visual>
+
+		<supplies>
+      [spawn] \n
+      wpn_ak74 \n
+      ammo_5.45x39_fmj = 1 \n
+      wpn_beretta \n
+      ammo_9x19_fmj = 1 \n
+
+#include "gameplay\character_items_nd.xml"
+#include "gameplay\character_food.xml"
+#include "gameplay\character_drugs_2.xml"
+    </supplies>
+
+#include "gameplay\character_criticals_4.xml"
+
+		<start_dialog>bq_zaton_stalker_hmury_start</start_dialog>
+	</specific_character>
+
+	<!-- Кенты хмурого -->
+	<specific_character id="bq_zaton_hmury_guard_1" team_default="1">
+		<name>GENERATE_NAME_stalker</name>
+		<icon>ui_inGame2_neutral_1</icon>
+		<map_icon x="1" y="0"></map_icon>
+		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<class>bq_zaton_hmury_guard_1</class>
+		<community>stalker</community>
+		<terrain_sect>stalker_terrain</terrain_sect>
+		<snd_config>characters_voice\human_01\stalker\</snd_config>
+		<rank>15</rank>
+		<reputation>0</reputation>
+		<money min="500" max="500" infinitive="0" />
+		<visual>actors\stalker_neutral\stalker_neutral_1</visual>
+
+		<supplies>
+      [spawn] \n
+      wpn_ak74u \n
+      ammo_5.45x39_fmj = 1 \n
+      wpn_pm \n
+      ammo_9x18_fmj = 1 \n
+
+#include "gameplay\character_items_nd.xml"
+#include "gameplay\character_food.xml"
+#include "gameplay\character_drugs.xml"
+    </supplies>
+
+#include "gameplay\character_criticals_4.xml"
+	</specific_character>
+
+	<specific_character id="bq_zaton_hmury_guard_2" team_default="1">
+		<name>GENERATE_NAME_stalker</name>
+		<icon>ui_inGame2_neutral_2</icon>
+		<map_icon x="1" y="0"></map_icon>
+		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<class>bq_zaton_hmury_guard_2</class>
+		<community>stalker</community>
+		<terrain_sect>stalker_terrain</terrain_sect>
+		<snd_config>characters_voice\human_02\stalker\</snd_config>
+		<rank>35</rank>
+		<reputation>0</reputation>
+		<money min="1000" max="1000" infinitive="0" />
+		<visual>actors\stalker_neutral\stalker_neutral_2</visual>
+
+		<supplies>
+      [spawn] \n
+      wpn_ak74 \n
+      ammo_5.45x39_fmj = 1 \n
+      wpn_beretta \n
+      ammo_9x19_fmj = 1 \n
+
+#include "gameplay\character_items_nd.xml"
+#include "gameplay\character_food.xml"
+#include "gameplay\character_drugs_2.xml"
+    </supplies>
+
+#include "gameplay\character_criticals_4.xml"
+	</specific_character>
+</xml>

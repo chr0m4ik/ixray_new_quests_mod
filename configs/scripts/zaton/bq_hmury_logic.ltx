@@ -1,0 +1,21 @@
+[logic]
+active = remark@bq_hmury
+
+[remark@bq_hmury]
+meet = meet@bq_hmury
+
+[meet@bq_hmury]
+close_distance = 4
+use = {=actor_enemy} false, {+bq_hmury_dialog_ready =see_actor =dist_to_actor_le(4)} self, {=see_actor} true, false
+meet_dialog = bq_zaton_stalker_hmury_start
+allow_break = false
+trade_enable = false
+meet_on_talking = true
+
+close_anim       = nil
+close_victim     = nil
+close_snd_hello  = nil
+close_snd_bye    = nil
+far_anim         = nil
+far_snd          = nil
+far_victim       = nil

@@ -1,0 +1,593 @@
+local bq_dm_filled = false
+
+local function bq_check_dialog_manager()
+    if bq_dm_filled then return end
+    if not dialog_manager or not dialog_manager.fill_phrase_table then return end
+
+    local ok = pcall(function()
+        dialog_manager.fill_phrase_table()
+    end)
+    if ok then
+        bq_dm_filled = true
+    end
+end
+
+RegisterScriptCallback("update", function()
+    if bq_quest and bq_quest.try_check_documents then
+        bq_quest.try_check_documents()
+    end
+    bq_check_dialog_manager()
+end)
+
+-- =========================================================
+-- Квест Бороды ("bq_")
+-- =========================================================
+
+-- Идентификаторы заданий
+local TASK_STASH_ID      = "bq_beard_task"
+local TASK_DELIVER_ID    = "bq_deliver_task"
+local TASK_BUYER_ID      = "bq_buyer_task"
+local TASK_SELL_SICH_ID  = "bq_sell_sich_task"
+
+-- Позиции торговцев
+local BEARD_POS = { x = 124.80, y = -5.60, z = 177.80 }
+local SICH_POS  = { x = 110.0,  y = -2.4,  z = 188.3 }
+
+-- Позиции Хмурого и его группы
+local HMURY_POS     = { x = 227.0, y = 9.5, z = -27.5 }
+local GUARD_1_POS   = { x = 220.0, y = 9.5, z = -27.0 }
+local GUARD_2_POS   = { x = 230.0, y = 9.5, z = -15.0 }
+
+-- Информационные порции и секции
+local HMURY_INFO      = "bq_hmury_spawned"
+local HMURY_SECTION   = "bq_zaton_stalker_hmury"
+local GUARD_1_SECTION = "bq_zaton_hmury_guard_1"
+local GUARD_2_SECTION = "bq_zaton_hmury_guard_2"
+
+-- Идентификаторы NPC (для set_enemy_all)
+bq_hmury_guard_1_id = nil
+bq_hmury_guard_2_id = nil
+
+-- Идентификаторы объектов
+local stash_box_id = nil
+local beard_marker = nil
+local sich_marker  = nil
+local hmury_id     = nil
+
+-- =========================================================
+-- Состояние задания
+-- =========================================================
+
+local function set_task_state(task_id, state)
+    local ok = pcall(function()
+        db.actor:set_task_state(state, task_id)
+    end)
+    if ok then
+        printf("[bq] task %s state -> %s", tostring(task_id), tostring(state))
+        return true
+    end
+    printf("[bq] ERROR: cannot change state of task %s", tostring(task_id))
+    return false
+end
+
+function has_documents()
+    return db.actor ~= nil and db.actor:object("bq_documents") ~= nil
+end
+
+-- =========================================================
+-- Поиск тайника по секции
+-- =========================================================
+
+local function find_stash_id()
+    if stash_box_id then
+        return stash_box_id
+    end
+    local found = nil
+    pcall(function()
+        alife():iterate_objects(
+            function(o)
+                local ok, sec = pcall(function()
+                    return o:section_name()
+                end)
+                if ok and sec == "bq_stash_box" then
+                    found = o.id
+                end
+            end,
+            0
+        )
+    end)
+    if found then
+        stash_box_id = found
+    end
+    return stash_box_id
+end
+
+-- =========================================================
+-- Маркер на Бороде
+-- =========================================================
+
+local function spawn_beard_marker()
+    if beard_marker then
+        return beard_marker
+    end
+    local pos = vector():set(BEARD_POS.x, BEARD_POS.y, BEARD_POS.z)
+    local ok, obj = pcall(function()
+        return alife():create(
+            "bq_beard_marker",
+            pos,
+            level.vertex_id(pos),
+            db.actor:game_vertex_id()
+        )
+    end)
+    if ok and obj then
+        beard_marker = obj.id
+        printf("[bq] beard marker spawned: %s", tostring(beard_marker))
+        return beard_marker
+    end
+    printf("[bq] ERROR: failed to spawn beard marker")
+    return nil
+end
+
+local function remove_stash_marker()
+    local id = find_stash_id()
+    if id then
+        pcall(function()
+            level.map_remove_object_spot(id, "ui_secondary_task_blink")
+        end)
+    end
+    local task_obj = db.actor:get_task(TASK_STASH_ID, false)
+    if task_obj then
+        pcall(function()
+            task_obj:remove_map_locations(false)
+        end)
+    end
+end
+
+local function remove_beard_marker()
+    if not beard_marker then
+        return
+    end
+    pcall(function()
+        level.map_remove_object_spot(beard_marker, "ui_secondary_task_blink")
+    end)
+    local obj = alife():object(beard_marker)
+    if obj then
+        pcall(function()
+            alife():release(obj, true)
+        end)
+    end
+    printf("[bq] beard marker removed: %s", tostring(beard_marker))
+    beard_marker = nil
+end
+
+-- =========================================================
+-- Маркер на Сыче
+-- =========================================================
+
+local function spawn_sich_marker()
+    if sich_marker then
+        return sich_marker
+    end
+    local pos = vector():set(SICH_POS.x, SICH_POS.y, SICH_POS.z)
+    local ok, obj = pcall(function()
+        return alife():create(
+            "bq_sich_marker",
+            pos,
+            level.vertex_id(pos),
+            db.actor:game_vertex_id()
+        )
+    end)
+    if ok and obj then
+        sich_marker = obj.id
+        printf("[bq] sich marker spawned: %s", tostring(sich_marker))
+        return sich_marker
+    end
+    printf("[bq] ERROR: failed to spawn sich marker")
+    return nil
+end
+
+local function remove_sich_marker()
+    if not sich_marker then
+        return
+    end
+    pcall(function()
+        level.map_remove_object_spot(sich_marker, "ui_secondary_task_blink")
+    end)
+    local obj = alife():object(sich_marker)
+    if obj then
+        pcall(function()
+            alife():release(obj, true)
+        end)
+    end
+    printf("[bq] sich marker removed: %s", tostring(sich_marker))
+    sich_marker = nil
+end
+
+-- =========================================================
+-- Спавн Хмурого и его группы
+-- =========================================================
+
+local function spawn_one(section, pos_tbl)
+    local pos   = vector():set(pos_tbl.x, pos_tbl.y, pos_tbl.z)
+    local lv_id = level.vertex_id(pos)
+    local gv_id = db.actor:game_vertex_id()
+    local ok, npc = pcall(function()
+        return alife():create(section, pos, lv_id, gv_id)
+    end)
+    if ok and npc then
+        return npc.id
+    end
+    printf("[bq] ERROR: failed to spawn %s", section)
+    return nil
+end
+
+local function spawn_hmury()
+    if has_alife_info(HMURY_INFO) then
+        return nil
+    end
+
+    local existing = get_story_object(HMURY_SECTION)
+    if existing then
+        hmury_id = existing:id()
+        printf("[bq] hmury already exists: %s", tostring(hmury_id))
+        db.actor:give_info_portion(HMURY_INFO)
+        db.actor:give_info_portion("bq_hmury_dialog_ready")
+        return hmury_id
+    end
+
+    hmury_id = spawn_one(HMURY_SECTION, HMURY_POS)
+    if not hmury_id then
+        return nil
+    end
+
+    db.actor:give_info_portion(HMURY_INFO)
+    db.actor:give_info_portion("bq_hmury_dialog_ready")
+    printf("[bq] hmury spawned, id=%s", tostring(hmury_id))
+    return hmury_id
+end
+
+local function spawn_hmury_guards()
+    bq_hmury_guard_1_id = spawn_one(GUARD_1_SECTION, GUARD_1_POS)
+    bq_hmury_guard_2_id = spawn_one(GUARD_2_SECTION, GUARD_2_POS)
+    printf("[bq] guards spawned: 1=%s, 2=%s",
+        tostring(bq_hmury_guard_1_id), tostring(bq_hmury_guard_2_id))
+end
+
+local function despawn_hmury_squad()
+    local ids = { hmury_id, bq_hmury_guard_1_id, bq_hmury_guard_2_id }
+    for _, id in ipairs(ids) do
+        if id then
+            local se = alife():object(id)
+            if se then
+                pcall(function() alife():release(se, true) end)
+                printf("[bq] despawned npc id=%s", tostring(id))
+            end
+        end
+    end
+    hmury_id = nil
+    bq_hmury_guard_1_id = nil
+    bq_hmury_guard_2_id = nil
+end
+
+-- =========================================================
+-- Получение NPC из диалога
+-- =========================================================
+
+local function get_npc_from_dialog(first_speaker, second_speaker)
+    local actor_id = db.actor:id()
+    local id1 = nil
+    local id2 = nil
+    pcall(function() id1 = first_speaker:id() end)
+    pcall(function() id2 = second_speaker:id() end)
+    if id1 and id1 ~= actor_id then
+        return first_speaker
+    end
+    if id2 and id2 ~= actor_id then
+        return second_speaker
+    end
+    return nil
+end
+
+-- =========================================================
+-- Выдача задания
+-- =========================================================
+
+function give_task(first_speaker, second_speaker)
+    stash_box_id = bq_stash.spawn_stash()
+
+    local t = CGameTask()
+    t:set_id(TASK_STASH_ID)
+    t:set_type(task.additional)
+    t:set_title(game.translate_string("bq_task_name"))
+    t:set_description(game.translate_string("bq_task_descr"))
+    t:set_priority(2)
+    t:set_icon_name("ui_inGame2_Sdelka")
+
+    if stash_box_id then
+        t:set_map_location("secondary_task_location")
+        t:set_map_object_id(stash_box_id)
+        level.map_add_object_spot(stash_box_id, "ui_secondary_task_blink", "")
+    end
+
+    db.actor:give_task(t, 0, false, 0)
+    db.actor:give_info_portion("bq_quest_started")
+    printf("[bq] task given: %s", TASK_STASH_ID)
+end
+
+-- =========================================================
+-- Документы подобраны из тайника
+-- =========================================================
+
+function on_documents_taken()
+    if has_alife_info("bq_documents_taken") then
+        return
+    end
+    printf("[bq] documents taken")
+
+    set_task_state(TASK_STASH_ID, task.completed)
+    remove_stash_marker()
+
+    spawn_hmury()
+    spawn_hmury_guards()
+
+    local marker = spawn_beard_marker()
+
+    local t1 = CGameTask()
+    t1:set_id(TASK_DELIVER_ID)
+    t1:set_type(task.additional)
+    t1:set_title(game.translate_string("bq_deliver_name"))
+    t1:set_description(game.translate_string("bq_deliver_descr"))
+    t1:set_priority(3)
+    t1:set_icon_name("ui_inGame2_Sdelka")
+    if marker then
+        t1:set_map_location("secondary_task_location")
+        t1:set_map_object_id(marker)
+    end
+    db.actor:give_task(t1, 0, false, 0)
+
+    local t2 = CGameTask()
+    t2:set_id(TASK_BUYER_ID)
+    t2:set_type(task.additional)
+    t2:set_title(game.translate_string("bq_buyer_name"))
+    t2:set_description(game.translate_string("bq_buyer_descr"))
+    t2:set_priority(4)
+    t2:set_icon_name("ui_inGame2_Sdelka")
+    db.actor:give_task(t2, 0, false, 0)
+
+    db.actor:give_info_portion("bq_documents_taken")
+    db.actor:give_info_portion("bq_deliver_task")
+    db.actor:give_info_portion("bq_buyer_task")
+    printf("[bq] deliver + buyer tasks created")
+end
+
+-- =========================================================
+-- Передача документов Бороде
+-- =========================================================
+
+function on_documents_delivered(first_speaker, second_speaker)
+    if has_alife_info("bq_docs_delivered") then
+        return
+    end
+    printf("[bq] documents delivered to Beard")
+
+    local item = db.actor:object("bq_documents")
+    if item then
+        local alife_item = alife():object(item:id())
+        if alife_item then
+            pcall(function() alife():release(alife_item, true) end)
+        end
+    else
+        printf("[bq] WARNING: bq_documents not found in inventory")
+    end
+
+    pcall(function() dialogs.relocate_money_to_actor(first_speaker, second_speaker, 2000) end)
+    pcall(function() dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "wpn_colt1911", 1) end)
+    pcall(function() dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "ammo_11.43x23_fmj", 3) end)
+    pcall(function() dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "medkit", 3) end)
+    pcall(function() dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "bandage", 4) end)
+
+    remove_beard_marker()
+    remove_sich_marker()
+    set_task_state(TASK_DELIVER_ID, task.completed)
+    set_task_state(TASK_BUYER_ID, task.completed)
+    set_task_state(TASK_SELL_SICH_ID, task.completed)
+    db.actor:give_info_portion("bq_beard_grateful")
+    db.actor:give_info_portion("bq_docs_delivered")
+    despawn_hmury_squad()
+    printf("[bq] Beard branch completed")
+end
+
+-- =========================================================
+-- Обновление задания при получении наводки от Лоцмана
+-- =========================================================
+
+function on_sich_hint_given()
+    if db.actor:get_task(TASK_BUYER_ID, false) then
+        set_task_state(TASK_BUYER_ID, task.completed)
+    end
+
+    local marker = spawn_sich_marker()
+
+    local new_task = CGameTask()
+    new_task:set_id(TASK_SELL_SICH_ID)
+    new_task:set_type(task.additional)
+    new_task:set_title(game.translate_string("bq_sell_to_sich_name"))
+    new_task:set_description(game.translate_string("bq_sell_to_sich_descr"))
+    new_task:set_priority(4)
+    new_task:set_icon_name("ui_inGame2_Sdelka")
+    if marker then
+        new_task:set_map_location("secondary_task_location")
+        new_task:set_map_object_id(marker)
+    end
+
+    db.actor:give_task(new_task, 0, false, 0)
+    db.actor:give_info_portion("bq_sich_hint_given")
+    printf("[bq] task updated: sell to Sich")
+end
+
+-- =========================================================
+-- Продажа документов покупателю
+-- =========================================================
+
+function on_documents_sold(first_speaker, second_speaker)
+    if has_alife_info("bq_docs_sold") then
+        return
+    end
+    printf("[bq] documents sold to buyer")
+
+    local item = db.actor:object("bq_documents")
+    if item then
+        local alife_item = alife():object(item:id())
+        if alife_item then
+            pcall(function() alife():release(alife_item, true) end)
+        end
+    else
+        printf("[bq] WARNING: bq_documents not found in inventory")
+    end
+
+    pcall(function() dialogs.relocate_money_to_actor(first_speaker, second_speaker, 5000) end)
+
+    remove_beard_marker()
+    remove_sich_marker()
+    set_task_state(TASK_BUYER_ID, task.completed)
+    set_task_state(TASK_SELL_SICH_ID, task.completed)
+    set_task_state(TASK_DELIVER_ID, task.completed)
+    db.actor:give_info_portion("bq_beard_angry")
+    db.actor:give_info_portion("bq_docs_sold")
+    despawn_hmury_squad()
+    printf("[bq] buyer branch completed")
+end
+
+-- =========================================================
+-- Callback: получение документов актором
+-- =========================================================
+
+level.add_call(
+    function()
+        return has_alife_info("bq_quest_started")
+            and not has_alife_info("bq_documents_taken")
+            and db.actor:object("bq_documents") ~= nil
+    end,
+    function()
+        on_documents_taken()
+        return true
+    end
+)
+
+function try_check_documents()
+    if not has_alife_info("bq_quest_started") then return false end
+    if has_alife_info("bq_documents_taken") then return false end
+    if not db.actor then return false end
+
+    if db.actor:object("bq_documents") ~= nil then
+        printf("[bq] try_check_documents: docs detected -> on_documents_taken")
+        on_documents_taken()
+        return true
+    end
+
+    return false
+end
+
+-- =========================================================
+-- Смерть Хмурого: спавн документов у трупа
+-- =========================================================
+
+local function is_hmury_dead()
+    if not hmury_id then return false end
+
+    local cl = level.object_by_id(hmury_id)
+    if cl then
+        local ok, alive = pcall(function() return cl:alive() end)
+        if ok and alive == false then
+            return true
+        end
+    end
+
+    local se = alife():object(hmury_id)
+    if se then
+        local ok1, dead1 = pcall(function() return se.m_dead end)
+        if ok1 and dead1 == true then return true end
+
+        local ok2, alive2 = pcall(function() return se:alive() end)
+        if ok2 and alive2 == false then return true end
+    end
+
+    return false
+end
+
+local function recover_docs_from_hmury()
+    local se = alife():object(hmury_id)
+    if not se then
+        printf("[bq] hmury corpse unregistered — cannot recover docs")
+        return false
+    end
+    local ok, obj = pcall(function()
+        return alife():create(
+            "bq_documents",
+            se.position,
+            se.m_level_vertex_id,
+            se.m_game_vertex_id,
+            hmury_id)
+    end)
+    if ok and obj then
+        db.actor:give_info_portion("bq_docs_recovered")
+        printf("[bq] documents put into hmury corpse (id=%s)", tostring(obj.id))
+        return true
+    end
+    printf("[bq] ERROR: failed to spawn bq_documents in hmury corpse")
+    return false
+end
+
+level.add_call(
+    function()
+        if not hmury_id then return false end
+        if not has_alife_info("bq_docs_given_to_hmury") then return false end
+        if has_alife_info("bq_docs_recovered") then return false end
+        return is_hmury_dead()
+    end,
+    function()
+        recover_docs_from_hmury()
+        return true
+    end
+)
+
+printf("[bq] bq_quest.script top-level reached")
+
+-- =========================================================
+-- Регистрация callbacks
+-- =========================================================
+
+RegisterScriptCallback("update", function()
+    if bq_quest and bq_quest.try_check_documents then
+        bq_quest.try_check_documents()
+    end
+end)
+
+printf("[bq] callback registered")
+
+function on_game_load()
+    RegisterScriptCallback("update", function()
+        if bq_quest and bq_quest.try_check_documents then
+            bq_quest.try_check_documents()
+        end
+    end)
+
+    try_check_documents()
+
+    printf("[bq] on_game_load: callbacks re-registered")
+end
+
+function try_check_documents()
+    if not has_alife_info("bq_quest_started") then return false end
+    if has_alife_info("bq_documents_taken") then return false end
+    if not db.actor then return false end
+
+    local has_docs = db.actor:object("bq_documents")
+    if has_docs then
+        printf("[bq] try_check_documents: docs detected -> on_documents_taken")
+        on_documents_taken()
+        return true
+    end
+
+    return false
+end

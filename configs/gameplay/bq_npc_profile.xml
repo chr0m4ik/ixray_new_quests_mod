@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding="UTF-8"?>
+<xml>
+	<character id="bq_zaton_stalker_hmury">
+		<class>bq_zaton_stalker_hmury</class>
+	</character>
+	<character id="bq_zaton_hmury_guard_1">
+		<class>bq_zaton_hmury_guard_1</class>
+	</character>
+	<character id="bq_zaton_hmury_guard_2">
+		<class>bq_zaton_hmury_guard_2</class>
+	</character>
+</xml>

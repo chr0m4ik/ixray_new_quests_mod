@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="windows-1251" ?>
+<game_dialogs>
+	<!-- ==============================================================
+					КВЕСТ НА ПОИСК ДОКУМЕНТОВ ОТ БОРОДЫ
+	=============================================================== -->
+	<!-- Борода: выдает квест. -->
+	<dialog id="bq_beard_start">
+		<has_info>zat_b14_give_item_linker</has_info>
+		<dont_has_info>bq_quest_started</dont_has_info>
+		<phrase_list>
+			<phrase id="0">
+				<text>bq_dlg_ask</text>
+				<dont_has_info>zat_b29_linker_take_af_from_rival</dont_has_info>
+				<next>1</next>
+			</phrase>
+			<phrase id="1">
+				<text>bq_dlg_offer</text>
+				<next>11</next>
+			</phrase>
+			<phrase id="11">
+				<text>bq_dlg_agree</text>
+				<give_info>bq_quest_started</give_info>
+				<action>bq_quest.give_task</action>
+			</phrase>
+		</phrase_list>
+	</dialog>
+
+	<!-- Борода: забирает документы (основная ветка) -->
+	<dialog id="bq_beard_deliver">
+		<precondition>bq_quest.has_documents</precondition>
+		<has_info>bq_documents_taken</has_info>
+		<dont_has_info>bq_docs_delivered</dont_has_info>
+		<dont_has_info>bq_docs_sold</dont_has_info>
+		<phrase_list>
+			<phrase id="0">
+				<text>bq_dlg_deliver_start</text>
+				<next>1</next>
+			</phrase>
+			<phrase id="1">
+				<text>bq_dlg_deliver_confirm</text>
+				<action>bq_quest.on_documents_delivered</action>
+			</phrase>
+		</phrase_list>
+	</dialog>
+
+	<!-- Лоцман: наводка на Сыча (дополнительная ветка) -->
+	<dialog id="bq_guide_hint">
+		<has_info>bq_documents_taken</has_info>
+		<dont_has_info>bq_docs_delivered</dont_has_info>
+		<dont_has_info>bq_docs_sold</dont_has_info>
+		<dont_has_info>bq_sich_hint_given</dont_has_info>
+		<phrase_list>
+			<phrase id="0">
+				<text>bq_dlg_guide_ask</text>
+				<next>1</next>
+			</phrase>
+			<phrase id="1">
+				<text>bq_dlg_guide_answer</text>
+				<action>bq_quest.on_sich_hint_given</action>
+				<give_info>bq_sich_hint_given</give_info>
+				<next>11</next>
+			</phrase>
+			<phrase id="11">
+				<text>bq_dlg_guide_agree</text>
+			</phrase>
+		</phrase_list>
+	</dialog>
+
+	<!-- Сыч: покупает документы (дополнительная ветка) -->
+	<dialog id="bq_sich_buy_docs">
+		<precondition>bq_quest.has_documents</precondition>
+		<has_info>bq_documents_taken</has_info>
+		<dont_has_info>bq_docs_delivered</dont_has_info>
+		<dont_has_info>bq_docs_sold</dont_has_info>
+		<phrase_list>
+			<phrase id="0">
+				<text>bq_dlg_sich_start</text>
+				<next>1</next>
+			</phrase>
+			<phrase id="1">
+				<text>bq_dlg_sich_choose</text>
+				<next>11</next>
+				<next>12</next>
+			</phrase>
+			<phrase id="11">
+				<text>bq_dlg_sich_sell</text>
+				<action>bq_quest.on_documents_sold</action>
+			</phrase>
+			<phrase id="12">
+				<text>bq_dlg_sich_not_sell</text>
+			</phrase>
+		</phrase_list>
+	</dialog>
+
+	<!-- Хмурый: вымогает документы -->
+					
+	<dialog id="bq_zaton_stalker_hmury_start">
+		<has_info>bq_documents_taken</has_info>
+		<dont_has_info>bq_docs_given_to_hmury</dont_has_info>
+		<dont_has_info>bq_docs_delivered</dont_has_info>
+		<dont_has_info>bq_docs_sold</dont_has_info>
+		<phrase_list>
+			<!-- Фаза 1: Хмурый предлагает 2000 -->
+			<phrase id="0">
+				<text>bq_hmury_dlg_offer_1</text>
+				<next>1</next>
+				<next>2</next>
+				<next>3</next>
+			</phrase>
+
+			<!-- Согласился на 2000 -->
+			<phrase id="1">
+				<text>bq_hmury_dlg_agree_1</text>
+				<action>bq_hmury.give_docs_2000</action>
+				<action>dialogs.break_dialog</action>
+				<is_final>1</is_final>
+			</phrase>
+
+			<!-- Торг: переход к фазе 2 -->
+			<phrase id="2">
+				<text>bq_hmury_dlg_bargain_1</text>
+				<next>4</next>
+			</phrase>
+
+			<!-- Напал сразу -->
+			<phrase id="3">
+				<text>bq_hmury_dlg_attack_1</text>
+				<action>bq_hmury.set_enemy_all</action>
+				<action>dialogs.break_dialog</action>
+				<is_final>1</is_final>
+			</phrase>
+
+			<!-- Фаза 2: Хмурый добавляет бронежилет -->
+			<phrase id="4">
+				<text>bq_hmury_dlg_offer_2</text>
+				<next>5</next>
+				<next>6</next>
+				<next>7</next>
+			</phrase>
+
+			<phrase id="5">
+				<text>bq_hmury_dlg_agree_2</text>
+				<action>bq_hmury.give_docs_2000_armor</action>
+				<action>dialogs.break_dialog</action>
+				<is_final>1</is_final>
+			</phrase>
+
+			<phrase id="6">
+				<text>bq_hmury_dlg_attack_2</text>
+				<action>bq_hmury.set_enemy_all</action>
+				<action>dialogs.break_dialog</action>
+				<is_final>1</is_final>
+			</phrase>
+
+			<phrase id="7">
+				<text>bq_hmury_dlg_bargain_2</text>
+				<next>71</next>
+			</phrase>
+			<phrase id="71">
+				<text>bq_hmury_dlg_bargain_2_answer</text>
+				<action>bq_hmury.set_enemy_all</action>
+				<action>dialogs.break_dialog</action>
+				<is_final>1</is_final>
+			</phrase>
+		</phrase_list>
+	</dialog>
+</game_dialogs>
