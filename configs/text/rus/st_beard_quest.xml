@@ -188,4 +188,35 @@
     <string id="bq_mech_dlg_hand_over">
         <text>(протягивает кейс)</text>
     </string>
+
+    <string id="bq_pda_3_name">
+        <text>Записка: 2 из 3</text>
+    </string>
+    <string id="bq_pda_3_descr">
+        <text>Кейс 2 из 3. Тёмному: третий кейс спрятан у Изумрудного. Заказчик нервничает. Не подведи.</text>
+    </string>
+    <string id="bq_pda_4_name">
+        <text>Финальная записка</text>
+    </string>
+    <string id="bq_pda_4_descr">
+        <text>Завершение. Ты нашёл их все, Тёмный.</text>
+    </string>
+    <string id="bq_suitcase_3_name">
+        <text>Запертый чемодан (3 из 3)</text>
+    </string>
+    <string id="bq_suitcase_3_descr">
+        <text>Третий кейс, упомянутый в записках Неизвестного.</text>
+    </string>
+    <string id="bq_stash_step_5_name">
+        <text>Найти третий чемодан</text>
+    </string>
+    <string id="bq_stash_step_5_descr">
+        <text>В записке упоминается Изумрудное. Ищите третий чемодан там.</text>
+    </string>
+    <string id="bq_stash_step_6_name">
+        <text>Вскрыть третий чемодан</text>
+    </string>
+    <string id="bq_stash_step_6_descr">
+        <text>Отнесите третий чемодан механику.</text>
+    </string>
 </string_table>

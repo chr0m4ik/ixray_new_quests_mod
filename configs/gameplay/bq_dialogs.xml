@@ -257,4 +257,62 @@
             </phrase>
         </phrase_list>
     </dialog>
+
+    <dialog id="bq_mechanic_open_suitcase_3_ok">
+        <precondition>bq_stash_quest.can_open_suitcase_3_ok</precondition>
+        <phrase_list>
+            <phrase id="0">
+                <text>bq_mech_dlg_start</text>
+                <next>1</next>
+            </phrase>
+            <phrase id="1">
+                <text>bq_mech_dlg_show</text>
+                <next>2</next>
+            </phrase>
+            <phrase id="2">
+                <text>bq_mech_dlg_hand_over</text>
+                <next>3</next>
+            </phrase>
+            <phrase id="3">
+                <text>bq_mech_dlg_offer</text>
+                <next>11</next>
+                <next>12</next>
+            </phrase>
+            <phrase id="11">
+                <text>bq_mech_dlg_agree</text>
+                <action>bq_stash_quest.open_suitcase_3</action>
+                <is_final>1</is_final>
+            </phrase>
+            <phrase id="12">
+                <text>bq_mech_dlg_decline</text>
+                <is_final>1</is_final>
+            </phrase>
+        </phrase_list>
+    </dialog>
+
+    <dialog id="bq_mechanic_open_suitcase_3_no_money">
+        <precondition>bq_stash_quest.can_open_suitcase_3_no_money</precondition>
+        <phrase_list>
+            <phrase id="0">
+                <text>bq_mech_dlg_start</text>
+                <next>1</next>
+            </phrase>
+            <phrase id="1">
+                <text>bq_mech_dlg_show</text>
+                <next>2</next>
+            </phrase>
+            <phrase id="2">
+                <text>bq_mech_dlg_hand_over</text>
+                <next>3</next>
+            </phrase>
+            <phrase id="3">
+                <text>bq_mech_dlg_offer</text>
+                <next>11</next>
+            </phrase>
+            <phrase id="11">
+                <text>bq_mech_dlg_no_money</text>
+                <is_final>1</is_final>
+            </phrase>
+        </phrase_list>
+    </dialog>
 </game_dialogs>

@@ -188,5 +188,36 @@
     <string id="bq_mech_dlg_hand_over">
         <text>(hands over the suitcase)</text>
     </string>
+
+    <string id="bq_pda_3_name">
+        <text>Note: 2 of 3</text>
+    </string>
+    <string id="bq_pda_3_descr">
+        <text>Case 2 of 3. To Dark: the third case is hidden at the Emerald. The client is getting nervous. Do not fail.</text>
+    </string>
+    <string id="bq_pda_4_name">
+        <text>Final note</text>
+    </string>
+    <string id="bq_pda_4_descr">
+        <text>Completion. You've found them all, Dark.</text>
+    </string>
+    <string id="bq_suitcase_3_name">
+        <text>Locked suitcase (3 of 3)</text>
+    </string>
+    <string id="bq_suitcase_3_descr">
+        <text>The third case mentioned in the Unknown's notes.</text>
+    </string>
+    <string id="bq_stash_step_5_name">
+        <text>Find the third suitcase</text>
+    </string>
+    <string id="bq_stash_step_5_descr">
+        <text>The note mentions the Emerald. Look for the third suitcase there.</text>
+    </string>
+    <string id="bq_stash_step_6_name">
+        <text>Open the third suitcase</text>
+    </string>
+    <string id="bq_stash_step_6_descr">
+        <text>Take the third suitcase to the mechanic.</text>
+    </string>
 </string_table>
 

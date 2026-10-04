@@ -1045,6 +1045,8 @@
         <actor_dialog>bq_mechanic_open_suitcase_1_no_money</actor_dialog>
         <actor_dialog>bq_mechanic_open_suitcase_2_ok</actor_dialog>
         <actor_dialog>bq_mechanic_open_suitcase_2_no_money</actor_dialog>
+        <actor_dialog>bq_mechanic_open_suitcase_3_ok</actor_dialog>
+        <actor_dialog>bq_mechanic_open_suitcase_3_no_money</actor_dialog>
 
 		<actor_dialog>zat_b3_stalker_tech_produce_62_show</actor_dialog>
 		<actor_dialog>zat_b3_stalker_tech_produce_62_end</actor_dialog>
