@@ -1,35 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <string_table>
-    <string id="bq_item_docs_name">
-        <text>Документы из тайника</text>
-    </string>
-    <string id="bq_item_docs_descr">
-        <text>Документы, которые Борода попросил забрать из тайника на Затоне. Сыч тоже может ими заинтересоваться.</text>
-    </string>
-    <string id="bq_task_name">
-        <text>Поручение Бороды: найти документы</text>
-    </string>
-    <string id="bq_task_descr">
-        <text>Борода попросил забрать документы из тайника на Затоне. Найдите отмеченный ящик и возьмите документы.</text>
-    </string>
-    <string id="bq_deliver_name">
-        <text>Вернуть документы Бороде</text>
-    </string>
-    <string id="bq_deliver_descr">
-        <text>Документы найдены. Отнесите их Бороде на «Скадовск»: он обещал 2000 рублей и снаряжение.</text>
-    </string>
-    <string id="bq_buyer_name">
-        <text>Узнать, кому нужны документы</text>
-    </string>
-    <string id="bq_buyer_descr">
-        <text>С документами можно вернуться к Бороде или поискать другого покупателя. Поговорите с Лоцманом на «Скадовске».</text>
-    </string>
-    <string id="bq_sell_to_sich_name">
-        <text>Продать документы Сычу</text>
-    </string>
-    <string id="bq_sell_to_sich_descr">
-        <text>Лоцман подсказал, что Сыч интересуется документами. Сыч заплатит 5000 рублей, но Борода останется недоволен.</text>
-    </string>
+
+    <!-- =============================================
+         Названия
+    ============================================= -->
+
+    <!-- Персонажи -->
     <string id="bq_hmury_name">
         <text>Хмурый</text>
     </string>
@@ -39,9 +15,153 @@
     <string id="bq_guard_2_name">
         <text>Клык</text>
     </string>
+    <string id="bq_filya_name">
+        <text>Филя</text>
+    </string>
+
+    <!-- Квест Бороды: документы -->
+    <string id="bq_item_docs_name">
+        <text>Документы из тайника</text>
+    </string>
+    <string id="bq_task_name">
+        <text>Поручение Бороды: найти документы</text>
+    </string>
+    <string id="bq_deliver_name">
+        <text>Вернуть документы Бороде</text>
+    </string>
+    <string id="bq_buyer_name">
+        <text>Узнать, кому нужны документы</text>
+    </string>
+    <string id="bq_sell_to_sich_name">
+        <text>Продать документы Сычу</text>
+    </string>
+
+    <!-- Кейсы Неизвестного -->
+    <string id="bq_suitcase_name">
+        <text>Запертый кейс</text>
+    </string>
+    <string id="bq_suitcase_2_name">
+        <text>Запертый кейс</text>
+    </string>
+    <string id="bq_suitcase_3_name">
+        <text>Запертый кейс</text>
+    </string>
+    <string id="bq_pda_1_name">
+        <text>КПК сталкера Фили с недопечатанным сообщением</text>
+    </string>
+    <string id="bq_pda_2_name">
+        <text>КПК из первого тайника</text>
+    </string>
+    <string id="bq_pda_3_name">
+        <text>КПК из второго тайника</text>
+    </string>
+    <string id="bq_pda_4_name">
+        <text>КПК из третьего тайника</text>
+    </string>
+
+    <!-- Задания Неизвестного -->
+    <string id="bq_stash_hunt_name">
+        <text>Найти все кейсы Неизвестного</text>
+    </string>
+    <string id="bq_stash_step_1_name">
+        <text>Найти кейс Неизвестного</text>
+    </string>
+    <string id="bq_stash_step_2_name">
+        <text>Найти способ открыть кейс</text>
+    </string>
+    <string id="bq_stash_step_3_name">
+        <text>Найти второй кейс Неизвестного</text>
+    </string>
+    <string id="bq_stash_step_4_name">
+        <text>Вскрыть второй кейс</text>
+    </string>
+    <string id="bq_stash_step_5_name">
+        <text>Найти третий кейс</text>
+    </string>
+    <string id="bq_stash_step_6_name">
+        <text>Вскрыть третий кейс</text>
+    </string>
+
+    <!-- =============================================
+         Описания
+    ============================================= -->
+
+    <!-- Персонажи -->
+    <string id="bq_filya_bio">
+        <text>Мёртвый сталкер. Похоже, он хотел что-то передать своему знакомому, но не успел.</text>
+    </string>
     <string id="bq_npc_bio">
         <text>Сталкер с Затона, спутник Хмурого.</text>
     </string>
+
+    <!-- Квест Бороды: документы -->
+    <string id="bq_item_docs_descr">
+        <text>Документы, которые Борода попросил забрать из тайника на Затоне. Сыч тоже может ими заинтересоваться.</text>
+    </string>
+    <string id="bq_task_descr">
+        <text>Борода попросил забрать документы из тайника на Затоне. Найдите отмеченный ящик и возьмите документы.</text>
+    </string>
+    <string id="bq_deliver_descr">
+        <text>Документы найдены. Отнесите их Бороде на «Скадовск»: он обещал 2000 рублей и снаряжение.</text>
+    </string>
+    <string id="bq_buyer_descr">
+        <text>С документами можно вернуться к Бороде или поискать другого покупателя. Поговорите с Лоцманом на «Скадовске».</text>
+    </string>
+    <string id="bq_sell_to_sich_descr">
+        <text>Лоцман подсказал, что Сыч интересуется документами. Сыч заплатит 5000 рублей, но Борода останется недоволен.</text>
+    </string>
+
+    <!-- Кейсы Неизвестного -->
+    <string id="bq_suitcase_descr">
+        <text>Небольшой, запертый кейс. Внутри явно что-то тяжёлое. Похоже, без специалиста его не открыть.</text>
+    </string>
+    <string id="bq_suitcase_2_descr">
+        <text>Второй кейс, упомянутый в записке Неизвестного. Первый явно не разочаровал, так что думаю, этот тоже будет полезен.</text>
+    </string>
+    <string id="bq_suitcase_3_descr">
+        <text>Третий кейс, упомянутый в записках Неизвестного. Видимо, он последний. Нужно его вскрыть и узнать, нет ли чего ещё.</text>
+    </string>
+    <string id="bq_pda_1_descr">
+        <text>Твою мать... Не ожидал, что их будет так много... Главное... (кашляет с кровью) Кхх, Кхх... Надеюсь... Тёмный сможет найти его... Хутор... На хуторе...</text>
+    </string>
+    <string id="bq_pda_2_descr">
+        <text>Тёмному: второй кейс лежит на мосте сверху. Думаю, ты помнишь где это. Такое не забывается, ха ха... Заказчик очень ждёт его, так что советую действовать быстрее.</text>
+    </string>
+    <string id="bq_pda_3_descr">
+        <text>Тёмному: третий кейс спрятан у Изумрудного. У сцены припрятал. Заказчик уже нервничает. Не подведи.</text>
+    </string>
+    <string id="bq_pda_4_descr">
+        <text>Тёмному: встречаемся как обычно, на заправке. Туда придут посыльные заказчика.</text>
+    </string>
+
+    <!-- Задания Неизвестного -->
+    <string id="bq_stash_hunt_descr">
+        <text>В предсмертной записке Неизвестного были упомянуты некие тайники. Думаю, стоит найти их все.</text>
+    </string>
+    <string id="bq_stash_step_1_descr">
+        <text>В КПК упоминается хутор. Думаю, он должен быть где-то там.</text>
+    </string>
+    <string id="bq_stash_step_2_descr">
+        <text>Возможно, техник сможет его открыть.</text>
+    </string>
+    <string id="bq_stash_step_3_descr">
+        <text>В записке говорится о каком-то мосте. Также упоминается, что он где-то «наверху».</text>
+    </string>
+    <string id="bq_stash_step_4_descr">
+        <text>Возможно, техник снова сможет его открыть.</text>
+    </string>
+    <string id="bq_stash_step_5_descr">
+        <text>В записке упоминается, что тайник спрятан у сцены на Изумрудном.</text>
+    </string>
+    <string id="bq_stash_step_6_descr">
+        <text>Отнесите третий кейс механику.</text>
+    </string>
+
+    <!-- =============================================
+         Диалоги
+    ============================================= -->
+
+    <!-- Диалог с Бородой: получение задания -->
     <string id="bq_dlg_ask">
         <text>Борода, есть поручение с документами?</text>
     </string>
@@ -51,12 +171,16 @@
     <string id="bq_dlg_agree">
         <text>Договорились. Принесу документы.</text>
     </string>
+
+    <!-- Диалог с Бородой: сдача документов -->
     <string id="bq_dlg_deliver_start">
         <text>Борода, я нашёл твои документы.</text>
     </string>
     <string id="bq_dlg_deliver_confirm">
         <text>Спасибо, выручил. Вот обещанные две тысячи, пистолет, патроны и медикаменты.</text>
     </string>
+
+    <!-- Диалог с Лоцманом: намёк на Сыча -->
     <string id="bq_dlg_guide_ask">
         <text>Лоцман, кому могут понадобиться такие документы?</text>
     </string>
@@ -66,6 +190,8 @@
     <string id="bq_dlg_guide_agree">
         <text>Понял. Подумаю, кому их отдать.</text>
     </string>
+
+    <!-- Диалог с Сычом: продажа документов -->
     <string id="bq_dlg_sich_start">
         <text>Сыч, говорят, тебя интересуют документы.</text>
     </string>
@@ -78,6 +204,8 @@
     <string id="bq_dlg_sich_not_sell">
         <text>Нет, я обещал вернуть их Бороде.</text>
     </string>
+
+    <!-- Диалог с Хмурым -->
     <string id="bq_hmury_dlg_offer_1">
         <text>Постой, сталкер. Я знаю, что у тебя за бумаги. Отдай их мне — получишь две тысячи и уйдёшь спокойно.</text>
     </string>
@@ -106,75 +234,36 @@
         <text>Ты меня за дурака держишь? Тогда заберём силой!</text>
     </string>
 
-    <!-- Филя -->
-    <string id="bq_pda_1_name">
-        <text>КПК неизвестного сталкера</text>
-    </string>
-    <string id="bq_pda_1_descr">
-        <text>Твою мать... Не ожидал, что их будет так много... Главное... (кашляет с кровью) Кхх, Кхх... Надеюсь... Тёмный сможет найти его... Хутор... На хуторе...</text>
-    </string>
-    <string id="bq_pda_2_name">
-        <text>Записка: 1 из 3</text>
-    </string>
-    <string id="bq_pda_2_descr">
-        <text>1 кейс из 3. Тёмному: второй кейс лежит на мосте сверху. Заказчик очень ждёт его, так что советую действовать быстрее.</text>
-    </string>
-    <string id="bq_suitcase_name">
-        <text>Запертый чемодан</text>
-    </string>
-    <string id="bq_suitcase_descr">
-        <text>Тяжёлый запертый чемодан. Похоже, без специалиста его не открыть.</text>
-    </string>
-    <string id="bq_suitcase_2_name">
-        <text>Запертый чемодан (2 из 3)</text>
-    </string>
-    <string id="bq_suitcase_2_descr">
-        <text>Второй кейс, упомянутый в записке Неизвестного.</text>
-    </string>
-    <string id="bq_filya_name">
-        <text>Филя</text>
-    </string>
-    <string id="bq_filya_bio">
-        <text>Мёртвый сталкер. Похоже, не успел.</text>
-    </string>
-    <string id="bq_stash_hunt_name">
-        <text>Найти все тайники Неизвестного</text>
-    </string>
-    <string id="bq_stash_hunt_descr">
-        <text>В предсмертной записке Неизвестного упомянуты тайники. Найдите их все.</text>
-    </string>
-    <string id="bq_stash_step_1_name">
-        <text>Найти чемодан Неизвестного</text>
-    </string>
-    <string id="bq_stash_step_1_descr">
-        <text>В КПК упоминается хутор. Чемодан должен быть где-то на Сгоревшем хуторе.</text>
-    </string>
-    <string id="bq_stash_step_2_name">
-        <text>Найти способ открыть чемодан</text>
-    </string>
-    <string id="bq_stash_step_2_descr">
-        <text>Попросите механика на «Скадовске» вскрыть чемодан. Или продайте его торговцу.</text>
-    </string>
-    <string id="bq_stash_step_3_name">
-        <text>Найти второй чемодан</text>
-    </string>
-    <string id="bq_stash_step_3_descr">
-        <text>В записке говорится о мосте сверху. Ищите второй чемодан на мосту.</text>
-    </string>
-    <string id="bq_stash_step_4_name">
-        <text>Вскрыть второй чемодан</text>
-    </string>
-    <string id="bq_stash_step_4_descr">
-        <text>Отнесите второй чемодан механику.</text>
-    </string>
+    <!-- Диалог с Карданом: вскрытие кейсов -->
     <string id="bq_mech_dlg_start">
-        <text>Привет, я нашел такой кейс, не сможешь его вскрыть?</text>
+        <text>Привет, я нашёл такой кейс, не сможешь его вскрыть?</text>
+    </string>
+    <string id="bq_mech_dlg_start_2">
+        <text>Привет, я снова с кейсом. Не поможешь снова?</text>
+    </string>
+    <string id="bq_mech_dlg_start_3">
+        <text>Привет, я нашёл ещё и третий кейс. Не поможешь ещё раз?</text>
     </string>
     <string id="bq_mech_dlg_show">
-        <text>Ну ка, дай посмотрю...</text>
+        <text>Ну-ка, дай посмотрю...</text>
+    </string>
+    <string id="bq_mech_dlg_show_2">
+        <text>Давай его сюда...</text>
+    </string>
+    <string id="bq_mech_dlg_show_3">
+        <text>Конечно, давай глянем...</text>
+    </string>
+    <string id="bq_mech_dlg_hand_over">
+        <text>(протягивает кейс)</text>
     </string>
     <string id="bq_mech_dlg_offer">
-        <text>Ну, думаю за 2000 я могу его вскрыть.</text>
+        <text>Такс... Думаю, за 2000 я могу его вскрыть.</text>
+    </string>
+    <string id="bq_mech_dlg_offer_2">
+        <text>Хмм, он не особо сложнее предыдущего. За 2000 я могу его вскрыть.</text>
+    </string>
+    <string id="bq_mech_dlg_offer_3">
+        <text>Опа, а что это тут у нас... Знаешь, а этот кейс чуть поинтереснее. Но всё же 2000 — хорошая цена для него.</text>
     </string>
     <string id="bq_mech_dlg_agree">
         <text>Хорошо, по рукам. [-2000 Р]</text>
@@ -185,38 +274,5 @@
     <string id="bq_mech_dlg_no_money">
         <text>У меня пока нет таких денег.</text>
     </string>
-    <string id="bq_mech_dlg_hand_over">
-        <text>(протягивает кейс)</text>
-    </string>
 
-    <string id="bq_pda_3_name">
-        <text>Записка: 2 из 3</text>
-    </string>
-    <string id="bq_pda_3_descr">
-        <text>Кейс 2 из 3. Тёмному: третий кейс спрятан у Изумрудного. Заказчик нервничает. Не подведи.</text>
-    </string>
-    <string id="bq_pda_4_name">
-        <text>Финальная записка</text>
-    </string>
-    <string id="bq_pda_4_descr">
-        <text>Завершение. Ты нашёл их все, Тёмный.</text>
-    </string>
-    <string id="bq_suitcase_3_name">
-        <text>Запертый чемодан (3 из 3)</text>
-    </string>
-    <string id="bq_suitcase_3_descr">
-        <text>Третий кейс, упомянутый в записках Неизвестного.</text>
-    </string>
-    <string id="bq_stash_step_5_name">
-        <text>Найти третий чемодан</text>
-    </string>
-    <string id="bq_stash_step_5_descr">
-        <text>В записке упоминается Изумрудное. Ищите третий чемодан там.</text>
-    </string>
-    <string id="bq_stash_step_6_name">
-        <text>Вскрыть третий чемодан</text>
-    </string>
-    <string id="bq_stash_step_6_descr">
-        <text>Отнесите третий чемодан механику.</text>
-    </string>
 </string_table>

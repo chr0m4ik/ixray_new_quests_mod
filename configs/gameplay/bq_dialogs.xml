@@ -141,6 +141,7 @@
         <dont_has_info>bq_hmury_hostile</dont_has_info>
     </dialog>
 
+
     <!-- Открытие кейсов у Кардана -->
     <dialog id="bq_mechanic_open_suitcase_1_ok">
         <precondition>bq_stash_quest.can_open_suitcase_1_ok</precondition>
@@ -204,11 +205,11 @@
         <precondition>bq_stash_quest.can_open_suitcase_2_ok</precondition>
         <phrase_list>
             <phrase id="0">
-                <text>bq_mech_dlg_start</text>
+                <text>bq_mech_dlg_start_2</text>
                 <next>1</next>
             </phrase>
             <phrase id="1">
-                <text>bq_mech_dlg_show</text>
+                <text>bq_mech_dlg_show_2</text>
                 <next>2</next>
             </phrase>
             <phrase id="2">
@@ -216,7 +217,7 @@
                 <next>3</next>
             </phrase>
             <phrase id="3">
-                <text>bq_mech_dlg_offer</text>
+                <text>bq_mech_dlg_offer_2</text>
                 <next>11</next>
                 <next>12</next>
             </phrase>
@@ -236,11 +237,11 @@
         <precondition>bq_stash_quest.can_open_suitcase_2_no_money</precondition>
         <phrase_list>
             <phrase id="0">
-                <text>bq_mech_dlg_start</text>
+                <text>bq_mech_dlg_start_2</text>
                 <next>1</next>
             </phrase>
             <phrase id="1">
-                <text>bq_mech_dlg_show</text>
+                <text>bq_mech_dlg_show_2</text>
                 <next>2</next>
             </phrase>
             <phrase id="2">
@@ -262,11 +263,11 @@
         <precondition>bq_stash_quest.can_open_suitcase_3_ok</precondition>
         <phrase_list>
             <phrase id="0">
-                <text>bq_mech_dlg_start</text>
+                <text>bq_mech_dlg_start_3</text>
                 <next>1</next>
             </phrase>
             <phrase id="1">
-                <text>bq_mech_dlg_show</text>
+                <text>bq_mech_dlg_show_3</text>
                 <next>2</next>
             </phrase>
             <phrase id="2">
@@ -274,7 +275,7 @@
                 <next>3</next>
             </phrase>
             <phrase id="3">
-                <text>bq_mech_dlg_offer</text>
+                <text>bq_mech_dlg_offer_3</text>
                 <next>11</next>
                 <next>12</next>
             </phrase>
@@ -294,11 +295,11 @@
         <precondition>bq_stash_quest.can_open_suitcase_3_no_money</precondition>
         <phrase_list>
             <phrase id="0">
-                <text>bq_mech_dlg_start</text>
+                <text>bq_mech_dlg_start_3</text>
                 <next>1</next>
             </phrase>
             <phrase id="1">
-                <text>bq_mech_dlg_show</text>
+                <text>bq_mech_dlg_show_3</text>
                 <next>2</next>
             </phrase>
             <phrase id="2">
@@ -306,7 +307,7 @@
                 <next>3</next>
             </phrase>
             <phrase id="3">
-                <text>bq_mech_dlg_offer</text>
+                <text>bq_mech_dlg_offer_3</text>
                 <next>11</next>
             </phrase>
             <phrase id="11">

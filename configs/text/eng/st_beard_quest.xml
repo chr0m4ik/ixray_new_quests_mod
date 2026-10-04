@@ -1,35 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <string_table>
-    <string id="bq_item_docs_name">
-        <text>Documents from the stash</text>
-    </string>
-    <string id="bq_item_docs_descr">
-        <text>Documents Beard asked you to recover on Zaton. Owl may also be interested.</text>
-    </string>
-    <string id="bq_task_name">
-        <text>Beard's errand: find the documents</text>
-    </string>
-    <string id="bq_task_descr">
-        <text>Recover the documents from the marked stash on Zaton.</text>
-    </string>
-    <string id="bq_deliver_name">
-        <text>Return the documents to Beard</text>
-    </string>
-    <string id="bq_deliver_descr">
-        <text>Take the documents to Beard at the Skadovsk. He offered 2000 rubles and equipment.</text>
-    </string>
-    <string id="bq_buyer_name">
-        <text>Find another buyer</text>
-    </string>
-    <string id="bq_buyer_descr">
-        <text>Return to Beard or ask Pilot at the Skadovsk about another buyer.</text>
-    </string>
-    <string id="bq_sell_to_sich_name">
-        <text>Sell the documents to Owl</text>
-    </string>
-    <string id="bq_sell_to_sich_descr">
-        <text>Pilot suggested Owl. Owl offers 5000 rubles, but Beard will be disappointed.</text>
-    </string>
+
+    <!-- =============================================
+         Names
+    ============================================= -->
+
+    <!-- Characters -->
     <string id="bq_hmury_name">
         <text>Gloomy</text>
     </string>
@@ -39,145 +15,258 @@
     <string id="bq_guard_2_name">
         <text>Fang</text>
     </string>
-    <string id="bq_npc_bio">
-        <text>A Zaton stalker travelling with Gloomy.</text>
+    <string id="bq_filya_name">
+        <text>Filya</text>
     </string>
+
+    <!-- Beard's quest: documents -->
+    <string id="bq_item_docs_name">
+        <text>Documents from the stash</text>
+    </string>
+    <string id="bq_task_name">
+        <text>Beard's errand: find the documents</text>
+    </string>
+    <string id="bq_deliver_name">
+        <text>Return the documents to Beard</text>
+    </string>
+    <string id="bq_buyer_name">
+        <text>Find another buyer for the documents</text>
+    </string>
+    <string id="bq_sell_to_sich_name">
+        <text>Sell the documents to Owl</text>
+    </string>
+
+    <!-- Unknown's cases -->
+    <string id="bq_suitcase_name">
+        <text>Locked case</text>
+    </string>
+    <string id="bq_suitcase_2_name">
+        <text>Locked case</text>
+    </string>
+    <string id="bq_suitcase_3_name">
+        <text>Locked case</text>
+    </string>
+    <string id="bq_pda_1_name">
+        <text>Filya's PDA with an unfinished message</text>
+    </string>
+    <string id="bq_pda_2_name">
+        <text>PDA from the first stash</text>
+    </string>
+    <string id="bq_pda_3_name">
+        <text>PDA from the second stash</text>
+    </string>
+    <string id="bq_pda_4_name">
+        <text>PDA from the third stash</text>
+    </string>
+
+    <!-- Unknown's tasks -->
+    <string id="bq_stash_hunt_name">
+        <text>Find all of the Unknown's cases</text>
+    </string>
+    <string id="bq_stash_step_1_name">
+        <text>Find the Unknown's case</text>
+    </string>
+    <string id="bq_stash_step_2_name">
+        <text>Find a way to open the case</text>
+    </string>
+    <string id="bq_stash_step_3_name">
+        <text>Find the Unknown's second case</text>
+    </string>
+    <string id="bq_stash_step_4_name">
+        <text>Open the second case</text>
+    </string>
+    <string id="bq_stash_step_5_name">
+        <text>Find the third case</text>
+    </string>
+    <string id="bq_stash_step_6_name">
+        <text>Open the third case</text>
+    </string>
+
+    <!-- =============================================
+         Descriptions
+    ============================================= -->
+
+    <!-- Characters -->
+    <string id="bq_filya_bio">
+        <text>A dead stalker. Looks like he wanted to pass something to his acquaintance but didn't make it.</text>
+    </string>
+    <string id="bq_npc_bio">
+        <text>A Zaton stalker, a companion of Gloomy.</text>
+    </string>
+
+    <!-- Beard's quest: documents -->
+    <string id="bq_item_docs_descr">
+        <text>Documents Beard asked you to recover from a stash on Zaton. Owl may also be interested.</text>
+    </string>
+    <string id="bq_task_descr">
+        <text>Beard asked you to recover documents from a stash on Zaton. Find the marked box and take the documents.</text>
+    </string>
+    <string id="bq_deliver_descr">
+        <text>The documents are found. Take them to Beard at the Skadovsk: he promised 2000 rubles and equipment.</text>
+    </string>
+    <string id="bq_buyer_descr">
+        <text>You can return the documents to Beard or look for another buyer. Talk to Pilot at the Skadovsk.</text>
+    </string>
+    <string id="bq_sell_to_sich_descr">
+        <text>Pilot suggested that Owl might be interested. Owl will pay 5000 rubles, but Beard will be disappointed.</text>
+    </string>
+
+    <!-- Unknown's cases -->
+    <string id="bq_suitcase_descr">
+        <text>A small locked case. Something heavy is clearly inside. Looks like it can't be opened without a specialist.</text>
+    </string>
+    <string id="bq_suitcase_2_descr">
+        <text>The second case mentioned in the Unknown's note. The first one clearly didn't disappoint, so this one should be useful too.</text>
+    </string>
+    <string id="bq_suitcase_3_descr">
+        <text>The third case mentioned in the Unknown's notes. Apparently, it's the last one. Need to open it and find out if there's anything else.</text>
+    </string>
+    <string id="bq_pda_1_descr">
+        <text>Damn... didn't expect there'd be so many of them... The main thing... (coughs blood) Khh, khh... I hope... Dark can find it... The farm... At the farm...</text>
+    </string>
+    <string id="bq_pda_2_descr">
+        <text>To Dark: the second case is on the bridge above. I think you remember where it is. That kind of thing isn't forgotten, ha ha... The client is waiting for it, so I advise you to hurry.</text>
+    </string>
+    <string id="bq_pda_3_descr">
+        <text>To Dark: the third case is hidden at the Emerald. I hid it by the stage. The client is getting nervous. Don't fail.</text>
+    </string>
+    <string id="bq_pda_4_descr">
+        <text>To Dark: we meet as usual, at the gas station. The client's messengers will come there.</text>
+    </string>
+
+    <!-- Unknown's tasks -->
+    <string id="bq_stash_hunt_descr">
+        <text>The Unknown's dying note mentioned some stashes. I think it's worth finding them all.</text>
+    </string>
+    <string id="bq_stash_step_1_descr">
+        <text>The PDA mentions a farm. I think it should be somewhere there.</text>
+    </string>
+    <string id="bq_stash_step_2_descr">
+        <text>Maybe the technician can open it.</text>
+    </string>
+    <string id="bq_stash_step_3_descr">
+        <text>The note mentions some bridge. It also says it's somewhere "above".</text>
+    </string>
+    <string id="bq_stash_step_4_descr">
+        <text>Maybe the technician can open it again.</text>
+    </string>
+    <string id="bq_stash_step_5_descr">
+        <text>The note mentions that the stash is hidden by the stage at the Emerald.</text>
+    </string>
+    <string id="bq_stash_step_6_descr">
+        <text>Take the third case to the mechanic.</text>
+    </string>
+
+    <!-- =============================================
+         Dialogues
+    ============================================= -->
+
+    <!-- Dialogue with Beard: accepting the task -->
     <string id="bq_dlg_ask">
         <text>Beard, do you have a job involving documents?</text>
     </string>
     <string id="bq_dlg_offer">
-        <text>Recover some documents from a stash on Zaton. Bring them to me for 2000 rubles and some equipment. I will mark the stash on your PDA.</text>
+        <text>There is one thing. A box with documents was hidden on Zaton. Find it and bring the papers to me. I'll pay two thousand and add some equipment. I'll send a mark to your PDA.</text>
     </string>
     <string id="bq_dlg_agree">
-        <text>Deal. I will bring them back.</text>
+        <text>Deal. I'll bring the documents.</text>
     </string>
+
+    <!-- Dialogue with Beard: delivering the documents -->
     <string id="bq_dlg_deliver_start">
         <text>Beard, I found your documents.</text>
     </string>
     <string id="bq_dlg_deliver_confirm">
-        <text>Thanks. Here are your 2000 rubles, a pistol, ammunition and medical supplies.</text>
+        <text>Thanks, you saved me. Here are the promised two thousand, a pistol, ammo, and medical supplies.</text>
     </string>
+
+    <!-- Dialogue with Pilot: hint about Owl -->
     <string id="bq_dlg_guide_ask">
         <text>Pilot, who might want these documents?</text>
     </string>
     <string id="bq_dlg_guide_answer">
-        <text>Try Owl. He pays well for rare documents. You will have to explain yourself to Beard, though.</text>
+        <text>Show them to Owl. He loves rare papers and will probably pay more. But you'll have to explain yourself to Beard afterwards.</text>
     </string>
     <string id="bq_dlg_guide_agree">
-        <text>Understood. I will think about it.</text>
+        <text>Understood. I'll think about who to give them to.</text>
     </string>
+
+    <!-- Dialogue with Owl: selling the documents -->
     <string id="bq_dlg_sich_start">
-        <text>Owl, I heard you are interested in documents.</text>
+        <text>Owl, I hear you're interested in documents.</text>
     </string>
     <string id="bq_dlg_sich_choose">
-        <text>I am. Five thousand for those. Are you selling?</text>
+        <text>I am. Five thousand for these. Decide: are you selling or not?</text>
     </string>
     <string id="bq_dlg_sich_sell">
-        <text>Deal. They are yours.</text>
+        <text>Deal. The documents are yours.</text>
     </string>
     <string id="bq_dlg_sich_not_sell">
-        <text>No. I promised to return them to Beard.</text>
+        <text>No, I promised to return them to Beard.</text>
     </string>
+
+    <!-- Dialogue with Gloomy -->
     <string id="bq_hmury_dlg_offer_1">
-        <text>Hold on, stalker. I know what those papers are. Hand them over for two thousand, and walk away.</text>
+        <text>Hold on, stalker. I know what papers you're carrying. Hand them over — you'll get two thousand and leave in peace.</text>
     </string>
     <string id="bq_hmury_dlg_agree_1">
-        <text>All right. The documents for the money.</text>
+        <text>All right. Take the documents, give me the money.</text>
     </string>
     <string id="bq_hmury_dlg_bargain_1">
-        <text>Two thousand is not enough. Add something.</text>
+        <text>I won't give them up for two thousand. Add something.</text>
     </string>
     <string id="bq_hmury_dlg_attack_1">
-        <text>You are getting nothing. Move aside!</text>
+        <text>You'll get nothing. Step aside!</text>
     </string>
     <string id="bq_hmury_dlg_offer_2">
-        <text>Fine. Two thousand and a Sunrise suit. Final offer.</text>
+        <text>Fine. Two thousand and a Sunrise suit. That's the final offer.</text>
     </string>
     <string id="bq_hmury_dlg_agree_2">
         <text>Deal. Money and armor for the documents.</text>
     </string>
     <string id="bq_hmury_dlg_attack_2">
-        <text>No. I am keeping the documents.</text>
+        <text>No. The documents stay with me.</text>
     </string>
     <string id="bq_hmury_dlg_bargain_2">
-        <text>Still not enough. Offer more.</text>
+        <text>Not enough. Give more.</text>
     </string>
     <string id="bq_hmury_dlg_bargain_2_answer">
-        <text>Do you think I am a fool? We will take them by force!</text>
+        <text>You think I'm a fool? Then we'll take them by force!</text>
     </string>
 
-    <!-- Filya-->
-    <string id="bq_pda_1_name">
-        <text>Unknown stalker's PDA</text>
-    </string>
-    <string id="bq_pda_1_descr">
-        <text>Damn... didn't expect there'd be so many of them... Main thing... (coughs blood) Khh, khh... Hope Dark can find it... The farm... At the farm...</text>
-    </string>
-    <string id="bq_pda_2_name">
-        <text>Note: 1 of 3</text>
-    </string>
-    <string id="bq_pda_2_descr">
-        <text>1 case out of 3. To Dark: the second case is on the bridge above. The client is waiting, so I advise you to hurry.</text>
-    </string>
-    <string id="bq_suitcase_name">
-        <text>Locked suitcase</text>
-    </string>
-    <string id="bq_suitcase_descr">
-        <text>A heavy locked suitcase. Looks like it needs a specialist to open it.</text>
-    </string>
-    <string id="bq_suitcase_2_name">
-        <text>Locked suitcase (2 of 3)</text>
-    </string>
-    <string id="bq_suitcase_2_descr">
-        <text>The second case mentioned in the Unknown's note.</text>
-    </string>
-    <string id="bq_filya_name">
-        <text>Filya</text>
-    </string>
-    <string id="bq_filya_bio">
-        <text>A dead stalker. Looks like he didn't make it.</text>
-    </string>
-    <string id="bq_stash_hunt_name">
-        <text>Find all of the Unknown's stashes</text>
-    </string>
-    <string id="bq_stash_hunt_descr">
-        <text>The Unknown's dying message mentioned several stashes. Find them all.</text>
-    </string>
-    <string id="bq_stash_step_1_name">
-        <text>Find the Unknown's suitcase</text>
-    </string>
-    <string id="bq_stash_step_1_descr">
-        <text>The PDA mentions a farm. The suitcase should be somewhere on the Burnt Farmstead.</text>
-    </string>
-    <string id="bq_stash_step_2_name">
-        <text>Find a way to open the suitcase</text>
-    </string>
-    <string id="bq_stash_step_2_descr">
-        <text>Ask the mechanic at the Skadovsk to open the suitcase. Or sell it to a trader.</text>
-    </string>
-    <string id="bq_stash_step_3_name">
-        <text>Find the second suitcase</text>
-    </string>
-    <string id="bq_stash_step_3_descr">
-        <text>The note mentions a bridge above. Look for the second suitcase on the bridge.</text>
-    </string>
-    <string id="bq_stash_step_4_name">
-        <text>Open the second suitcase</text>
-    </string>
-    <string id="bq_stash_step_4_descr">
-        <text>Take the second suitcase to the mechanic.</text>
-    </string>
+    <!-- Dialogue with Cardan: opening the cases -->
     <string id="bq_mech_dlg_start">
-        <text>Hey, I found this suitcase. Can you open it?</text>
+        <text>Hi, I found a case like this — can you open it?</text>
+    </string>
+    <string id="bq_mech_dlg_start_2">
+        <text>Hi, it's me with a case again. Could you help once more?</text>
+    </string>
+    <string id="bq_mech_dlg_start_3">
+        <text>Hi, I found a third case too. Could you help once more?</text>
     </string>
     <string id="bq_mech_dlg_show">
         <text>Let me have a look...</text>
     </string>
+    <string id="bq_mech_dlg_show_2">
+        <text>Give it here...</text>
+    </string>
+    <string id="bq_mech_dlg_show_3">
+        <text>Sure, let's take a look...</text>
+    </string>
+    <string id="bq_mech_dlg_hand_over">
+        <text>(hands over the case)</text>
+    </string>
     <string id="bq_mech_dlg_offer">
-        <text>Hmm, I think I can open it for 2000.</text>
+        <text>So... I think I can open it for 2000.</text>
+    </string>
+    <string id="bq_mech_dlg_offer_2">
+        <text>Hmm, it's not much harder than the previous one. I can open it for 2000.</text>
+    </string>
+    <string id="bq_mech_dlg_offer_3">
+        <text>Whoa, what do we have here... You know, this case is a bit more interesting. But still, 2000 is a good price for it.</text>
     </string>
     <string id="bq_mech_dlg_agree">
-        <text>Alright, deal. [-2000 RUB]</text>
+        <text>All right, deal. [-2000 RUB]</text>
     </string>
     <string id="bq_mech_dlg_decline">
         <text>I'll think about it.</text>
@@ -185,39 +274,5 @@
     <string id="bq_mech_dlg_no_money">
         <text>I don't have that kind of money right now.</text>
     </string>
-    <string id="bq_mech_dlg_hand_over">
-        <text>(hands over the suitcase)</text>
-    </string>
 
-    <string id="bq_pda_3_name">
-        <text>Note: 2 of 3</text>
-    </string>
-    <string id="bq_pda_3_descr">
-        <text>Case 2 of 3. To Dark: the third case is hidden at the Emerald. The client is getting nervous. Do not fail.</text>
-    </string>
-    <string id="bq_pda_4_name">
-        <text>Final note</text>
-    </string>
-    <string id="bq_pda_4_descr">
-        <text>Completion. You've found them all, Dark.</text>
-    </string>
-    <string id="bq_suitcase_3_name">
-        <text>Locked suitcase (3 of 3)</text>
-    </string>
-    <string id="bq_suitcase_3_descr">
-        <text>The third case mentioned in the Unknown's notes.</text>
-    </string>
-    <string id="bq_stash_step_5_name">
-        <text>Find the third suitcase</text>
-    </string>
-    <string id="bq_stash_step_5_descr">
-        <text>The note mentions the Emerald. Look for the third suitcase there.</text>
-    </string>
-    <string id="bq_stash_step_6_name">
-        <text>Open the third suitcase</text>
-    </string>
-    <string id="bq_stash_step_6_descr">
-        <text>Take the third suitcase to the mechanic.</text>
-    </string>
 </string_table>
-
