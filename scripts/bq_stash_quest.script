@@ -1,11 +1,17 @@
 -- bq_stash_quest.script
--- Quest line: Unknown's stashes (Filya corpse -> 3 suitcases)
+-- Quest line: Unknown's stashes (Filya corpse -> 3 suitcases -> finale)
 
 local CORPSE_SECTION     = "bq_zaton_stalker_filya"
-local CORPSE_POS         = { x = 382, y = 35.5, z = 26.5 }
-local SUITCASE_1_POS     = { x = -21, y = 26.5, z = 321.7 }
-local SUITCASE_2_POS     = { x = 434, y = 43,   z = -177 }
-local SUITCASE_3_POS     = { x = -180.5, y = 8.88, z = 148 }  -- TODO: подставить координаты
+local CORPSE_POS         = { x = 382,  y = 35.5, z = 26.5 }
+local SUITCASE_1_POS     = { x = -21,  y = 26.5, z = 321.7 }
+local SUITCASE_2_POS     = { x = 434,  y = 43,   z = -177 }
+local SUITCASE_3_POS     = { x = -180.5, y = 8.88, z = 148 }
+
+-- Финальная сцена на заправке
+local FINAL_MAJOR_POS    = { x = -163,  y = 22, z = -170   }
+local MERC_1_POS         = { x = -159.5, y = 22, z = -180  }
+local MERC_2_POS         = { x = -173,  y = 22, z = -185   }
+local MERC_3_POS         = { x = -158,  y = 22, z = -164.5 }
 
 local TASK_GLOBAL = "bq_stash_hunt_task"
 local TASK_STEP_1 = "bq_stash_step_1_task"
@@ -14,6 +20,7 @@ local TASK_STEP_3 = "bq_stash_step_3_task"
 local TASK_STEP_4 = "bq_stash_step_4_task"
 local TASK_STEP_5 = "bq_stash_step_5_task"
 local TASK_STEP_6 = "bq_stash_step_6_task"
+local TASK_STEP_7 = "bq_stash_step_7_task"
 
 local callback_backend = nil
 local initialized      = false
@@ -31,10 +38,11 @@ end
 local spawn_suitcase_1
 local spawn_suitcase_3
 local spawn_bridge_suitcase
+local spawn_final_squad
 local remove_corpse
 
 ----------------------------------------------------------------------
--- Спавн предметов без требования AI-сетки.
+-- Спавн предметов без AI-сетки
 ----------------------------------------------------------------------
 
 local function spawn_item_no_ai(section, coords)
@@ -46,24 +54,17 @@ local function spawn_item_no_ai(section, coords)
         dbg("spawn_item_no_ai: section " .. section .. " MISSING")
         return nil
     end
-
     local position = vector():set(coords.x, coords.y, coords.z)
     local lvid = level.vertex_id(position)
     local gvid = db.actor:game_vertex_id()
-
     local se = alife():create(section, position, lvid, gvid)
     if not se then
         dbg("spawn_item_no_ai: alife():create returned nil for " .. section)
         return nil
     end
-
     se:use_ai_locations(false)
-
     local cl = level.object_by_id(se.id)
-    if cl then
-        cl:use_ai_locations(false)
-    end
-
+    if cl then cl:use_ai_locations(false) end
     dbg("spawn_item_no_ai: " .. section .. " id=" .. tostring(se.id)
         .. " lvid=" .. tostring(lvid) .. " gvid=" .. tostring(gvid))
     return se
@@ -99,7 +100,7 @@ local function has_item(section)
 end
 
 ----------------------------------------------------------------------
--- Труп Фили
+-- Филя
 ----------------------------------------------------------------------
 
 local function try_kill_corpse()
@@ -109,10 +110,7 @@ local function try_kill_corpse()
     if not se then return end
     local cl = level.object_by_id(se.id)
     if not cl then return end
-    if cl:alive() then
-        cl:kill(nil)
-        return
-    end
+    if cl:alive() then cl:kill(nil) return end
     db.actor:give_info_portion("bq_corpse_killed")
     dbg("corpse killed")
 end
@@ -139,10 +137,7 @@ local function spawn_corpse()
         return
     end
     local se = bq_state.spawn(CORPSE_SECTION, "filya_id", CORPSE_POS)
-    if not se then
-        dbg("spawn_corpse FAILED")
-        return
-    end
+    if not se then dbg("spawn_corpse FAILED") return end
     dbg("corpse spawned id=" .. tostring(se.id))
     db.actor:give_info_portion("bq_corpse_spawned")
 end
@@ -172,10 +167,7 @@ spawn_suitcase_1 = function()
         dbg("  -> stale info reset")
     end
     local se = spawn_item_no_ai("bq_suitcase", SUITCASE_1_POS)
-    if not se then
-        dbg("  -> FAILED")
-        return
-    end
+    if not se then dbg("  -> FAILED") return end
     bq_state.remember("bq_suitcase", "suitcase_1_id", se)
     db.actor:give_info_portion("bq_suitcase_1_spawned")
     dbg("  -> OK")
@@ -194,10 +186,7 @@ spawn_bridge_suitcase = function()
         dbg("  -> stale info reset")
     end
     local se = spawn_item_no_ai("bq_suitcase_2", SUITCASE_2_POS)
-    if not se then
-        dbg("  -> FAILED")
-        return
-    end
+    if not se then dbg("  -> FAILED") return end
     bq_state.remember("bq_suitcase_2", "suitcase_2_id", se)
     db.actor:give_info_portion("bq_suitcase_2_spawned")
     dbg("  -> OK")
@@ -216,13 +205,82 @@ spawn_suitcase_3 = function()
         dbg("  -> stale info reset")
     end
     local se = spawn_item_no_ai("bq_suitcase_3", SUITCASE_3_POS)
-    if not se then
-        dbg("  -> FAILED")
-        return
-    end
+    if not se then dbg("  -> FAILED") return end
     bq_state.remember("bq_suitcase_3", "suitcase_3_id", se)
     db.actor:give_info_portion("bq_suitcase_3_spawned")
     dbg("  -> OK")
+end
+
+----------------------------------------------------------------------
+-- Финальная сцена: Майор и три наёмника
+----------------------------------------------------------------------
+
+local FINAL_SQUAD = {
+    { section = "bq_zaton_major",         key = "major_id", pos = FINAL_MAJOR_POS },
+    { section = "bq_zaton_merc_corpse_1", key = "merc1_id", pos = MERC_1_POS      },
+    { section = "bq_zaton_merc_corpse_2", key = "merc2_id", pos = MERC_2_POS      },
+    { section = "bq_zaton_merc_corpse_3", key = "merc3_id", pos = MERC_3_POS      },
+}
+
+spawn_final_squad = function()
+    if has_alife_info("bq_final_squad_spawned") then return end
+    if not bq_state.is_zaton() then return end
+    local all_ok = true
+    for _, spec in ipairs(FINAL_SQUAD) do
+        local se = bq_state.find(spec.section, spec.key)
+        if not se then
+            se = bq_state.spawn(spec.section, spec.key, spec.pos)
+        end
+        if se then
+            dbg("final squad: " .. spec.section .. " id=" .. tostring(se.id))
+        else
+            dbg("final squad: FAILED to spawn " .. spec.section)
+            all_ok = false
+        end
+    end
+    if all_ok then
+        db.actor:give_info_portion("bq_final_squad_spawned")
+        dbg("final squad spawned")
+    end
+end
+
+local function try_kill_final_squad()
+    if not has_alife_info("bq_final_squad_spawned") then return end
+    if has_alife_info("bq_final_squad_killed")   then return end
+    local all_dead = true
+    for _, spec in ipairs(FINAL_SQUAD) do
+        local se = bq_state.find(spec.section, spec.key)
+        if not se then
+            all_dead = false
+        else
+            local cl = level.object_by_id(se.id)
+            if cl and cl:alive() then
+                cl:kill(nil)
+                all_dead = false
+            end
+        end
+    end
+    if all_dead then
+        db.actor:give_info_portion("bq_final_squad_killed")
+        dbg("final squad killed")
+    end
+end
+
+local function attach_loot_to_major()
+    if not has_alife_info("bq_final_squad_killed") then return end
+    if has_alife_info("bq_major_loot_spawned")     then return end
+    local se = bq_state.find("bq_zaton_major", "major_id")
+    if not se then return end
+    alife():create("bq_pda_5",
+        se.position, se.m_level_vertex_id, se.m_game_vertex_id, se.id)
+    alife():create("cs_heavy_outfit",
+        se.position, se.m_level_vertex_id, se.m_game_vertex_id, se.id)
+    alife():create("wpn_abakan",
+        se.position, se.m_level_vertex_id, se.m_game_vertex_id, se.id)
+    alife():create_ammo("ammo_5.45x39_fmj",
+        se.position, se.m_level_vertex_id, se.m_game_vertex_id, se.id, 180)
+    db.actor:give_info_portion("bq_major_loot_spawned")
+    dbg("loot attached to Major")
 end
 
 ----------------------------------------------------------------------
@@ -232,7 +290,7 @@ end
 local function check_pda_1()
     if has_alife_info("bq_pda_1_taken") then return end
     if not has_item("bq_pda_1") then return end
-    dbg("check_pda_1: pda detected in inventory")
+    dbg("check_pda_1: pda detected")
     db.actor:give_info_portion("bq_pda_1_taken")
     db.actor:give_info_portion("bq_quest_2_started")
     give_task(TASK_GLOBAL, "bq_stash_hunt_name", "bq_stash_hunt_descr", 5)
@@ -243,7 +301,7 @@ end
 local function check_suitcase_1()
     if has_alife_info("bq_suitcase_taken") then return end
     if not has_item("bq_suitcase") then return end
-    dbg("check_suitcase_1: suitcase detected in inventory")
+    dbg("check_suitcase_1: suitcase detected")
     db.actor:give_info_portion("bq_suitcase_taken")
     set_task_state(TASK_STEP_1, task.completed)
     give_task(TASK_STEP_2, "bq_stash_step_2_name", "bq_stash_step_2_descr", 6)
@@ -266,10 +324,18 @@ local function check_suitcase_3()
     remove_corpse()
 end
 
+local function check_pda_5()
+    if has_alife_info("bq_pda_5_taken") then return end
+    if not has_item("bq_pda_5") then return end
+    dbg("check_pda_5: Major's PDA taken, quest finished")
+    db.actor:give_info_portion("bq_pda_5_taken")
+    set_task_state(TASK_STEP_7, task.completed)
+    set_task_state(TASK_GLOBAL, task.completed)
+end
+
 local function check_suitcase_sold()
     if has_alife_info("bq_suitcase_opened") then return end
 
-    -- Восстановление, если игрок выкупил чемодан обратно.
     if has_alife_info("bq_suitcase_sold") then
         if has_item("bq_suitcase") then
             db.actor:disable_info_portion("bq_suitcase_sold")
@@ -353,7 +419,7 @@ function open_suitcase_1(first_speaker, second_speaker)
     dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "af_eye", 1)
     dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "wpn_fort_snag", 1)
     dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "bq_pda_2", 1)
-    dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "ammo_9x18_fmj", 2)
+    dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "ammo_9x18_fmj", 32)
 
     db.actor:give_info_portion("bq_suitcase_opened")
     dbg("open_suitcase_1 done")
@@ -386,7 +452,7 @@ function open_suitcase_3(first_speaker, second_speaker)
     db.actor:give_money(-2000)
     dialogs.relocate_item_section_from_actor(first_speaker, second_speaker, "bq_suitcase_3", 1)
     dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "wpn_spas12", 1)
-    dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "ammo_12x70_buck", 5)
+    dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "ammo_12x70_buck", 3)
     dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "af_ice", 1)
     dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "bq_pda_4", 1)
 
@@ -420,7 +486,8 @@ local function react_suitcase_opened()
         dbg("react: suitcase 3 opened")
         db.actor:give_info_portion("bq_suitcase_3_reacted")
         set_task_state(TASK_STEP_6, task.completed)
-        set_task_state(TASK_GLOBAL, task.completed)
+        give_task(TASK_STEP_7, "bq_stash_step_7_name", "bq_stash_step_7_descr", 7)
+        spawn_final_squad()
     end
 end
 
@@ -461,7 +528,17 @@ function update()
     check_suitcase_2()
     check_suitcase_3()
     check_suitcase_sold()
+    check_pda_5()
     react_suitcase_opened()
+
+    -- Отложенный спавн финальной сцены на случай загрузки сейва
+    -- с уже вскрытым третьим чемоданом.
+    if has_alife_info("bq_suitcase_3_reacted")
+        and not has_alife_info("bq_final_squad_spawned") then
+        spawn_final_squad()
+    end
+    try_kill_final_squad()
+    attach_loot_to_major()
 end
 
 function on_game_load()

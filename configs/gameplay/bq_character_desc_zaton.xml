@@ -93,4 +93,72 @@
     </supplies>
 
     </specific_character>
+
+    <specific_character id="bq_zaton_major" team_default="1">
+        <name>bq_major_name</name>
+        <icon>ui_inGame2_merc_2</icon>
+        <bio>bq_major_bio</bio>
+        <class>bq_zaton_major</class>
+        <community>killer</community>
+        <terrain_sect>stalker_terrain</terrain_sect>
+        <snd_config>characters_voice\human_03\killer\</snd_config>
+        <rank>55</rank>
+        <reputation>0</reputation>
+        <money min="0" max="0" infinitive="0" />
+        <visual>actors\stalker_merc\stalker_merc_4</visual>
+        <supplies>
+[spawn] \n
+</supplies>
+    </specific_character>
+
+    <specific_character id="bq_zaton_merc_corpse_1" team_default="1">
+        <name>GENERATE_NAME_stalker</name>
+        <icon>ui_inGame2_merc_2</icon>
+        <bio>bq_npc_bio</bio>
+        <class>bq_zaton_merc_corpse_1</class>
+        <community>killer</community>
+        <terrain_sect>stalker_terrain</terrain_sect>
+        <snd_config>characters_voice\human_03\killer\</snd_config>
+        <rank>45</rank>
+        <reputation>0</reputation>
+        <money min="0" max="0" infinitive="0" />
+        <visual>actors\stalker_merc\stalker_merc_2</visual>
+        <supplies>
+[spawn] \n
+</supplies>
+    </specific_character>
+
+    <specific_character id="bq_zaton_merc_corpse_2" team_default="1">
+        <name>GENERATE_NAME_stalker</name>
+        <icon>ui_inGame2_merc_2</icon>
+        <bio>bq_npc_bio</bio>
+        <class>bq_zaton_merc_corpse_2</class>
+        <community>killer</community>
+        <terrain_sect>stalker_terrain</terrain_sect>
+        <snd_config>characters_voice\human_03\killer\</snd_config>
+        <rank>45</rank>
+        <reputation>0</reputation>
+        <money min="0" max="0" infinitive="0" />
+        <visual>actors\stalker_merc\stalker_merc_2</visual>
+        <supplies>
+[spawn] \n
+</supplies>
+    </specific_character>
+
+    <specific_character id="bq_zaton_merc_corpse_3" team_default="1">
+        <name>GENERATE_NAME_stalker</name>
+        <icon>ui_inGame2_merc_2</icon>
+        <bio>bq_npc_bio</bio>
+        <class>bq_zaton_merc_corpse_3</class>
+        <community>killer</community>
+        <terrain_sect>stalker_terrain</terrain_sect>
+        <snd_config>characters_voice\human_03\killer\</snd_config>
+        <rank>45</rank>
+        <reputation>0</reputation>
+        <money min="0" max="0" infinitive="0" />
+        <visual>actors\stalker_merc\stalker_merc_2</visual>
+        <supplies>
+[spawn] \n
+</supplies>
+    </specific_character>
 </xml>

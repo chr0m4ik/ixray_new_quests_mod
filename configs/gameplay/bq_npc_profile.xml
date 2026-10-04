@@ -12,8 +12,26 @@
         <class>bq_zaton_hmury_guard_2</class>
         <specific_character>bq_zaton_hmury_guard_2</specific_character>
     </character>
+
     <character id="bq_zaton_stalker_filya">
         <class>bq_zaton_stalker_filya</class>
         <specific_character>bq_zaton_stalker_filya</specific_character>
+    </character>
+    <character id="bq_zaton_major">
+        <class>bq_zaton_major</class>
+        <specific_character>bq_zaton_major</specific_character>
+    </character>
+    
+    <character id="bq_zaton_merc_corpse_1">
+        <class>bq_zaton_merc_corpse_1</class>
+        <specific_character>bq_zaton_merc_corpse_1</specific_character>
+    </character>
+    <character id="bq_zaton_merc_corpse_2">
+        <class>bq_zaton_merc_corpse_2</class>
+        <specific_character>bq_zaton_merc_corpse_2</specific_character>
+    </character>
+    <character id="bq_zaton_merc_corpse_3">
+        <class>bq_zaton_merc_corpse_3</class>
+        <specific_character>bq_zaton_merc_corpse_3</specific_character>
     </character>
 </xml>
