@@ -1,0 +1,323 @@
+local CORPSE_SECTION     = "bq_zaton_stalker_filya"
+local CORPSE_POS         = { x = 382, y = 35.5, z = 26.5 }     -- Лесничество
+local SUITCASE_1_POS     = { x = -21, y = 26.5, z = 321.7 }    -- Сгоревший хутор
+local SUITCASE_2_POS     = { x = 434, y = 43,   z = -177 }     -- Мост им. Преображенского
+
+local TASK_GLOBAL = "bq_stash_hunt_task"
+local TASK_STEP_1 = "bq_stash_step_1_task"   -- найти первый чемодан
+local TASK_STEP_2 = "bq_stash_step_2_task"   -- открыть чемодан
+local TASK_STEP_3 = "bq_stash_step_3_task"   -- найти второй чемодан
+local TASK_STEP_4 = "bq_stash_step_4_task"   -- открыть второй чемодан
+
+local callback_backend = nil
+local initialized      = false
+local next_update      = 0
+
+----------------------------------------------------------------------
+-- Утилиты
+----------------------------------------------------------------------
+
+local function set_task_state(id, state)
+    if db.actor:get_task(id, true) then db.actor:set_task_state(state, id, 0) end
+end
+
+local function give_task(id, title, description, priority)
+    if db.actor:get_task(id, false) then return end
+    local objective = CGameTask()
+    objective:set_id(id)
+    objective:set_type(task.additional)
+    objective:set_title(game.translate_string(title))
+    objective:set_description(game.translate_string(description))
+    objective:set_priority(priority)
+    objective:set_icon_name("ui_inGame2_Sdelka")
+    objective:add_complete_func("bq_stash_quest.poll_task")
+    db.actor:give_task(objective, 0, true, 0)
+end
+
+local function fail_task(id)
+    if db.actor:get_task(id, true) then db.actor:set_task_state(task.failed, id, 0) end
+end
+
+----------------------------------------------------------------------
+-- Спавн трупа Фили
+----------------------------------------------------------------------
+
+local function try_kill_corpse()
+    if not has_alife_info("bq_corpse_spawned") then return end
+    if has_alife_info("bq_corpse_killed")   then return end
+    local se = bq_state.find(CORPSE_SECTION, "filya_id")
+    if not se then return end
+
+    local cl = level.object_by_id(se.id)
+    if cl then
+        if cl:alive() then
+            cl:kill(nil)
+        end
+        db.actor:give_info_portion("bq_corpse_killed")
+        return
+    end
+    -- Клиентского объекта нет — пробуем обнулить здоровье у серверного.
+    if se.health and se.health > 0 then
+        se.health = 0
+    end
+end
+
+local function spawn_corpse()
+    if has_alife_info("bq_corpse_spawned") then return end
+    if not bq_state.is_zaton() then
+        bq_state.store("bq_stash_pending", true)
+        return
+    end
+    if bq_state.find(CORPSE_SECTION, "filya_id") then
+        db.actor:give_info_portion("bq_corpse_spawned")
+        return
+    end
+    local se = bq_state.spawn(CORPSE_SECTION, "filya_id", CORPSE_POS)
+    if not se then return end
+    db.actor:give_info_portion("bq_corpse_spawned")
+end
+
+local function remove_corpse()
+    if has_alife_info("bq_corpse_removed") then return end
+    local se = bq_state.find(CORPSE_SECTION, "filya_id")
+    if se then
+        alife():release(se, true)
+    end
+    db.actor:give_info_portion("bq_corpse_removed")
+end
+
+----------------------------------------------------------------------
+-- Спавн второго чемодана
+----------------------------------------------------------------------
+
+local function spawn_bridge_suitcase()
+    if has_alife_info("bq_suitcase_2_spawned") then return end
+    if bq_state.find("bq_suitcase_2", "suitcase_2_id") then
+        db.actor:give_info_portion("bq_suitcase_2_spawned")
+        return
+    end
+    local se = bq_state.spawn("bq_suitcase_2", "suitcase_2_id", SUITCASE_2_POS)
+    if not se then return end
+    -- Не проваливаться сквозь AI-сетку
+    if se.use_ai_locations ~= nil then
+        se.use_ai_locations = false
+    end
+    local cl = level.object_by_id(se.id)
+    if cl and cl.use_ai_locations then
+        cl:use_ai_locations(false)
+    end
+    db.actor:give_info_portion("bq_suitcase_2_spawned")
+end
+
+----------------------------------------------------------------------
+-- Отслеживание предметов у актора
+----------------------------------------------------------------------
+
+local function has_item(section)
+    return db.actor and db.actor:object(section) ~= nil
+end
+
+local function check_pda_1()
+    if has_alife_info("bq_pda_1_taken") then return end
+    if not has_item("bq_pda_1") then return end
+    db.actor:give_info_portion("bq_pda_1_taken")
+    db.actor:give_info_portion("bq_quest_2_started")
+    give_task(TASK_GLOBAL, "bq_stash_hunt_name", "bq_stash_hunt_descr", 5)
+    give_task(TASK_STEP_1, "bq_stash_step_1_name", "bq_stash_step_1_descr", 6)
+end
+
+local function check_suitcase_1()
+    if has_alife_info("bq_suitcase_taken") then return end
+    if not has_item("bq_suitcase") then return end
+    db.actor:give_info_portion("bq_suitcase_taken")
+    set_task_state(TASK_STEP_1, task.completed)
+    give_task(TASK_STEP_2, "bq_stash_step_2_name", "bq_stash_step_2_descr", 6)
+end
+
+local function check_suitcase_2()
+    if has_alife_info("bq_suitcase_2_taken") then return end
+    if not has_item("bq_suitcase_2") then return end
+    db.actor:give_info_portion("bq_suitcase_2_taken")
+    set_task_state(TASK_STEP_3, task.completed)
+    give_task(TASK_STEP_4, "bq_stash_step_4_name", "bq_stash_step_4_descr", 6)
+    -- Труп можно убирать — цепочка дошла до второго тайника
+    remove_corpse()
+end
+
+----------------------------------------------------------------------
+-- Проверки для диалогов (mechanic)
+----------------------------------------------------------------------
+
+local function suitcase_in_inventory()
+    return has_item("bq_suitcase") or has_item("bq_suitcase_2")
+end
+
+function can_open_suitcase_1_ok()
+    on_game_start()
+    return has_item("bq_suitcase")
+        and not has_alife_info("bq_suitcase_opened")
+        and db.actor:money() >= 2000
+end
+
+function can_open_suitcase_1_no_money()
+    on_game_start()
+    return has_item("bq_suitcase")
+        and not has_alife_info("bq_suitcase_opened")
+        and db.actor:money() < 2000
+end
+
+function can_open_suitcase_2_ok()
+    on_game_start()
+    return has_item("bq_suitcase_2")
+        and not has_alife_info("bq_suitcase_2_opened")
+        and db.actor:money() >= 2000
+end
+
+function can_open_suitcase_2_no_money()
+    on_game_start()
+    return has_item("bq_suitcase_2")
+        and not has_alife_info("bq_suitcase_2_opened")
+        and db.actor:money() < 2000
+end
+
+----------------------------------------------------------------------
+-- Действия диалога: вскрытие чемодана
+----------------------------------------------------------------------
+
+local function take_money()
+    -- Стандартная функция dialogs умеет снимать деньги с актора
+    dialogs.relocate_money_from_actor(db.actor, db.actor, 2000)
+end
+
+local function do_open_suitcase(first_speaker, second_speaker, section, opened_info, rewards, next_step)
+    if not bq_state.ready() then return end
+    if db.actor:money() < 2000 then return end
+    if not has_item(section) then return end
+    if has_alife_info(opened_info) then return end
+
+    take_money()
+    dialogs.relocate_item_section_from_actor(first_speaker, second_speaker, section, 1)
+
+    for _, r in ipairs(rewards.items or {}) do
+        dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, r[1], r[2])
+    end
+    if rewards.ammo then
+        local a = rewards.ammo
+        -- Патроны выдаём через alife():create_ammo у NPC
+        local npc = bq_state.npc(first_speaker, second_speaker)
+        if npc then
+            alife():create_ammo(a[1], npc.position, npc.m_level_vertex_id,
+                npc.m_game_vertex_id, npc.id, a[2])
+        end
+    end
+
+    db.actor:give_info_portion(opened_info)
+
+    if next_step then next_step() end
+end
+
+function open_suitcase_1(first_speaker, second_speaker)
+    do_open_suitcase(first_speaker, second_speaker,
+        "bq_suitcase", "bq_suitcase_opened",
+        {
+            items = {
+                { "af_eye", 1 },
+                { "wpn_fort_snag", 1 },
+                { "bq_pda_2", 1 },
+            },
+            ammo = { "ammo_9x18_fmj", 32 },
+        },
+        function()
+            set_task_state(TASK_STEP_2, task.completed)
+            give_task(TASK_STEP_3, "bq_stash_step_3_name", "bq_stash_step_3_descr", 6)
+            spawn_bridge_suitcase()
+        end)
+end
+
+function open_suitcase_2(first_speaker, second_speaker)
+    do_open_suitcase(first_speaker, second_speaker,
+        "bq_suitcase_2", "bq_suitcase_2_opened",
+        {
+            items = {
+                { "helm_tactic", 1 },
+                { "af_crystal_flower", 1 },
+            },
+        },
+        function()
+            set_task_state(TASK_STEP_4, task.completed)
+            set_task_state(TASK_GLOBAL, task.completed)
+        end)
+end
+
+----------------------------------------------------------------------
+-- Событие: игрок продал первый чемодан (проверка по исчезновению)
+----------------------------------------------------------------------
+
+local function check_suitcase_sold()
+    if has_alife_info("bq_suitcase_opened") then return end
+    if has_alife_info("bq_suitcase_sold")   then return end
+    if has_alife_info("bq_suitcase_taken") == false then return end
+    if has_item("bq_suitcase") then return end   -- ещё у игрока
+    -- Был взят, сейчас нет, ещё не вскрыт — значит продан или выброшен.
+    db.actor:give_info_portion("bq_suitcase_sold")
+    fail_task(TASK_STEP_2)
+    fail_task(TASK_GLOBAL)
+    remove_corpse()
+end
+
+----------------------------------------------------------------------
+-- Инициализация / апдейт
+----------------------------------------------------------------------
+
+function start()
+    on_game_start()
+    spawn_corpse()
+end
+
+function update()
+    if not bq_state.ready() then return end
+
+    if not initialized then
+        initialized = true
+        if has_alife_info("bq_docs_delivered") or has_alife_info("bq_docs_sold") then
+            spawn_corpse()
+        end
+    end
+
+    -- Отложенный спавн при возвращении на Затон
+    if bq_state.retrieve("bq_stash_pending", false) and bq_state.is_zaton() then
+        bq_state.store("bq_stash_pending", false)
+        spawn_corpse()
+    end
+
+    local now = time_global()
+    if now < next_update then return end
+    next_update = now + 500
+
+    try_kill_corpse()
+    check_pda_1()
+    check_suitcase_1()
+    check_suitcase_sold()
+    check_suitcase_2()
+end
+
+function on_game_load()
+    initialized = false
+    next_update = 0
+end
+
+function on_game_start()
+    local backend = (ixr_framework and ixr_framework.is_module_loaded("ixr_signals")) and ixr_framework or _G
+    if callback_backend == backend then return end
+    RegisterScriptCallback("update", update)
+    RegisterScriptCallback("load", on_game_load)
+    callback_backend = backend
+end
+
+function poll_task()
+    on_game_start()
+    return false
+end
+
+-- Автозагрузка
+on_game_start()

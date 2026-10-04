@@ -105,4 +105,84 @@
     <string id="bq_hmury_dlg_bargain_2_answer">
         <text>Do you think I am a fool? We will take them by force!</text>
     </string>
+
+    <!-- Filya-->
+    <string id="bq_pda_1_name">
+        <text>Unknown stalker's PDA</text>
+    </string>
+    <string id="bq_pda_1_descr">
+        <text>Damn... didn't expect there'd be so many of them... Main thing... (coughs blood) Khh, khh... Hope Dark can find it... The farm... At the farm...</text>
+    </string>
+    <string id="bq_pda_2_name">
+        <text>Note: 1 of 3</text>
+    </string>
+    <string id="bq_pda_2_descr">
+        <text>1 case out of 3. To Dark: the second case is on the bridge above. The client is waiting, so I advise you to hurry.</text>
+    </string>
+    <string id="bq_suitcase_name">
+        <text>Locked suitcase</text>
+    </string>
+    <string id="bq_suitcase_descr">
+        <text>A heavy locked suitcase. Looks like it needs a specialist to open it.</text>
+    </string>
+    <string id="bq_suitcase_2_name">
+        <text>Locked suitcase (2 of 3)</text>
+    </string>
+    <string id="bq_suitcase_2_descr">
+        <text>The second case mentioned in the Unknown's note.</text>
+    </string>
+    <string id="bq_filya_name">
+        <text>Filya</text>
+    </string>
+    <string id="bq_filya_bio">
+        <text>A dead stalker. Looks like he didn't make it.</text>
+    </string>
+    <string id="bq_stash_hunt_name">
+        <text>Find all of the Unknown's stashes</text>
+    </string>
+    <string id="bq_stash_hunt_descr">
+        <text>The Unknown's dying message mentioned several stashes. Find them all.</text>
+    </string>
+    <string id="bq_stash_step_1_name">
+        <text>Find the Unknown's suitcase</text>
+    </string>
+    <string id="bq_stash_step_1_descr">
+        <text>The PDA mentions a farm. The suitcase should be somewhere on the Burnt Farmstead.</text>
+    </string>
+    <string id="bq_stash_step_2_name">
+        <text>Find a way to open the suitcase</text>
+    </string>
+    <string id="bq_stash_step_2_descr">
+        <text>Ask the mechanic at the Skadovsk to open the suitcase. Or sell it to a trader.</text>
+    </string>
+    <string id="bq_stash_step_3_name">
+        <text>Find the second suitcase</text>
+    </string>
+    <string id="bq_stash_step_3_descr">
+        <text>The note mentions a bridge above. Look for the second suitcase on the bridge.</text>
+    </string>
+    <string id="bq_stash_step_4_name">
+        <text>Open the second suitcase</text>
+    </string>
+    <string id="bq_stash_step_4_descr">
+        <text>Take the second suitcase to the mechanic.</text>
+    </string>
+    <string id="bq_mech_dlg_start">
+        <text>Hey, I found this suitcase. Can you open it?</text>
+    </string>
+    <string id="bq_mech_dlg_show">
+        <text>Let me have a look...</text>
+    </string>
+    <string id="bq_mech_dlg_offer">
+        <text>Hmm, I think I can open it for 2000.</text>
+    </string>
+    <string id="bq_mech_dlg_agree">
+        <text>Alright, deal. [-2000 RUB]</text>
+    </string>
+    <string id="bq_mech_dlg_decline">
+        <text>I'll think about it.</text>
+    </string>
+    <string id="bq_mech_dlg_no_money">
+        <text>I don't have that kind of money right now.</text>
+    </string>
 </string_table>

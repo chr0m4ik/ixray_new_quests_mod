@@ -105,4 +105,84 @@
     <string id="bq_hmury_dlg_bargain_2_answer">
         <text>Ты меня за дурака держишь? Тогда заберём силой!</text>
     </string>
+
+    <!-- Филя -->
+    <string id="bq_pda_1_name">
+        <text>КПК неизвестного сталкера</text>
+    </string>
+    <string id="bq_pda_1_descr">
+        <text>Твою мать... Не ожидал, что их будет так много... Главное... (кашляет с кровью) Кхх, Кхх... Надеюсь... Тёмный сможет найти его... Хутор... На хуторе...</text>
+    </string>
+    <string id="bq_pda_2_name">
+        <text>Записка: 1 из 3</text>
+    </string>
+    <string id="bq_pda_2_descr">
+        <text>1 кейс из 3. Тёмному: второй кейс лежит на мосте сверху. Заказчик очень ждёт его, так что советую действовать быстрее.</text>
+    </string>
+    <string id="bq_suitcase_name">
+        <text>Запертый чемодан</text>
+    </string>
+    <string id="bq_suitcase_descr">
+        <text>Тяжёлый запертый чемодан. Похоже, без специалиста его не открыть.</text>
+    </string>
+    <string id="bq_suitcase_2_name">
+        <text>Запертый чемодан (2 из 3)</text>
+    </string>
+    <string id="bq_suitcase_2_descr">
+        <text>Второй кейс, упомянутый в записке Неизвестного.</text>
+    </string>
+    <string id="bq_filya_name">
+        <text>Филя</text>
+    </string>
+    <string id="bq_filya_bio">
+        <text>Мёртвый сталкер. Похоже, не успел.</text>
+    </string>
+    <string id="bq_stash_hunt_name">
+        <text>Найти все тайники Неизвестного</text>
+    </string>
+    <string id="bq_stash_hunt_descr">
+        <text>В предсмертной записке Неизвестного упомянуты тайники. Найдите их все.</text>
+    </string>
+    <string id="bq_stash_step_1_name">
+        <text>Найти чемодан Неизвестного</text>
+    </string>
+    <string id="bq_stash_step_1_descr">
+        <text>В КПК упоминается хутор. Чемодан должен быть где-то на Сгоревшем хуторе.</text>
+    </string>
+    <string id="bq_stash_step_2_name">
+        <text>Найти способ открыть чемодан</text>
+    </string>
+    <string id="bq_stash_step_2_descr">
+        <text>Попросите механика на «Скадовске» вскрыть чемодан. Или продайте его торговцу.</text>
+    </string>
+    <string id="bq_stash_step_3_name">
+        <text>Найти второй чемодан</text>
+    </string>
+    <string id="bq_stash_step_3_descr">
+        <text>В записке говорится о мосте сверху. Ищите второй чемодан на мосту.</text>
+    </string>
+    <string id="bq_stash_step_4_name">
+        <text>Вскрыть второй чемодан</text>
+    </string>
+    <string id="bq_stash_step_4_descr">
+        <text>Отнесите второй чемодан механику.</text>
+    </string>
+    <string id="bq_mech_dlg_start">
+        <text>Привет, я нашел такой кейс, не сможешь его вскрыть?</text>
+    </string>
+    <string id="bq_mech_dlg_show">
+        <text>Ну ка, дай посмотрю...</text>
+    </string>
+    <string id="bq_mech_dlg_offer">
+        <text>Ну, думаю за 2000 я могу его вскрыть.</text>
+    </string>
+    <string id="bq_mech_dlg_agree">
+        <text>Хорошо, по рукам. [-2000 Р]</text>
+    </string>
+    <string id="bq_mech_dlg_decline">
+        <text>Я пока подумаю.</text>
+    </string>
+    <string id="bq_mech_dlg_no_money">
+        <text>У меня пока нет таких денег.</text>
+    </string>
 </string_table>

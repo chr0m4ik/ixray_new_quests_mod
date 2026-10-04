@@ -12,16 +12,19 @@
         <reputation>0</reputation>
         <visual>actors\stalker_bandit\stalker_bandit_3_face_1</visual>
         <money min="500" max="1000" infinitive="0" />
+
         <supplies>
-[spawn] \n
-wpn_ak74u = 1 \n
-ammo_5.45x39_fmj = 3 \n
-medkit = 1 \n
-</supplies>
+        [spawn] \n
+        wpn_ak74u = 1 \n
+        ammo_5.45x39_fmj = 3 \n
+        medkit = 1 \n
+    </supplies>
+    
         <start_dialog>bq_zaton_stalker_hmury_start</start_dialog>
         <actor_dialog>bq_zaton_stalker_hmury_start</actor_dialog>
         <actor_dialog>actor_break_dialog</actor_dialog>
     </specific_character>
+
     <specific_character id="bq_zaton_hmury_guard_1" team_default="1">
         <name>bq_guard_1_name</name>
         <icon>ui_inGame2_bandit_1</icon>
@@ -34,15 +37,18 @@ medkit = 1 \n
         <reputation>0</reputation>
         <visual>actors\stalker_bandit\stalker_bandit_1</visual>
         <money min="500" max="1000" infinitive="0" />
+
         <supplies>
-[spawn] \n
-wpn_ak74u = 1 \n
-ammo_5.45x39_fmj = 3 \n
-medkit = 1 \n
-</supplies>
+        [spawn] \n
+        wpn_ak74u = 1 \n
+        ammo_5.45x39_fmj = 3 \n
+        medkit = 1 \n
+    </supplies>
+
         <start_dialog>hello_dialog</start_dialog>
         <actor_dialog>actor_break_dialog</actor_dialog>
     </specific_character>
+
     <specific_character id="bq_zaton_hmury_guard_2" team_default="1">
         <name>bq_guard_2_name</name>
         <icon>ui_inGame2_bandit_4</icon>
@@ -55,13 +61,37 @@ medkit = 1 \n
         <reputation>0</reputation>
         <visual>actors\stalker_bandit\stalker_bandit_4</visual>
         <money min="500" max="1000" infinitive="0" />
+
         <supplies>
-[spawn] \n
-wpn_ak74 = 1 \n
-ammo_5.45x39_fmj = 3 \n
-medkit = 1 \n
-</supplies>
+        [spawn] \n
+        wpn_ak74 = 1 \n
+        ammo_5.45x39_fmj = 3 \n
+        medkit = 1 \n
+    </supplies>
+
         <start_dialog>hello_dialog</start_dialog>
         <actor_dialog>actor_break_dialog</actor_dialog>
+    </specific_character>
+
+    <specific_character id="bq_zaton_stalker_filya" team_default="1">
+        <name>bq_filya_name</name>
+        <icon>ui_inGame2_neutral_1</icon>
+        <bio>bq_filya_bio</bio>
+        <class>bq_zaton_stalker_filya</class>
+        <community>stalker</community>
+        <terrain_sect>stalker_terrain</terrain_sect>
+        <snd_config>characters_voice\human_01\stalker\</snd_config>
+        <rank>30</rank>
+        <reputation>0</reputation>
+        <money min="0" max="0" infinitive="0" />
+        <visual>actors\stalker_neutral\stalker_neutral_1</visual>
+
+        <supplies>
+        [spawn] \n
+        bq_pda_1 = 1 \n
+        wpn_pm = 1 \n
+        ammo_9x18_fmj = 1 \n
+    </supplies>
+
     </specific_character>
 </xml>

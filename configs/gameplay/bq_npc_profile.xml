@@ -12,4 +12,8 @@
         <class>bq_zaton_hmury_guard_2</class>
         <specific_character>bq_zaton_hmury_guard_2</specific_character>
     </character>
+    <character id="bq_zaton_stalker_filya">
+        <class>bq_zaton_stalker_filya</class>
+        <specific_character>bq_zaton_stalker_filya</specific_character>
+    </character>
 </xml>

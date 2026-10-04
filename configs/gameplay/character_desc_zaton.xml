@@ -1041,6 +1041,11 @@
 
 		<start_dialog>zat_b3_stalker_tech_start</start_dialog>
 
+		<actor_dialog>bq_mechanic_open_suitcase_1_ok</actor_dialog>
+        <actor_dialog>bq_mechanic_open_suitcase_1_no_money</actor_dialog>
+        <actor_dialog>bq_mechanic_open_suitcase_2_ok</actor_dialog>
+        <actor_dialog>bq_mechanic_open_suitcase_2_no_money</actor_dialog>
+
 		<actor_dialog>zat_b3_stalker_tech_produce_62_show</actor_dialog>
 		<actor_dialog>zat_b3_stalker_tech_produce_62_end</actor_dialog>
 		<actor_dialog>zat_b3_stalker_tech_return_access_card</actor_dialog>
