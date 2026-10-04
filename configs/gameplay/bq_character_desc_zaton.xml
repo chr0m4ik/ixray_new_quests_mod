@@ -96,16 +96,16 @@
 
     <specific_character id="bq_zaton_major" team_default="1">
         <name>bq_major_name</name>
-        <icon>ui_inGame2_merc_2</icon>
+        <icon>ui_inGame2_neutral_2_mask</icon>
         <bio>bq_major_bio</bio>
         <class>bq_zaton_major</class>
-        <community>killer</community>
+        <community>stalker</community>
         <terrain_sect>stalker_terrain</terrain_sect>
-        <snd_config>characters_voice\human_03\killer\</snd_config>
+        <snd_config>characters_voice\human_01\stalker\</snd_config>
         <rank>55</rank>
         <reputation>0</reputation>
         <money min="0" max="0" infinitive="0" />
-        <visual>actors\stalker_merc\stalker_merc_4</visual>
+        <visual>actors\stalker_neutral\stalker_neutral_2_mask</visual>
         <supplies>
 [spawn] \n
 </supplies>
@@ -125,6 +125,15 @@
         <visual>actors\stalker_merc\stalker_merc_2</visual>
         <supplies>
 [spawn] \n
+wpn_mp5 \n
+ammo_9x19_pbp = 1 \n
+wpn_beretta \n
+ammo_9x19_fmj = 1 \n
+grenade_rgd5 = 2 \n
+
+#include "gameplay\character_items_nd.xml"
+#include "gameplay\character_food.xml"
+#include "gameplay\character_drugs_3.xml"
 </supplies>
     </specific_character>
 
@@ -142,6 +151,15 @@
         <visual>actors\stalker_merc\stalker_merc_2</visual>
         <supplies>
 [spawn] \n
+wpn_ak74 \n
+ammo_5.45x39_fmj = 1 \n
+wpn_beretta \n
+ammo_9x19_fmj = 1 \n
+grenade_rgd5 = 2 \n
+
+#include "gameplay\character_items_nd.xml"
+#include "gameplay\character_food.xml"
+#include "gameplay\character_drugs_3.xml"
 </supplies>
     </specific_character>
 
@@ -159,6 +177,15 @@
         <visual>actors\stalker_merc\stalker_merc_2</visual>
         <supplies>
 [spawn] \n
+wpn_l85 \n
+ammo_5.56x45_ss190 = 1 \n
+wpn_hpsa \n
+ammo_9x19_fmj = 1 \n
+grenade_rgd5 = 2 \n
+
+#include "gameplay\character_items_nd.xml"
+#include "gameplay\character_food.xml"
+#include "gameplay\character_drugs_3.xml"
 </supplies>
     </specific_character>
 </xml>
