@@ -185,4 +185,8 @@
     <string id="bq_mech_dlg_no_money">
         <text>I don't have that kind of money right now.</text>
     </string>
+    <string id="bq_mech_dlg_hand_over">
+        <text>(hands over the suitcase)</text>
+    </string>
 </string_table>
+

@@ -154,6 +154,10 @@
                 <next>2</next>
             </phrase>
             <phrase id="2">
+                <text>bq_mech_dlg_hand_over</text>
+                <next>3</next>
+            </phrase>
+            <phrase id="3">
                 <text>bq_mech_dlg_offer</text>
                 <next>11</next>
                 <next>12</next>
@@ -182,6 +186,14 @@
                 <next>2</next>
             </phrase>
             <phrase id="2">
+                <text>bq_mech_dlg_hand_over</text>
+                <next>3</next>
+            </phrase>
+            <phrase id="3">
+                <text>bq_mech_dlg_offer</text>
+                <next>11</next>
+            </phrase>
+            <phrase id="11">
                 <text>bq_mech_dlg_no_money</text>
                 <is_final>1</is_final>
             </phrase>
@@ -200,6 +212,10 @@
                 <next>2</next>
             </phrase>
             <phrase id="2">
+                <text>bq_mech_dlg_hand_over</text>
+                <next>3</next>
+            </phrase>
+            <phrase id="3">
                 <text>bq_mech_dlg_offer</text>
                 <next>11</next>
                 <next>12</next>
@@ -228,6 +244,14 @@
                 <next>2</next>
             </phrase>
             <phrase id="2">
+                <text>bq_mech_dlg_hand_over</text>
+                <next>3</next>
+            </phrase>
+            <phrase id="3">
+                <text>bq_mech_dlg_offer</text>
+                <next>11</next>
+            </phrase>
+            <phrase id="11">
                 <text>bq_mech_dlg_no_money</text>
                 <is_final>1</is_final>
             </phrase>

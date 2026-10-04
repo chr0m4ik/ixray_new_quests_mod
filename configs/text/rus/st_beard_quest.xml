@@ -185,4 +185,7 @@
     <string id="bq_mech_dlg_no_money">
         <text>У меня пока нет таких денег.</text>
     </string>
+    <string id="bq_mech_dlg_hand_over">
+        <text>(протягивает кейс)</text>
+    </string>
 </string_table>
