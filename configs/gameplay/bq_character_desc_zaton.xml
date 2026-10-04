@@ -19,7 +19,7 @@
         ammo_5.45x39_fmj = 3 \n
         medkit = 1 \n
     </supplies>
-    
+
         <start_dialog>bq_zaton_stalker_hmury_start</start_dialog>
         <actor_dialog>bq_zaton_stalker_hmury_start</actor_dialog>
         <actor_dialog>actor_break_dialog</actor_dialog>
@@ -88,7 +88,6 @@
 
         <supplies>
         [spawn] \n
-        bq_pda_1 = 1 \n
         wpn_pm = 1 \n
         ammo_9x18_fmj = 1 \n
     </supplies>

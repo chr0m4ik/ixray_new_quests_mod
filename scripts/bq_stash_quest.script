@@ -47,12 +47,23 @@ local function try_kill_corpse()
     if has_alife_info("bq_corpse_killed")   then return end
     local se = bq_state.find(CORPSE_SECTION, "filya_id")
     if not se then return end
-
     local cl = level.object_by_id(se.id)
-    if cl and cl:alive() then
+    if not cl then return end
+    if cl:alive() then
         cl:kill(nil)
-        db.actor:give_info_portion("bq_corpse_killed")
+        return
     end
+    db.actor:give_info_portion("bq_corpse_killed")
+end
+
+local function attach_pda_to_corpse()
+    if not has_alife_info("bq_corpse_killed") then return end
+    if has_alife_info("bq_pda_1_spawned")     then return end
+    local se = bq_state.find(CORPSE_SECTION, "filya_id")
+    if not se then return end
+    alife():create("bq_pda_1",
+        se.position, se.m_level_vertex_id, se.m_game_vertex_id, se.id)
+    db.actor:give_info_portion("bq_pda_1_spawned")
 end
 
 local function spawn_corpse()
@@ -73,9 +84,7 @@ end
 local function remove_corpse()
     if has_alife_info("bq_corpse_removed") then return end
     local se = bq_state.find(CORPSE_SECTION, "filya_id")
-    if se then
-        alife():release(se, true)
-    end
+    if se then alife():release(se, true) end
     db.actor:give_info_portion("bq_corpse_removed")
 end
 
@@ -109,6 +118,7 @@ local function check_pda_1()
     db.actor:give_info_portion("bq_quest_2_started")
     give_task(TASK_GLOBAL, "bq_stash_hunt_name", "bq_stash_hunt_descr", 5)
     give_task(TASK_STEP_1, "bq_stash_step_1_name", "bq_stash_step_1_descr", 6)
+    spawn_suitcase_1()
 end
 
 local function check_suitcase_1()
@@ -244,6 +254,29 @@ local function check_suitcase_sold()
     remove_corpse()
 end
 
+local function spawn_suitcase_1()
+    if has_alife_info("bq_suitcase_1_spawned") then return end
+    if bq_state.find("bq_suitcase", "suitcase_1_id") then
+        db.actor:give_info_portion("bq_suitcase_1_spawned")
+        return
+    end
+    if not bq_state.is_zaton() then return end
+    local se = bq_state.spawn("bq_suitcase", "suitcase_1_id", SUITCASE_1_POS)
+    if not se then return end
+    db.actor:give_info_portion("bq_suitcase_1_spawned")
+end
+
+local function spawn_bridge_suitcase()
+    if has_alife_info("bq_suitcase_2_spawned") then return end
+    if bq_state.find("bq_suitcase_2", "suitcase_2_id") then
+        db.actor:give_info_portion("bq_suitcase_2_spawned")
+        return
+    end
+    local se = bq_state.spawn("bq_suitcase_2", "suitcase_2_id", SUITCASE_2_POS)
+    if not se then return end
+    db.actor:give_info_portion("bq_suitcase_2_spawned")
+end
+
 ----------------------------------------------------------------------
 -- Инициализация / апдейт
 ----------------------------------------------------------------------
@@ -274,6 +307,7 @@ function update()
     next_update = now + 500
 
     try_kill_corpse()
+    attach_pda_to_corpse()
     check_pda_1()
     check_suitcase_1()
     check_suitcase_sold()
