@@ -49,16 +49,9 @@ local function try_kill_corpse()
     if not se then return end
 
     local cl = level.object_by_id(se.id)
-    if cl then
-        if cl:alive() then
-            cl:kill(nil)
-        end
+    if cl and cl:alive() then
+        cl:kill(nil)
         db.actor:give_info_portion("bq_corpse_killed")
-        return
-    end
-    -- Клиентского объекта нет — пробуем обнулить здоровье у серверного.
-    if se.health and se.health > 0 then
-        se.health = 0
     end
 end
 
@@ -98,14 +91,6 @@ local function spawn_bridge_suitcase()
     end
     local se = bq_state.spawn("bq_suitcase_2", "suitcase_2_id", SUITCASE_2_POS)
     if not se then return end
-    -- Не проваливаться сквозь AI-сетку
-    if se.use_ai_locations ~= nil then
-        se.use_ai_locations = false
-    end
-    local cl = level.object_by_id(se.id)
-    if cl and cl.use_ai_locations then
-        cl:use_ai_locations(false)
-    end
     db.actor:give_info_portion("bq_suitcase_2_spawned")
 end
 
@@ -184,18 +169,13 @@ end
 -- Действия диалога: вскрытие чемодана
 ----------------------------------------------------------------------
 
-local function take_money()
-    -- Стандартная функция dialogs умеет снимать деньги с актора
-    dialogs.relocate_money_from_actor(db.actor, db.actor, 2000)
-end
-
 local function do_open_suitcase(first_speaker, second_speaker, section, opened_info, rewards, next_step)
     if not bq_state.ready() then return end
     if db.actor:money() < 2000 then return end
     if not has_item(section) then return end
     if has_alife_info(opened_info) then return end
 
-    take_money()
+    dialogs.relocate_money_to_actor(first_speaker, second_speaker, -2000)
     dialogs.relocate_item_section_from_actor(first_speaker, second_speaker, section, 1)
 
     for _, r in ipairs(rewards.items or {}) do
@@ -203,7 +183,6 @@ local function do_open_suitcase(first_speaker, second_speaker, section, opened_i
     end
     if rewards.ammo then
         local a = rewards.ammo
-        -- Патроны выдаём через alife():create_ammo у NPC
         local npc = bq_state.npc(first_speaker, second_speaker)
         if npc then
             alife():create_ammo(a[1], npc.position, npc.m_level_vertex_id,
