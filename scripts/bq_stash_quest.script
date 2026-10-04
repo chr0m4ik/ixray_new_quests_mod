@@ -1,17 +1,26 @@
+-- bq_stash_quest.script
+-- Quest line: Unknown's stashes (Filya corpse -> 2 suitcases)
+
 local CORPSE_SECTION     = "bq_zaton_stalker_filya"
-local CORPSE_POS         = { x = 382, y = 35.5, z = 26.5 }     -- Лесничество
-local SUITCASE_1_POS     = { x = -21, y = 26.5, z = 321.7 }    -- Сгоревший хутор
-local SUITCASE_2_POS     = { x = 434, y = 43,   z = -177 }     -- Мост им. Преображенского
+local CORPSE_POS         = { x = 382, y = 35.5, z = 26.5 }
+local SUITCASE_1_POS     = { x = -21, y = 26.5, z = 321.7 }
+local SUITCASE_2_POS     = { x = 434, y = 43,   z = -177 }
 
 local TASK_GLOBAL = "bq_stash_hunt_task"
-local TASK_STEP_1 = "bq_stash_step_1_task"   -- найти первый чемодан
-local TASK_STEP_2 = "bq_stash_step_2_task"   -- открыть чемодан
-local TASK_STEP_3 = "bq_stash_step_3_task"   -- найти второй чемодан
-local TASK_STEP_4 = "bq_stash_step_4_task"   -- открыть второй чемодан
+local TASK_STEP_1 = "bq_stash_step_1_task"
+local TASK_STEP_2 = "bq_stash_step_2_task"
+local TASK_STEP_3 = "bq_stash_step_3_task"
+local TASK_STEP_4 = "bq_stash_step_4_task"
 
 local callback_backend = nil
 local initialized      = false
 local next_update      = 0
+
+-- Forward declarations: функции, вызываемые из других функций,
+-- определённых ниже по тексту.
+local spawn_suitcase_1
+local spawn_bridge_suitcase
+local remove_corpse
 
 ----------------------------------------------------------------------
 -- Утилиты
@@ -38,8 +47,12 @@ local function fail_task(id)
     if db.actor:get_task(id, true) then db.actor:set_task_state(task.failed, id, 0) end
 end
 
+local function has_item(section)
+    return db.actor and db.actor:object(section) ~= nil
+end
+
 ----------------------------------------------------------------------
--- Спавн трупа Фили
+-- Труп Фили: спавн, смерть, вложение ПДА
 ----------------------------------------------------------------------
 
 local function try_kill_corpse()
@@ -81,7 +94,7 @@ local function spawn_corpse()
     db.actor:give_info_portion("bq_corpse_spawned")
 end
 
-local function remove_corpse()
+remove_corpse = function()
     if has_alife_info("bq_corpse_removed") then return end
     local se = bq_state.find(CORPSE_SECTION, "filya_id")
     if se then alife():release(se, true) end
@@ -89,10 +102,22 @@ local function remove_corpse()
 end
 
 ----------------------------------------------------------------------
--- Спавн второго чемодана
+-- Спавн чемоданов
 ----------------------------------------------------------------------
 
-local function spawn_bridge_suitcase()
+spawn_suitcase_1 = function()
+    if has_alife_info("bq_suitcase_1_spawned") then return end
+    if bq_state.find("bq_suitcase", "suitcase_1_id") then
+        db.actor:give_info_portion("bq_suitcase_1_spawned")
+        return
+    end
+    if not bq_state.is_zaton() then return end
+    local se = bq_state.spawn("bq_suitcase", "suitcase_1_id", SUITCASE_1_POS)
+    if not se then return end
+    db.actor:give_info_portion("bq_suitcase_1_spawned")
+end
+
+spawn_bridge_suitcase = function()
     if has_alife_info("bq_suitcase_2_spawned") then return end
     if bq_state.find("bq_suitcase_2", "suitcase_2_id") then
         db.actor:give_info_portion("bq_suitcase_2_spawned")
@@ -106,10 +131,6 @@ end
 ----------------------------------------------------------------------
 -- Отслеживание предметов у актора
 ----------------------------------------------------------------------
-
-local function has_item(section)
-    return db.actor and db.actor:object(section) ~= nil
-end
 
 local function check_pda_1()
     if has_alife_info("bq_pda_1_taken") then return end
@@ -135,17 +156,23 @@ local function check_suitcase_2()
     db.actor:give_info_portion("bq_suitcase_2_taken")
     set_task_state(TASK_STEP_3, task.completed)
     give_task(TASK_STEP_4, "bq_stash_step_4_name", "bq_stash_step_4_descr", 6)
-    -- Труп можно убирать — цепочка дошла до второго тайника
+    remove_corpse()
+end
+
+local function check_suitcase_sold()
+    if has_alife_info("bq_suitcase_opened") then return end
+    if has_alife_info("bq_suitcase_sold")   then return end
+    if not has_alife_info("bq_suitcase_taken") then return end
+    if has_item("bq_suitcase") then return end
+    db.actor:give_info_portion("bq_suitcase_sold")
+    fail_task(TASK_STEP_2)
+    fail_task(TASK_GLOBAL)
     remove_corpse()
 end
 
 ----------------------------------------------------------------------
--- Проверки для диалогов (mechanic)
+-- Проверки для диалогов (механик)
 ----------------------------------------------------------------------
-
-local function suitcase_in_inventory()
-    return has_item("bq_suitcase") or has_item("bq_suitcase_2")
-end
 
 function can_open_suitcase_1_ok()
     on_game_start()
@@ -176,7 +203,7 @@ function can_open_suitcase_2_no_money()
 end
 
 ----------------------------------------------------------------------
--- Действия диалога: вскрытие чемодана
+-- Действия диалога
 ----------------------------------------------------------------------
 
 local function do_open_suitcase(first_speaker, second_speaker, section, opened_info, rewards, next_step)
@@ -201,7 +228,6 @@ local function do_open_suitcase(first_speaker, second_speaker, section, opened_i
     end
 
     db.actor:give_info_portion(opened_info)
-
     if next_step then next_step() end
 end
 
@@ -239,45 +265,6 @@ function open_suitcase_2(first_speaker, second_speaker)
 end
 
 ----------------------------------------------------------------------
--- Событие: игрок продал первый чемодан (проверка по исчезновению)
-----------------------------------------------------------------------
-
-local function check_suitcase_sold()
-    if has_alife_info("bq_suitcase_opened") then return end
-    if has_alife_info("bq_suitcase_sold")   then return end
-    if has_alife_info("bq_suitcase_taken") == false then return end
-    if has_item("bq_suitcase") then return end   -- ещё у игрока
-    -- Был взят, сейчас нет, ещё не вскрыт — значит продан или выброшен.
-    db.actor:give_info_portion("bq_suitcase_sold")
-    fail_task(TASK_STEP_2)
-    fail_task(TASK_GLOBAL)
-    remove_corpse()
-end
-
-local function spawn_suitcase_1()
-    if has_alife_info("bq_suitcase_1_spawned") then return end
-    if bq_state.find("bq_suitcase", "suitcase_1_id") then
-        db.actor:give_info_portion("bq_suitcase_1_spawned")
-        return
-    end
-    if not bq_state.is_zaton() then return end
-    local se = bq_state.spawn("bq_suitcase", "suitcase_1_id", SUITCASE_1_POS)
-    if not se then return end
-    db.actor:give_info_portion("bq_suitcase_1_spawned")
-end
-
-local function spawn_bridge_suitcase()
-    if has_alife_info("bq_suitcase_2_spawned") then return end
-    if bq_state.find("bq_suitcase_2", "suitcase_2_id") then
-        db.actor:give_info_portion("bq_suitcase_2_spawned")
-        return
-    end
-    local se = bq_state.spawn("bq_suitcase_2", "suitcase_2_id", SUITCASE_2_POS)
-    if not se then return end
-    db.actor:give_info_portion("bq_suitcase_2_spawned")
-end
-
-----------------------------------------------------------------------
 -- Инициализация / апдейт
 ----------------------------------------------------------------------
 
@@ -296,7 +283,6 @@ function update()
         end
     end
 
-    -- Отложенный спавн при возвращении на Затон
     if bq_state.retrieve("bq_stash_pending", false) and bq_state.is_zaton() then
         bq_state.store("bq_stash_pending", false)
         spawn_corpse()
@@ -332,5 +318,4 @@ function poll_task()
     return false
 end
 
--- Автозагрузка
 on_game_start()
