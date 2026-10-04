@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<string_table>
+    <string id="bq_item_docs_name">
+        <text>Documents from the stash</text>
+    </string>
+    <string id="bq_item_docs_descr">
+        <text>Documents Beard asked you to recover on Zaton. Owl may also be interested.</text>
+    </string>
+    <string id="bq_task_name">
+        <text>Beard's errand: find the documents</text>
+    </string>
+    <string id="bq_task_descr">
+        <text>Recover the documents from the marked stash on Zaton.</text>
+    </string>
+    <string id="bq_deliver_name">
+        <text>Return the documents to Beard</text>
+    </string>
+    <string id="bq_deliver_descr">
+        <text>Take the documents to Beard at the Skadovsk. He offered 2000 rubles and equipment.</text>
+    </string>
+    <string id="bq_buyer_name">
+        <text>Find another buyer</text>
+    </string>
+    <string id="bq_buyer_descr">
+        <text>Return to Beard or ask Pilot at the Skadovsk about another buyer.</text>
+    </string>
+    <string id="bq_sell_to_sich_name">
+        <text>Sell the documents to Owl</text>
+    </string>
+    <string id="bq_sell_to_sich_descr">
+        <text>Pilot suggested Owl. Owl offers 5000 rubles, but Beard will be disappointed.</text>
+    </string>
+    <string id="bq_hmury_name">
+        <text>Gloomy</text>
+    </string>
+    <string id="bq_guard_1_name">
+        <text>Grey</text>
+    </string>
+    <string id="bq_guard_2_name">
+        <text>Fang</text>
+    </string>
+    <string id="bq_npc_bio">
+        <text>A Zaton stalker travelling with Gloomy.</text>
+    </string>
+    <string id="bq_dlg_ask">
+        <text>Beard, do you have a job involving documents?</text>
+    </string>
+    <string id="bq_dlg_offer">
+        <text>Recover some documents from a stash on Zaton. Bring them to me for 2000 rubles and some equipment. I will mark the stash on your PDA.</text>
+    </string>
+    <string id="bq_dlg_agree">
+        <text>Deal. I will bring them back.</text>
+    </string>
+    <string id="bq_dlg_deliver_start">
+        <text>Beard, I found your documents.</text>
+    </string>
+    <string id="bq_dlg_deliver_confirm">
+        <text>Thanks. Here are your 2000 rubles, a pistol, ammunition and medical supplies.</text>
+    </string>
+    <string id="bq_dlg_guide_ask">
+        <text>Pilot, who might want these documents?</text>
+    </string>
+    <string id="bq_dlg_guide_answer">
+        <text>Try Owl. He pays well for rare documents. You will have to explain yourself to Beard, though.</text>
+    </string>
+    <string id="bq_dlg_guide_agree">
+        <text>Understood. I will think about it.</text>
+    </string>
+    <string id="bq_dlg_sich_start">
+        <text>Owl, I heard you are interested in documents.</text>
+    </string>
+    <string id="bq_dlg_sich_choose">
+        <text>I am. Five thousand for those. Are you selling?</text>
+    </string>
+    <string id="bq_dlg_sich_sell">
+        <text>Deal. They are yours.</text>
+    </string>
+    <string id="bq_dlg_sich_not_sell">
+        <text>No. I promised to return them to Beard.</text>
+    </string>
+    <string id="bq_hmury_dlg_offer_1">
+        <text>Hold on, stalker. I know what those papers are. Hand them over for two thousand, and walk away.</text>
+    </string>
+    <string id="bq_hmury_dlg_agree_1">
+        <text>All right. The documents for the money.</text>
+    </string>
+    <string id="bq_hmury_dlg_bargain_1">
+        <text>Two thousand is not enough. Add something.</text>
+    </string>
+    <string id="bq_hmury_dlg_attack_1">
+        <text>You are getting nothing. Move aside!</text>
+    </string>
+    <string id="bq_hmury_dlg_offer_2">
+        <text>Fine. Two thousand and a Sunrise suit. Final offer.</text>
+    </string>
+    <string id="bq_hmury_dlg_agree_2">
+        <text>Deal. Money and armor for the documents.</text>
+    </string>
+    <string id="bq_hmury_dlg_attack_2">
+        <text>No. I am keeping the documents.</text>
+    </string>
+    <string id="bq_hmury_dlg_bargain_2">
+        <text>Still not enough. Offer more.</text>
+    </string>
+    <string id="bq_hmury_dlg_bargain_2_answer">
+        <text>Do you think I am a fool? We will take them by force!</text>
+    </string>
+</string_table>

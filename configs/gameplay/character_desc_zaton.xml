@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding="windows-1251"?>
+<?xml version='1.0' encoding="UTF-8"?>
 
 <xml>
 	<specific_character id="zat_b30_owl_stalker_trader" team_default="1">
@@ -6,7 +6,7 @@
 		<icon>ui_inGame2_Sich</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b30_owl_stalker_trader</class>
 		<community>stalker</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -31,9 +31,6 @@
 #include "gameplay\character_criticals_4.xml"
 
 		<start_dialog>zat_b30_owl_stalker_trader_start_dialog</start_dialog>
-
-		<actor_dialog>bq_sich_buy_docs</actor_dialog>
-
 		<actor_dialog>zat_b30_owl_stalker_trader_choose_task</actor_dialog>
 		<actor_dialog>zat_b30_owl_stalker_trader_sell_items</actor_dialog>
 		<actor_dialog>zat_b30_owl_stalker_trader_buy_info</actor_dialog>
@@ -44,14 +41,16 @@
 
 		<actor_dialog>actor_break_dialog</actor_dialog>
 
-	</specific_character>
+	
+        <actor_dialog>bq_sich_buy_docs</actor_dialog>
+    </specific_character>
 
 	<specific_character id="zat_b106_stalker_gonta" team_default="1">
 		<name>st_zat_b106_stalker_gonta_name</name>
 		<icon>ui_inGame2_Gonta</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b106_stalker_gonta</class>
 		<community>stalker</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -102,7 +101,7 @@
 		<icon>ui_inGame2_neutral_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b106_stalker_garmata</class>
 		<community>stalker</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -140,7 +139,7 @@
 		<icon>ui_inGame2_neutral_2_mask</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b106_stalker_crab</class>
 		<community>stalker</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -177,7 +176,7 @@
 		<icon>ui_inGame2_neutral_1</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b14_stalker_1</class>
 		<community>stalker</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -209,7 +208,7 @@
 		<icon>ui_inGame2_neutral_1</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_a2_stalker_nimble</class>
 		<community>stalker</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -249,7 +248,7 @@
 		<icon>ui_inGame2_Gluhar</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b38_stalker_cop</class>
 		<community>stalker</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -291,7 +290,7 @@
 		<icon>ui_inGame2_Gluhar</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b38_stalker_cop_dead</class>
 		<community>stalker</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -319,7 +318,7 @@
 		<icon>ui_inGame2_neutral_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b38_stalker_hunter</class>
 		<community>stalker</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -338,13 +337,13 @@
 #include "gameplay\character_dialogs.xml"
         </specific_character>
 
-	<!--торговец Долга-->
+	<!--С‚РѕСЂРіРѕРІРµС† Р”РѕР»РіР°-->
 	<specific_character id="zat_b7_duty_illicit_dealer" team_default="1">
 		<name>st_zat_b7_duty_illicit_dealer_name</name>
 		<icon>ui_inGame2_Dolg_4</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b7_duty_illicit_dealer</class>
 		<community>dolg</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -382,7 +381,7 @@
 		<icon>ui_inGame2_merc_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b5_dealer_assistant_1</class>
 		<community>killer</community>
@@ -415,7 +414,7 @@
 		<icon>ui_inGame2_merc_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b5_dealer_assistant_2</class>
 		<community>killer</community>
@@ -443,13 +442,13 @@
 #include "gameplay\character_dialogs.xml"
   </specific_character>
 
-	<!--бандиты-->
+	<!--Р±Р°РЅРґРёС‚С‹-->
 	<specific_character id="zat_b5_stalker_raider_1" team_default="1">
 		<name>GENERATE_NAME_bandit</name>
 		<icon>ui_inGame2_bandit_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b5_stalker_raider_1</class>
 		<community>bandit</community>
@@ -482,7 +481,7 @@
 		<icon>ui_inGame2_bandit_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b5_stalker_raider_2</class>
 		<community>bandit</community>
@@ -515,7 +514,7 @@
 		<icon>ui_inGame2_bandit_1</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b5_stalker_raider_3</class>
 		<community>bandit</community>
@@ -547,7 +546,7 @@
 		<icon>ui_inGame2_bandit_1</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b5_stalker_raider_4</class>
 		<community>bandit</community>
@@ -574,13 +573,13 @@
 #include "gameplay\character_dialogs.xml"
   	</specific_character>
 
-	<!--бандит Кастет-->
+	<!--Р±Р°РЅРґРёС‚ РљР°СЃС‚РµС‚-->
 	<specific_character id="zat_b5_stalker_raider_leader" team_default="1">
 		<name>st_zat_b7_stalker_raider_leader</name>
 		<icon>ui_inGame2_bandit_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b5_stalker_raider_leader</class>
 		<community>bandit</community>
@@ -614,7 +613,7 @@
 		<icon>ui_inGame2_bandit_4</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b7_bandit_boss_dead</class>
 		<community>bandit</community>
@@ -643,13 +642,13 @@
 
 	</specific_character>
 
-	<!--бандит Султан_fake-->
+	<!--Р±Р°РЅРґРёС‚ РЎСѓР»С‚Р°РЅ_fake-->
 	<specific_character id="zat_b7_bandit_boss_sultan" team_default="1">
 		<name>st_zat_b7_bandit_boss_sultan_name</name>
 		<icon>ui_inGame2_Sultan</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b7_bandit_boss_sultan</class>
 		<community>bandit</community>
@@ -690,13 +689,13 @@
 
 	</specific_character>
 
-	<!--командир сталкеров-->
+	<!--РєРѕРјР°РЅРґРёСЂ СЃС‚Р°Р»РєРµСЂРѕРІ-->
 	<specific_character id="zat_b5_stalker_commander" team_default="1">
 		<name>GENERATE_NAME_stalker</name>
 		<icon>ui_inGame2_neutral_2_mask</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b5_stalker_commander</class>
 		<community>stalker</community>
@@ -732,7 +731,7 @@
 		<icon>ui_inGame2_neutral_2_mask</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b5_stalker_commander_b7</class>
 		<community>stalker</community>
@@ -769,7 +768,7 @@
 		<icon>ui_inGame2_neutral_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b5_stalker_1</class>
 		<community>stalker</community>
@@ -802,7 +801,7 @@
 		<icon>ui_inGame2_neutral_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b5_stalker_2</class>
 		<community>stalker</community>
@@ -836,7 +835,7 @@
 		<icon>ui_inGame2_neutral_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b5_stalker_3</class>
 		<community>stalker</community>
@@ -871,7 +870,7 @@
 		<icon>ui_inGame2_neutral_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b5_stalker_4</class>
 		<community>stalker</community>
@@ -900,13 +899,13 @@
 #include "gameplay\character_dialogs.xml"
 	</specific_character>
 
-	<!-- Бармен на базе сталкеров -->
+	<!-- Р‘Р°СЂРјРµРЅ РЅР° Р±Р°Р·Рµ СЃС‚Р°Р»РєРµСЂРѕРІ -->
 	<specific_character id="zat_a2_stalker_barmen" team_default="1">
 		<name>zat_a2_stalker_barmen_name</name>
 		<icon>ui_inGame2_Boroda</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_a2_stalker_barmen</class>
 		<community>stalker</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -953,10 +952,6 @@
 		<actor_dialog>zat_a2_stalker_barmen_b30_compass_revert_dialog</actor_dialog>
 		<actor_dialog>zat_a2_stalker_barmen_b30_take_business_actor_dialog</actor_dialog>
 		<actor_dialog>zat_a2_stalker_barmen_army</actor_dialog>
-
-		<actor_dialog>bq_beard_start</actor_dialog>
-		<actor_dialog>bq_beard_deliver</actor_dialog>
-
 		<actor_dialog>zat_a2_stalker_barmen_about_sci_guards</actor_dialog>
 		<actor_dialog>zat_a2_stalker_barmen_about_sci_helpers</actor_dialog>
 		<actor_dialog>zat_a2_stalker_barmen_b30_about_halfart_jup_b1</actor_dialog>
@@ -971,15 +966,18 @@
 
 		<actor_dialog>actor_break_dialog</actor_dialog>
 
-	</specific_character>
+	
+        <actor_dialog>bq_beard_start</actor_dialog>
+        <actor_dialog>bq_beard_deliver</actor_dialog>
+    </specific_character>
 
-	<!-- Медик-вампир -->
+	<!-- РњРµРґРёРє-РІР°РјРїРёСЂ -->
 	<specific_character id="zat_b22_stalker_medic" team_default="1">
 		<name>zat_b22_stalker_medic_name</name>
 		<icon>ui_inGame2_Tremor</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b22_stalker_medic</class>
 		<community>stalker</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -1011,13 +1009,13 @@
 
 	</specific_character>
 
-	<!-- Техник на базе сталкеров -->
+	<!-- РўРµС…РЅРёРє РЅР° Р±Р°Р·Рµ СЃС‚Р°Р»РєРµСЂРѕРІ -->
 	<specific_character id="zat_a2_stalker_mechanic" team_default="1">
 		<name>zat_a2_stalker_mechanic_name</name>
 		<icon>ui_inGame2_Kardan</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_a2_stalker_mechanic</class>
 		<community>stalker</community>
 		<mechanic_mode>1</mechanic_mode>
@@ -1068,14 +1066,14 @@
 	</specific_character>
 
 
-	<!-- Восемь наемников из заблудившегося отряда -->
+	<!-- Р’РѕСЃРµРјСЊ РЅР°РµРјРЅРёРєРѕРІ РёР· Р·Р°Р±Р»СѓРґРёРІС€РµРіРѕСЃСЏ РѕС‚СЂСЏРґР° -->
 
 	<specific_character id="zat_b103_lost_merc_leader" team_default="1">
 		<name>zat_b103_lost_merc_leader_name</name>
 		<icon>ui_inGame2_merc_4</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b103_lost_merc_leader</class>
 		<community>killer</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -1116,7 +1114,7 @@
 		<icon>ui_inGame2_merc_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b103_lost_merc_1</class>
 		<community>killer</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -1144,7 +1142,7 @@
 		<icon>ui_inGame2_merc_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b103_lost_merc_2</class>
 		<community>killer</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -1173,7 +1171,7 @@
 		<icon>ui_inGame2_merc_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b103_lost_merc_3</class>
 		<community>killer</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -1202,7 +1200,7 @@
 		<icon>ui_inGame2_merc_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b103_lost_merc_4</class>
 		<community>killer</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -1229,7 +1227,7 @@
 		<icon>ui_inGame2_merc_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b103_lost_merc_5</class>
 		<community>killer</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -1257,7 +1255,7 @@
 		<icon>ui_inGame2_merc_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b103_lost_merc_6</class>
 		<community>killer</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -1284,7 +1282,7 @@
 		<icon>ui_inGame2_merc_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b103_lost_merc_7</class>
 		<community>killer</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -1313,7 +1311,7 @@
 		<icon>ui_inGame2_bandit_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b7_stalker_raider_leader</class>
 		<community>stalker</community>
@@ -1355,7 +1353,7 @@
 		<icon>ui_inGame2_bandit_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b7_stalker_raider_1</class>
     	<community>stalker</community> 
@@ -1390,7 +1388,7 @@
 		<icon>ui_inGame2_bandit_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b7_stalker_raider_2</class>
     	<community>stalker</community> 
@@ -1426,7 +1424,7 @@
 		<icon>ui_inGame2_bandit_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b7_stalker_raider_3</class>
     	<community>stalker</community> 
@@ -1461,7 +1459,7 @@
 		<icon>ui_inGame2_neutral_2_mask</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b7_stalker_victim_1</class>
 		<community>stalker</community>
@@ -1507,7 +1505,7 @@
 		<icon>ui_inGame2_neutral_1</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b33_stalker_snag</class>
 		<community>stalker</community>
@@ -1540,14 +1538,15 @@
 		<actor_dialog>actor_break_dialog</actor_dialog>
 
 	</specific_character>
-	<!------------------------------ Zaton B42 -------------------------------->
+
+	<!--- Zaton B42 -->
 
 	<specific_character id="zat_b42_mayron" team_default="1">
 		<name>zat_b42_mayron_name</name>
 		<icon>ui_inGame2_neutral_1</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b42_mayron</class>
 		<community>stalker</community>
@@ -1566,14 +1565,14 @@
   </specific_character>
 
 
-	<!------------------------------ Zaton B28 -------------------------------->
+	<!--- Zaton B28 -->
 
 	<specific_character id="zat_b28_draper" team_default="1">
 		<name>zat_b28_draper_name</name>
 		<icon>ui_inGame2_Soldier_3</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b28_draper</class>
 		<community>army</community>
@@ -1605,7 +1604,7 @@
 		<icon>ui_inGame2_Soldier_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b28_umerov</class>
 		<community>army</community>
@@ -1637,7 +1636,7 @@
 		<icon>ui_inGame2_Soldier_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b28_smoliak</class>
 		<community>army</community>
@@ -1664,14 +1663,14 @@
 #include "gameplay\character_criticals_4.xml"
   </specific_character>
 
-	<!------------------------------ Zaton B29 -------------------------------->
+	<!--- Zaton B29 -->
 
 	<specific_character id="zat_b29_stalker_rival_1" team_default="1">
 		<name>st_zat_b29_stalker_rival_1</name>
 		<icon>ui_inGame2_neutral_nauchniy</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b29_stalker_rival_1</class>
 		<community>stalker</community>
@@ -1711,7 +1710,7 @@
 		<icon>ui_inGame2_neutral_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b29_stalker_rival_2</class>
 		<community>stalker</community>
@@ -1752,7 +1751,7 @@
 		<icon>ui_inGame2_neutral_2_mask</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b29_stalker_rival_default_1</class>
 		<community>stalker</community>
@@ -1791,7 +1790,7 @@
 		<icon>ui_inGame2_neutral_2_mask</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b29_stalker_rival_default_2</class>
 		<community>stalker</community>
@@ -1830,7 +1829,7 @@
 		<icon>ui_inGame2_Noy</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b18_noah</class>
 		<community>stalker</community>
@@ -1875,7 +1874,7 @@
 		<icon>ui_inGame2_bandit_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b52_port_bandit_leader</class>
 		<community>bandit</community>
@@ -1904,13 +1903,13 @@
 #include "gameplay\character_dialogs.xml"
   	</specific_character>
 
-	<!------------------- B 215 ---------------------->
+	<!--- B 215 -->
 	<specific_character id="zat_b215_stalker_guide" team_default="1">
 		<name>zat_b215_stalker_guide_name</name>
 		<icon>ui_inGame2_Lotsman</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 		<class>zat_b215_stalker_guide</class>
 		<community>stalker</community>
 		<terrain_sect>stalker_terrain</terrain_sect>
@@ -1935,7 +1934,6 @@
 
 		<start_dialog>zat_b215_stalker_guide_start</start_dialog>
 
-		<actor_dialog>bq_guide_hint</actor_dialog>
 		<actor_dialog>zat_b215_stalker_guide_leave_zone</actor_dialog>
 		<actor_dialog>zat_b215_stalker_guide_maps</actor_dialog>
 		<actor_dialog>zat_b215_stalker_guide_to_pripyat_no_way</actor_dialog>
@@ -1949,15 +1947,17 @@
 
 		<actor_dialog>actor_break_dialog</actor_dialog>
 
-	</specific_character>
+	
+        <actor_dialog>bq_guide_hint</actor_dialog>
+    </specific_character>
 
-	<!---------------------- B40 ---------------------------------------->
+	<!--- B40 -->
 	<specific_character id="zat_b40_merc_squad_leader_1" team_default="1">
 		<name>zat_b40_merc_squad_leader_1_name</name>
 		<icon>ui_inGame2_merc_4</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b40_merc_squad_leader_1</class>
 		<community>killer</community>
@@ -1993,7 +1993,7 @@
 		<icon>ui_inGame2_merc_4</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b40_merc_squad_leader_2</class>
 		<community>killer</community>
@@ -2028,7 +2028,7 @@
 		<icon>ui_inGame2_Noy</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b20_noah_teleport</class>
 		<community>stalker</community>
@@ -2060,13 +2060,13 @@
 #include "gameplay\character_criticals_4.xml"
   </specific_character>
 
-	<!--------------------b44-------------------------------------->
+	<!---b44-->
 	<specific_character id="zat_b44_stalker_barge" team_default="1">
 		<name>zat_b44_stalker_barge_name</name>
 		<icon>ui_inGame2_neutral_2_mask</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b44_stalker_barge</class>
 		<community>stalker</community>
@@ -2096,14 +2096,14 @@
   </specific_character>
 
 
-	<!-------------------- b53 -------------------------------------->
-	<!-------------- zat_b53_artefact_hunter_1 ---------------------->
+	<!--- b53 -->
+	<!--- zat_b53_artefact_hunter_1 -->
 	<specific_character id="zat_b53_artefact_hunter_1" team_default="1">
 		<name>zat_b53_artefact_hunter_1_name</name>
 		<icon>ui_inGame2_neutral_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b53_artefact_hunter_1</class>
 		<community>stalker</community>
@@ -2132,13 +2132,13 @@
 #include "gameplay\character_dialogs_no_guide.xml"
   </specific_character>
 
-	<!-------------- zat_b53_artefact_hunter_2 ---------------------->
+	<!--- zat_b53_artefact_hunter_2 -->
 	<specific_character id="zat_b53_artefact_hunter_2" team_default="1">
 		<name>zat_b53_artefact_hunter_2_name</name>
 		<icon>ui_inGame2_neutral_1</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b53_artefact_hunter_2</class>
 		<community>stalker</community>
@@ -2172,7 +2172,7 @@
     <name>GENERATE_NAME_stalker</name>
     <icon>ui_inGame2_neutral_1</icon>
     <map_icon x="1" y="0"></map_icon>
-    <bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+    <bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
     <class>zat_b38_stalker_corpse_1</class>
     <community>stalker</community> 
 	<terrain_sect>stalker_terrain</terrain_sect>
@@ -2199,7 +2199,7 @@
     <name>GENERATE_NAME_stalker</name>
     <icon>ui_inGame2_neutral_2</icon>
     <map_icon x="1" y="0"></map_icon>
-    <bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+    <bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
     <class>zat_b38_stalker_corpse_2</class>
     <community>stalker</community> <terrain_sect>stalker_terrain</terrain_sect>
     <snd_config>characters_voice\human_02\stalker\</snd_config>
@@ -2226,7 +2226,7 @@
     <name>GENERATE_NAME_stalker</name>
     <icon>ui_inGame2_neutral_3</icon>
     <map_icon x="1" y="0"></map_icon>
-    <bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+    <bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
     <class>zat_b38_stalker_corpse_3</class>
     <community>stalker</community> <terrain_sect>stalker_terrain</terrain_sect>
     <snd_config>characters_voice\human_03\stalker\</snd_config>
@@ -2254,7 +2254,7 @@
 		<icon>ui_inGame2_Soldier_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b100_military_1</class>
 		<community>army</community>
@@ -2285,7 +2285,7 @@
 		<icon>ui_inGame2_Soldier_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b100_military_2</class>
 		<community>army</community>
@@ -2317,7 +2317,7 @@
 		<icon>ui_inGame2_Soldier_2</icon>
 		<map_icon x="1" y="0">
 		</map_icon>
-		<bio>Опытный сталкер. Детальная информация отсутствует.</bio>
+		<bio>РћРїС‹С‚РЅС‹Р№ СЃС‚Р°Р»РєРµСЂ. Р”РµС‚Р°Р»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</bio>
 
 		<class>zat_b100_military_3</class>
 		<community>army</community>

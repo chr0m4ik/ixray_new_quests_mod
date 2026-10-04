@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<game_information_portions>
+    <info_portion id="bq_quest_started" />
+    <info_portion id="bq_documents_taken" />
+    <info_portion id="bq_deliver_task" />
+    <info_portion id="bq_buyer_task" />
+    <info_portion id="bq_docs_delivered" />
+    <info_portion id="bq_docs_sold" />
+    <info_portion id="bq_beard_grateful" />
+    <info_portion id="bq_beard_angry" />
+    <info_portion id="bq_beard_angry_seen" />
+    <info_portion id="bq_sich_hint_given" />
+    <info_portion id="bq_hmury_dialog_ready" />
+    <info_portion id="bq_hmury_spawned" />
+    <info_portion id="bq_docs_given_to_hmury" />
+    <info_portion id="bq_docs_recovered" />
+    <info_portion id="bq_stash_spawned" />
+    <info_portion id="bq_hmury_hostile" />
+    <info_portion id="bq_cleanup_pending" />
+</game_information_portions>

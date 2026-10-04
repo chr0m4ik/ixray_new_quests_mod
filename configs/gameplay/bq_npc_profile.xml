@@ -1,12 +1,15 @@
-<?xml version='1.0' encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <xml>
-	<character id="bq_zaton_stalker_hmury">
-		<class>bq_zaton_stalker_hmury</class>
-	</character>
-	<character id="bq_zaton_hmury_guard_1">
-		<class>bq_zaton_hmury_guard_1</class>
-	</character>
-	<character id="bq_zaton_hmury_guard_2">
-		<class>bq_zaton_hmury_guard_2</class>
-	</character>
+    <character id="bq_zaton_stalker_hmury">
+        <class>bq_zaton_stalker_hmury</class>
+        <specific_character>bq_zaton_stalker_hmury</specific_character>
+    </character>
+    <character id="bq_zaton_hmury_guard_1">
+        <class>bq_zaton_hmury_guard_1</class>
+        <specific_character>bq_zaton_hmury_guard_1</specific_character>
+    </character>
+    <character id="bq_zaton_hmury_guard_2">
+        <class>bq_zaton_hmury_guard_2</class>
+        <specific_character>bq_zaton_hmury_guard_2</specific_character>
+    </character>
 </xml>

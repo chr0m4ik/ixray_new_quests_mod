@@ -1,131 +1,51 @@
-local function get_npc(first_speaker, second_speaker)
-    local npc = second_speaker
-    if db.actor and npc and db.actor:id() == npc:id() then
-        npc = first_speaker
-    end
-    if not npc or not db.actor or npc:id() == db.actor:id() then
-        return nil
-    end
-    return npc
-end
-
--- Сделать Хмурого врагом
-
-function set_enemy(first_speaker, second_speaker)
-    local npc = get_npc(first_speaker, second_speaker)
-    if not npc then
-        printf("bq_hmury.set_enemy: ERROR — cannot detect NPC")
-        return
-    end
-
-    printf("bq_hmury.set_enemy: making [%s] enemy to actor", npc:name())
+local function make_enemy(npc)
+    if not npc or not npc:alive() then return end
     npc:force_set_goodwill(-1000, db.actor)
     npc:set_relation(game_object.enemy, db.actor)
+    npc:disable_talk()
+end
 
-    local st = db.storage[npc:id()]
-    if st and st.meet then
-        st.meet.enabled = false
-    end
-
-    xr_motivator.update_logic(npc)
-    if xr_meet and xr_meet.process_npc_usability then
-        xr_meet.process_npc_usability(npc)
+function apply_hostility()
+    if not bq_state.is_zaton() or not has_alife_info("bq_hmury_hostile") then return end
+    for _, spec in ipairs(bq_quest.squad_sections()) do
+        local object = bq_state.find(spec.section, spec.key)
+        if object then make_enemy(level.object_by_id(object.id)) end
     end
 end
 
--- Передать документы Хмурому за 2000
-function give_docs_2000(first_speaker, second_speaker)
-    local npc = get_npc(first_speaker, second_speaker)
-    if not npc then
-        printf("bq_hmury.give_docs_2000: ERROR — cannot detect NPC")
-        return
-    end
-
-    local item = db.actor:object("bq_documents")
-    if not item then
-        printf("bq_hmury.give_docs_2000: WARNING — actor has no bq_documents")
-        return
-    end
-
-    local alife_item = alife():object(item:id())
-    if alife_item then
-        pcall(function() alife():release(alife_item, true) end)
-    end
-
-    db.actor:give_info_portion("bq_docs_given_to_hmury")
-
-    pcall(function()
-        dialogs.relocate_money_to_actor(first_speaker, second_speaker, 2000)
-    end)
-
-    printf("bq_hmury.give_docs_2000: docs released, 2000 paid")
+function set_enemy(first_speaker, second_speaker)
+    if not bq_state.ready() then return end
+    db.actor:give_info_portion("bq_hmury_hostile")
+    db.actor:disable_info_portion("bq_hmury_dialog_ready")
+    make_enemy(bq_state.npc(first_speaker, second_speaker))
 end
 
--- Передать документы Хмурому за 2000 + бронежилет
-function give_docs_2000_armor(first_speaker, second_speaker)
-    local npc = get_npc(first_speaker, second_speaker)
-    if not npc then
-        printf("bq_hmury.give_docs_2000_armor: ERROR — cannot detect NPC")
-        return
-    end
-
-    local item = db.actor:object("bq_documents")
-    if not item then
-        printf("bq_hmury.give_docs_2000_armor: WARNING — actor has no bq_documents")
-        return
-    end
-
-    local alife_item = alife():object(item:id())
-    if alife_item then
-        pcall(function() alife():release(alife_item, true) end)
-    end
-
-    -- Сначала отмечаем факт передачи — это критично для спавна доков на трупе
-    db.actor:give_info_portion("bq_docs_given_to_hmury")
-
-    -- Деньги
-    pcall(function()
-        dialogs.relocate_money_to_actor(first_speaker, second_speaker, 2000)
-    end)
-
-    -- Броник (проверь название секции в outfit.ltx!)
-    pcall(function()
-        dialogs.relocate_item_section_to_actor(
-            first_speaker, second_speaker, "bandit_outfit", 1)
-    end)
-
-    printf("bq_hmury.give_docs_2000_armor: docs released, 2000 + armor paid")
-end
-
--- Кенты Хмурого становятся врагами
 function set_enemy_all(first_speaker, second_speaker)
     set_enemy(first_speaker, second_speaker)
+    apply_hostility()
+end
 
-    local ids = {
-        bq_quest and bq_quest.bq_hmury_guard_1_id or nil,
-        bq_quest and bq_quest.bq_hmury_guard_2_id or nil
-    }
-
-    for _, id in ipairs(ids) do
-        if id then
-            local se_obj = alife():object(id)
-            if se_obj then
-                pcall(function()
-                    se_obj:force_set_goodwill(-1000, db.actor:id())
-                end)
-            end
-
-            local cl = level.object_by_id(id)
-            if cl then
-                pcall(function()
-                    cl:set_relation(game_object.enemy, db.actor)
-                end)
-                pcall(function()
-                    xr_motivator.update_logic(cl)
-                end)
-            end
-
-            printf("bq_hmury.set_enemy_all: guard %s -> enemy", tostring(id))
-        end
+local function give_documents(first_speaker, second_speaker, with_armor)
+    if not bq_state.ready() or bq_quest.is_finished() then return end
+    if has_alife_info("bq_docs_given_to_hmury") then return end
+    local npc = bq_state.npc(first_speaker, second_speaker)
+    if not npc or not npc:alive() or not bq_quest.has_documents() then return end
+    -- The transferred item remains in the NPC inventory and can be looted later.
+    local item = db.actor:object("bq_documents")
+    bq_state.store("documents_id", item:id())
+    dialogs.relocate_item_section_from_actor(first_speaker, second_speaker, "bq_documents", 1)
+    db.actor:give_info_portion("bq_docs_given_to_hmury")
+    db.actor:disable_info_portion("bq_hmury_dialog_ready")
+    dialogs.relocate_money_to_actor(first_speaker, second_speaker, 2000)
+    if with_armor then
+        dialogs.relocate_item_section_to_actor(first_speaker, second_speaker, "stalker_outfit", 1)
     end
+end
+
+function give_docs_2000(first_speaker, second_speaker)
+    give_documents(first_speaker, second_speaker, false)
+end
+
+function give_docs_2000_armor(first_speaker, second_speaker)
+    give_documents(first_speaker, second_speaker, true)
 end

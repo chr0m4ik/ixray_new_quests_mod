@@ -1,0 +1,116 @@
+local objects_by_section = nil
+local game_vertices = nil
+
+function ready()
+    return db.actor ~= nil and db.storage[db.actor:id()] ~= nil and alife() ~= nil
+end
+
+function is_zaton()
+    return ready() and level.name() == "zaton"
+end
+
+function reset()
+    objects_by_section = nil
+    game_vertices = nil
+end
+
+function store(key, value)
+    if ready() then xr_logic.pstor_store(db.actor, "bq_" .. key, value) end
+end
+
+function retrieve(key, default)
+    if not ready() then return default end
+    return xr_logic.pstor_retrieve(db.actor, "bq_" .. key, default)
+end
+
+local function index_objects()
+    if objects_by_section then return end
+    objects_by_section = {}
+    -- ALife object identifiers are 16-bit; iterate_objects is not a Lua API here.
+    for id = 0, 65534 do
+        local object = alife():object(id)
+        if object then
+            local section = object:section_name()
+            if section:sub(1, 3) == "bq_" then
+                objects_by_section[section] = objects_by_section[section] or id
+            end
+        end
+    end
+end
+
+function find(section, key)
+    if not ready() then return nil end
+    local id = retrieve(key, false)
+    local object = id and alife():object(id)
+    if object and object:section_name() == section then return object end
+    index_objects()
+    id = objects_by_section[section]
+    object = id and alife():object(id)
+    if object and object:section_name() == section then
+        store(key, id)
+        return object
+    end
+    store(key, false)
+    return nil
+end
+
+function remember(section, key, object)
+    if objects_by_section then objects_by_section[section] = object and object.id end
+    store(key, object and object.id or false)
+end
+
+function npc(first_speaker, second_speaker)
+    if not ready() then return nil end
+    if first_speaker and first_speaker:id() ~= db.actor:id() then return first_speaker end
+    if second_speaker and second_speaker:id() ~= db.actor:id() then return second_speaker end
+    return nil
+end
+
+function story_id(name)
+    return get_story_object_id(name)
+end
+
+function spawn(section, key, coordinates)
+    local existing = find(section, key)
+    if existing then return existing end
+    if not is_zaton() then return nil end
+    if not system_ini():section_exist(section) then
+        printf("[bq] Missing spawn section: %s", section)
+        return nil
+    end
+    local position = vector():set(coordinates.x, coordinates.y, coordinates.z)
+    local level_vertex = level.vertex_id(position)
+    if not level.valid_vertex_id(level_vertex) then
+        printf("[bq] Invalid spawn position for %s", section)
+        return nil
+    end
+    -- Select a game graph vertex near the spawn, on the actor's current level.
+    local graph = game_graph()
+    local level_id = graph:vertex(db.actor:game_vertex_id()):level_id()
+    if not game_vertices then
+        game_vertices = {}
+        for id = 0, 65534 do
+            if not graph:valid_vertex_id(id) then break end
+            local vertex = graph:vertex(id)
+            if vertex:level_id() == level_id then
+                game_vertices[#game_vertices + 1] = { id = id, position = vertex:level_point() }
+            end
+        end
+    end
+    local game_vertex, distance = nil, math.huge
+    for _, vertex in ipairs(game_vertices) do
+        local point = vertex.position
+        local candidate = (point.x - position.x)^2 + (point.y - position.y)^2 + (point.z - position.z)^2
+        if candidate < distance then game_vertex, distance = vertex.id, candidate end
+    end
+    if not game_vertex then return nil end
+    local object = alife():create(section, position, level_vertex, game_vertex)
+    if object then remember(section, key, object) end
+    return object
+end
+
+function release(section, key)
+    local object = find(section, key)
+    if object then alife():release(object, true) end
+    remember(section, key, nil)
+end

@@ -1,68 +1,20 @@
 local STASH_POS = { x = 224.6, y = 9.5, z = -36 }
-
-local STASH_ITEMS = {
-    { "bq_documents", 1 },
-    { "bread", 2 },
-    { "medkit", 1 },
-    { "ammo_9x18_fmj", 32 },
-}
-
-local SPAWNED_INFO = "bq_stash_spawned"
+local ITEMS = { { "bq_documents", 1 }, { "bread", 2 }, { "medkit", 1 } }
 
 function spawn_stash()
-    if has_alife_info(SPAWNED_INFO) then
-        return nil
-    end
-
-    local pos = vector():set(STASH_POS.x, STASH_POS.y, STASH_POS.z)
-
-    local lv_id = level.vertex_id(pos)
-    local gv_id = db.actor:game_vertex_id()
-
-    local box = alife():create(
-        "bq_stash_box",
-        pos,
-        lv_id,
-        gv_id
-    )
-
-    if not box then
-        printf("[bq] ERROR: failed to spawn stash box")
-        return nil
-    end
-
-    for i = 1, #STASH_ITEMS do
-        local item_section = STASH_ITEMS[i][1]
-        local item_count = STASH_ITEMS[i][2]
-
-        if item_section == "ammo_9x18_fmj" then
-            alife():create_ammo(
-                item_section,
-                vector(),
-                0,
-                0,
-                box.id,
-                item_count
-            )
-        else
-            for j = 1, item_count do
-                alife():create(
-                    item_section,
-                    vector(),
-                    0,
-                    0,
-                    box.id
-                )
-            end
+    if not bq_state.is_zaton() then return nil end
+    local box = bq_state.find("bq_stash_box", "stash_id")
+    if box and has_alife_info("bq_stash_spawned") then return box.id end
+    -- A missing previously looted box must not duplicate quest items.
+    if has_alife_info("bq_stash_spawned") then return nil end
+    box = box or bq_state.spawn("bq_stash_box", "stash_id", STASH_POS)
+    if not box then return nil end
+    for _, item in ipairs(ITEMS) do
+        for count = 1, item[2] do
+            alife():create(item[1], box.position, box.m_level_vertex_id, box.m_game_vertex_id, box.id)
         end
     end
-
-    db.actor:give_info_portion(SPAWNED_INFO)
-
-    printf(
-        "[bq] stash box spawned (id %s)",
-        tostring(box.id)
-    )
-
+    alife():create_ammo("ammo_9x18_fmj", box.position, box.m_level_vertex_id, box.m_game_vertex_id, box.id, 32)
+    db.actor:give_info_portion("bq_stash_spawned")
     return box.id
 end

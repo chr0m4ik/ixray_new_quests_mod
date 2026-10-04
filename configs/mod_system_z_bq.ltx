@@ -5,31 +5,34 @@
 >files = bq_dialogs
 
 ![profiles]
->files =  bq_npc_profile
+>files = bq_npc_profile
 >specific_characters_files = bq_character_desc_zaton
 
 ![string_table]
 >files = st_beard_quest
 
+#include "creatures\bq_spawn_sections_zaton.ltx"
+
 [bq_stash_box]:inventory_box
 visual = dynamics\box\box_1a
 fixed_bones = link
 
+; Retained for objects already present in saves from version 1.0.
 [bq_beard_marker]:space_restrictor
 [bq_sich_marker]:space_restrictor
 
 [bq_documents]:device_pda
-$spawn 				= "quest_items\bq_documents"
-visual				= dynamics\equipments\quest\notes_document_case_3.ogf
-inv_weight			= 0.05
-inv_grid_width		= 2
-inv_grid_height		= 1
-inv_grid_x			= 18
-inv_grid_y			= 20
-$prefetch 			= 16
-description			= bq_item_docs_descr
-inv_name			= bq_item_docs_name
-inv_name_short		= bq_item_docs_name
-can_trade			= false
-quest_item			= true
-cost				= 0
+$spawn = "quest_items\bq_documents"
+visual = dynamics\equipments\quest\notes_document_case_3.ogf
+inv_weight = 0.05
+inv_grid_width = 2
+inv_grid_height = 1
+inv_grid_x = 18
+inv_grid_y = 20
+$prefetch = 16
+description = bq_item_docs_descr
+inv_name = bq_item_docs_name
+inv_name_short = bq_item_docs_name
+can_trade = false
+quest_item = true
+cost = 0
