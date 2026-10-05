@@ -52,14 +52,29 @@ local function play_sound(path)
     if not ok then dbg("ошибка звука '" .. path .. "': " .. tostring(err)) end
 end
 
--- Секция комбо-предмета: <артефакт>_<суффикс> для любого типа контейнера.
-local function combo_section(artifact_section)
-    if not artifact_section then return nil end
+-- Суффикс комбо по секции контейнера: bq_uni_container -> bq_uni_container,
+-- bq_field_container -> field_container (там префикс bq_ не входит в суффикс).
+local function combo_suffix_of_container(container_section)
+    if not container_section then return nil end
     for _, suffix in ipairs(COMBO_SUFFIXES) do
-        local candidate = artifact_section .. "_" .. suffix
-        if system_ini():section_exist(candidate) then
-            return candidate
-        end
+        local container = (string.sub(suffix, 1, 3) == "bq_")
+            and suffix or ("bq_" .. suffix)
+        if container == container_section then return suffix end
+    end
+    return nil
+end
+
+-- Секция комбо-предмета: <артефакт>_<суффикс>.
+-- ВАЖНО: суффикс берётся от КОНКРЕТНОГО контейнера, на который положили артефакт.
+-- Раньше здесь перебирались все суффиксы по приоритету (первым bq_sci_container),
+-- из-за чего при вложении в любой контейнер создавался научный комбо-предмет.
+local function combo_section(artifact_section, container_section)
+    if not artifact_section then return nil end
+    local suffix = combo_suffix_of_container(container_section)
+    if not suffix then return nil end
+    local candidate = artifact_section .. "_" .. suffix
+    if system_ini():section_exist(candidate) then
+        return candidate
     end
     return nil
 end
@@ -174,15 +189,15 @@ function on_item_dropped(first, second)
     local sound = SND_BY_CONTAINER[sec_second]
     if not sound then return true end          -- цель не контейнер
 
-    local combo = combo_section(sec_first)
+    local combo = combo_section(sec_first, sec_second)
     if not combo then
-        dbg("  '" .. tostring(sec_first) .. "' не подходит (нет комбо-секции)")
+        dbg("  нет комбо-секции для '" .. tostring(sec_first) .. "' в '" .. tostring(sec_second) .. "'")
         return true
     end
 
     pending = { mode = "put", artifact_id = first:id(), container_id = second:id(),
                 combo = combo, sound = sound }
-    dbg("  принято: вложение на следующем кадре")
+    dbg("  принято: '" .. tostring(sec_second) .. "' -> '" .. combo .. "'")
     return true
 end
 
