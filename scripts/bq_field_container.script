@@ -65,12 +65,17 @@ local function combo_section(artifact_section)
 end
 
 -- Секция пустого контейнера по секции комбо.
+-- ВНИМАНИЕ: суффикс "field_container" не содержит префикса bq_, а
+-- "bq_uni_container" и "bq_sci_container" — содержат. Раньше здесь было
+-- "bq_" .. suffix, из-за чего получалось bq_bq_uni_container (секции нет),
+-- и доставать артефакт получалось только из полевого контейнера.
 local function container_of_combo(combo)
     if not combo then return nil end
     for _, suffix in ipairs(COMBO_SUFFIXES) do
         local n = string.len(suffix)
         if string.sub(combo, -(n + 1)) == "_" .. suffix then
-            local container = "bq_" .. suffix
+            local container = (string.sub(suffix, 1, 3) == "bq_")
+                and suffix or ("bq_" .. suffix)
             if system_ini():section_exist(container) then return container end
         end
     end
