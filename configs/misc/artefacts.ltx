@@ -107,6 +107,12 @@ attach_bone_name          = bip01_root
 slot                      = -1
 hit_absorbation_sect      = bq_field_container_absorbation
 
+;;-- Запасной способ положить артефакт: контекстное меню предмета.
+;;-- use1_text показывает пункт, use1_functor его вызывает (движок передаёт
+;;-- в функцию сам предмет-контейнер).
+use1_text                 = Вложить артефакт
+use1_functor              = bq_field_container.put_artifact
+
 [bq_field_container_absorbation]
 burn_immunity             = 0
 strike_immunity           = 0
