@@ -56,30 +56,59 @@
 ;dynamics\artefacts\artefact_electra_green.ogf
 ;-------------------------------------------------------------------------------
 
-;Контейнеры
-[field_container]:af_base
-$spawn = "artefacts\field_container"
-class = SCRPTART
-visual = dynamics\devices\dev_pda\dev_pda.ogf  ; пока используем модель ПДА
-inv_name = st_field_container_name
-inv_name_short = st_field_container_name
-description = st_field_container_descr
-inv_weight = 2.0
-belt = true
-af_rank = 0
-radiation_restore_speed = 0
-hit_absorbation_sect = field_container_absorbation
+;;--== Полевой контейнер для артефактов (bq_field_container) ==================
+;;-- Пустой контейнер. По пояс НЕ надевается (belt = false).
+;;-- radiation_restore_speed = 7 — по требованию заказчика.
+;;-- Логика «положить артефакт»: scripts\bq_field_container.script,
+;;-- колбэк включается строкой в configs\mod_game_global_z_bq.ltx.
+;;--
+;;-- КОМБО-СЕКЦИИ: имя = <секция артефакта>_field_container,
+;;--   radiation_restore_speed = (радиация артефакта) - 7,
+;;--   пример: af_eye 0.002 - 7 = -6.998 (минус снижает радиацию актора,
+;;--   см. CActor::UpdateArtefactsOnBeltAndOutfit в исходниках движка).
+;;--   Остальные свойства наследуются от артефакта как есть.
+;;--   Статы берутся из секции, поэтому для каждого нового артефакта нужна
+;;--   своя комбо-секция: Lua не умеет добавлять секции в pSettings.
 
-[field_container_absorbation]
-burn_immunity = 0
-strike_immunity = 0
-shock_immunity = 0
-wound_immunity = 0
-radiation_immunity = 0
-telepatic_immunity = 0
-chemical_burn_immunity = 0
-explosion_immunity = 0
-fire_wound_immunity = 0 
+[bq_field_container]:identity_immunities
+$spawn                    = "artefacts\bq_field_container"
+class                     = ARTEFACT
+visual                    = dynamics\devices\dev_pda\dev_pda.ogf
+description               = st_field_container_descr
+inv_name                  = st_field_container_name
+inv_name_short            = st_field_container_name
+inv_weight                = 2.0
+inv_grid_width            = 1
+inv_grid_height           = 1
+inv_grid_x                = 4
+inv_grid_y                = 27
+cost                      = 12000
+belt                      = false
+can_trade                 = false
+af_rank                   = 0
+radiation_restore_speed   = 7
+hit_absorbation_sect      = bq_field_container_absorbation
+
+[bq_field_container_absorbation]
+burn_immunity             = 0
+strike_immunity           = 0
+shock_immunity            = 0
+wound_immunity            = 0
+radiation_immunity        = 0
+telepatic_immunity        = 0
+chemical_burn_immunity    = 0
+explosion_immunity        = 0
+fire_wound_immunity       = 0
+
+;;-- Глаз (af_eye) в контейнере: наследуем af_eye, меняем визуал и радиацию.
+[af_eye_field_container]:af_eye,bq_field_container
+$spawn                    = "artefacts\af_eye_field_container"
+visual                    = dynamics\devices\dev_pda\dev_pda.ogf
+belt                      = true
+inv_weight                = 2.0
+radiation_restore_speed   = -6.998
+; af_eye_absorbation вторым родителем перекрывает таблицу брони af_eye (все нули)
+hit_absorbation_sect      = af_eye_absorbation,bq_field_container_absorbation
 
 ;-------------------------------------------------------------------------------
 ;Артефакты, которые при активизации создают аномальные зоны

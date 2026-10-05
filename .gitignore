@@ -1,1 +1,3 @@
 copy_files.py
+*.md
+.claude/

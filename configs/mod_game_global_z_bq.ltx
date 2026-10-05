@@ -1,0 +1,11 @@
+; Мод-оверрайд game_global.ltx.
+; Движок для корневого файла X.ltx сам подгружает mod_X_*.ltx из той же
+; папки (см. ixray-1.6-stcop, src/xrCore/Xr_ini.cpp), поэтому отдельный
+; #include не нужен, а оригинал gamedata\configs\game_global.ltx не правится.
+;
+; Включаем Lua-колбэк перетаскивания предмета на предмет.
+; В оригинале строка OnItemDropped закомментирована, из-за чего движок
+; вообще не вызывает этот колбэк.
+
+[callbacks]
+OnItemDropped = bq_field_container.on_item_dropped
