@@ -1,26 +1,26 @@
 -- bq_field_container.script
 -- Полевой контейнер для артефактов.
 --
--- Механика: игрок перетаскивает артефакт на контейнер в рюкзаке.
--- Контейнер и артефакт исчезают, вместо них в рюкзаке появляется
--- комбо-предмет "<секция артефакта>_field_container" (наследник артефакта
--- с изменённой радиацией, см. configs\misc\artefacts.ltx).
+-- Механика: игрок перетаскивает артефакт на контейнер в инвентаре.
+-- Контейнер и артефакт исчезают, вместо них появляется комбо-предмет
+-- "<секция артефакта>_field_container" (наследие артефакта с изменённой
+-- радиацией, см. configs\misc\artefacts.ltx).
 --
--- Точка входа — глобальный колбэк движка OnItemDropped. Он вызывается из
--- CUIActorMenu::OnItemDrop (см. исходники ixray-1.6-stcop,
--- src/xrGame/ui/UIActorMenu_action.cpp) при перетаскивании одного предмета
--- на другой внутри одного списка. Чтобы движок его вызывал, в
--- configs\mod_game_global_z_bq.ltx прописано:
---     [callbacks]
+-- ВАЖНО (почему отложенно): менять инвентарь прямо внутри обработчика
+-- перетаскивания нельзя — движок в этот момент сам правит список и падает.
+-- Поэтому в колбэке мы только РАЗРЕШАЕМ обычное перетаскивание (return true)
+-- и запоминаем id предметов, а саму замену делаем на следующем кадре.
+--
+-- Точка входа — колбэк движка OnItemDropped, включается строкой в
+-- configs\mod_game_global_z_bq.ltx:
+--     ![callbacks]
 --     OnItemDropped = bq_field_container.on_item_dropped
--- Возврат false отменяет стандартную обработку перетаскивания.
 
 local CONTAINER_SECTION = "bq_field_container"
 local SUFFIX            = "_field_container"
 
--- Движок вызывает колбэк дважды за одно перетаскивание (до и после
--- обработки дропа), поэтому от повторного срабатывания защищаемся флагом.
-local busy = false
+local pending = nil   -- { artifact_id, container_id, combo } — ждёт следующего кадра
+local hooked  = false
 
 local function log_line(fmt, ...)
     log(string.format("[bq_fc] " .. fmt, ...))
@@ -28,6 +28,9 @@ end
 
 -- Секция комбо-предмета для артефакта, если она есть в конфиге.
 local function combo_section(artifact_section)
+    if not artifact_section or artifact_section == CONTAINER_SECTION then
+        return nil
+    end
     local section = artifact_section .. SUFFIX
     if system_ini():section_exist(section) then
         return section
@@ -35,84 +38,92 @@ local function combo_section(artifact_section)
     return nil
 end
 
--- Артефакт ли это (по наличию комбо-секции; контейнеры и комбо-предметы
--- сами по себе комбо-секции не имеют).
-local function is_plain_artifact(section)
-    if not section or section == CONTAINER_SECTION then return false end
-    return combo_section(section) ~= nil
+-- Сколько экземпляров предмета с такой секцией сейчас у актора.
+local function actor_count(section)
+    if not db.actor then return 0 end
+    local count = 0
+    local function iter(_, item)
+        if item and item:section() == section then count = count + 1 end
+    end
+    db.actor:iterate_inventory(iter, db.actor)
+    return count
 end
 
--- Пробуем разные способы получить объект, чтобы не зависеть от того,
--- что именно движок передал в колбэк (клиентский или серверный объект).
-local function resolve_server_object(obj)
-    if not obj then return nil end
-    local id = obj:id()
-    if not id then return nil end
-    local server = alife():object(id)
-    if server and server:section_name() == obj:section() then
-        return server
+--------------------------------------------------------------------------
+-- Замена выполняется на следующем кадре, когда движок уже закончил
+-- обработку перетаскивания и инвентарь находится в спокойном состоянии.
+--------------------------------------------------------------------------
+local function apply_pending()
+    if not pending then return end
+    if not db.actor or not alife() then return end
+    if db.actor:is_talking() then return end
+
+    local task = pending
+    pending = nil
+
+    local artifact = alife():object(task.artifact_id)
+    local container = alife():object(task.container_id)
+    if not artifact or not container then
+        log_line("замена отменена: предмет уже отсутствует")
+        return
     end
-    return nil
+    if artifact.parent_id ~= db.actor.id or container.parent_id ~= db.actor.id then
+        log_line("замена отменена: предметы не в инвентаре актора")
+        return
+    end
+
+    -- Позиция и вершины берём у актора: они гарантированно валидны на текущей локации.
+    local position     = db.actor:position()
+    local level_vertex = db.actor:level_vertex_id()
+    local game_vertex  = db.actor:game_vertex_id()
+
+    log_line("меняю '%s' (id=%s) + контейнер (id=%s) -> '%s'",
+        artifact:section_name(), tostring(task.artifact_id),
+        tostring(task.container_id), task.combo)
+
+    alife():release(artifact, true)
+    alife():release(container, true)
+
+    local created = alife():create(task.combo, position, level_vertex, game_vertex, db.actor.id)
+    if created then
+        local client = level.object_by_id(created.id)
+        if client then client:use_ai_locations(false) end
+        log_line("готово, id комбо-предмета = %s", tostring(created.id))
+    else
+        log_line("ОШИБКА: не удалось создать '%s'", task.combo)
+    end
 end
 
-local function release_object(obj)
-    local server = resolve_server_object(obj)
-    if server then
-        alife():release(server, true)
-    end
-end
-
--- Кладём комбо-предмет в рюкзак актора.
-local function give_to_actor(section, position, level_vertex, game_vertex)
-    local created = alife():create(section, position, level_vertex, game_vertex, db.actor.id)
-    if not created then
-        log_line("не удалось создать '%s'", section)
-        return nil
-    end
-    local client = level.object_by_id(created.id)
-    if client then
-        client:use_ai_locations(false)
-    end
-    return created
-end
-
--- Вызывается движком до обработки перетаскивания.
--- first  — перетаскиваемый предмет (артефакт),
--- second — предмет под курсором (контейнер).
+--------------------------------------------------------------------------
+-- Колбэк перетаскивания. Ничего не меняем — только проверяем и запоминаем.
+--------------------------------------------------------------------------
 function on_item_dropped(first, second)
-    if busy then return true end
     if not db.actor or not alife() then return true end
     if not first or not second then return true end
+    -- second — предмет, на который бросили, то есть контейнер.
+    if second:section() ~= CONTAINER_SECTION then return true end
 
-    local target_section = second:section()
-    if target_section ~= CONTAINER_SECTION then
+    local item_section = first:section()
+    local combo = combo_section(item_section)
+    if not combo then
+        log_line("'%s' нельзя положить в контейнер (нет комбо-секции)", tostring(item_section))
         return true
     end
 
-    local item_section = first:section()
-    if not is_plain_artifact(item_section) then
-        log_line("'%s' нельзя положить в контейнер (нет комбо-секции)",
-            tostring(item_section))
-        return false
-    end
-
-    local combo = combo_section(item_section)
-    busy = true
-    local ok = false
-
-    local position     = first:position()
-    local level_vertex = first:level_vertex_id()
-    local game_vertex  = first:game_vertex_id()
-
-    release_object(first)
-    release_object(second)
-
-    if give_to_actor(combo, position, level_vertex, game_vertex) then
-        ok = true
-        log_line("'%s' + контейнер -> '%s'", item_section, combo)
-    end
-
-    busy = false
-    -- false отменяет стандартную обработку дропа: предметы уже заменены.
-    return not ok
+    pending = { artifact_id = first:id(), container_id = second:id(), combo = combo }
+    log_line("запрос: '%s' -> контейнер, замена на следующем кадре", item_section)
+    -- true: пусть движок спокойно переложит артефакт, мы вмешаемся позже.
+    return true
 end
+
+--------------------------------------------------------------------------
+-- Хук обновления актора.
+--------------------------------------------------------------------------
+function on_game_start()
+    if hooked then return end
+    RegisterScriptCallback("update", apply_pending)
+    hooked = true
+    log_line("хук обновления установлен")
+end
+
+on_game_start()

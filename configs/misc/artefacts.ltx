@@ -93,7 +93,7 @@ lights_enabled            = false           ; тоже обязательный ключ, в af_base 
 ;;-- Обязательные для CArtefact::Load параметры артефакта. В af_base их НЕТ,
 ;;-- поэтому контейнер задаёт их явно нулями (иначе вылет "Can't find variable ...").
 health_restore_speed      = 0
-radiation_restore_speed   = 7
+radiation_restore_speed   = -0.007            ; в интерфейсе это -7 (ванильные значения 0.001..0.004)
 satiety_restore_speed     = 0
 power_restore_speed       = 0
 bleeding_restore_speed    = 0
@@ -118,14 +118,26 @@ chemical_burn_immunity    = 0
 explosion_immunity        = 0
 fire_wound_immunity       = 0
 
+;;-- Броня комбо-предмета. Отдельная секция, потому что hit_absorbation_sect
+;;-- принимает ИМЯ ОДНОЙ секции (запятые не поддерживаются).
+[af_eye_field_container_absorbation]
+burn_immunity             = 0
+strike_immunity           = 0
+shock_immunity            = 0
+wound_immunity            = 0
+radiation_immunity        = 0
+telepatic_immunity        = 0
+chemical_burn_immunity    = 0
+explosion_immunity        = 0
+fire_wound_immunity       = 0
+
 ;;-- Глаз (af_eye) в контейнере: наследуем af_eye, меняем только радиацию.
 [af_eye_field_container]:af_eye,bq_field_container
 belt                      = true
 inv_weight                = 2.0
-radiation_restore_speed   = -6.998
-; af_eye_absorbation вторым родителем перекрывает таблицу брони af_eye (все нули)
-hit_absorbation_sect      = af_eye_absorbation,bq_field_container_absorbation
-
+radiation_restore_speed   = -0.005            ; радиация Глаза 0.002 минус 0.007 = 0.005, в интерфейсе -5
+; броня — отдельной секцией (одно имя, запятые движок не понимает)
+hit_absorbation_sect      = af_eye_field_container_absorbation
 lights_enabled            = true             ; у комбо модель af_eye, свет как у обычного Глаза
 hud                       = artefact_hud
 animation_slot            = 11
