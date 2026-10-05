@@ -3,23 +3,24 @@
 --
 -- Механика: игрок перетаскивает артефакт на контейнер в инвентаре.
 -- Контейнер и артефакт исчезают, вместо них появляется комбо-предмет
--- "<секция артефакта>_field_container" (наследие артефакта с изменённой
--- радиацией, см. configs\misc\artefacts.ltx).
+-- "<секция артефакта>_field_container" (см. configs\misc\artefacts.ltx).
 --
--- ВАЖНО (почему отложенно): менять инвентарь прямо внутри обработчика
+-- ПОЧЕМУ ЗАМЕНА ОТЛОЖЕННАЯ: менять инвентарь прямо внутри обработчика
 -- перетаскивания нельзя — движок в этот момент сам правит список и падает.
--- Поэтому в колбэке мы только РАЗРЕШАЕМ обычное перетаскивание (return true)
--- и запоминаем id предметов, а саму замену делаем на следующем кадре.
+-- Поэтому колбэк только запоминает id предметов и разрешает обычное
+-- перекладывание (return true), а замена идёт на следующем кадре.
 --
 -- Точка входа — колбэк движка OnItemDropped, включается строкой в
 -- configs\mod_game_global_z_bq.ltx:
 --     ![callbacks]
 --     OnItemDropped = bq_field_container.on_item_dropped
+--
+-- Все шаги пишутся в лог игры (ищите префикс [bq_fc]).
 
 local CONTAINER_SECTION = "bq_field_container"
 local SUFFIX            = "_field_container"
 
-local pending = nil   -- { artifact_id, container_id, combo } — ждёт следующего кадра
+local pending = nil   -- { artifact_id, container_id, combo }
 local hooked  = false
 
 local function log_line(fmt, ...)
@@ -38,20 +39,9 @@ local function combo_section(artifact_section)
     return nil
 end
 
--- Сколько экземпляров предмета с такой секцией сейчас у актора.
-local function actor_count(section)
-    if not db.actor then return 0 end
-    local count = 0
-    local function iter(_, item)
-        if item and item:section() == section then count = count + 1 end
-    end
-    db.actor:iterate_inventory(iter, db.actor)
-    return count
-end
-
 --------------------------------------------------------------------------
--- Замена выполняется на следующем кадре, когда движок уже закончил
--- обработку перетаскивания и инвентарь находится в спокойном состоянии.
+-- Замена. Выполняется на следующем кадре, когда движок уже закончил
+-- обработку перетаскивания.
 --------------------------------------------------------------------------
 local function apply_pending()
     if not pending then return end
@@ -61,23 +51,24 @@ local function apply_pending()
     local task = pending
     pending = nil
 
-    local artifact = alife():object(task.artifact_id)
+    local artifact  = alife():object(task.artifact_id)
     local container = alife():object(task.container_id)
     if not artifact or not container then
-        log_line("замена отменена: предмет уже отсутствует")
+        log_line("отмена: предмет уже исчез")
         return
     end
     if artifact.parent_id ~= db.actor.id or container.parent_id ~= db.actor.id then
-        log_line("замена отменена: предметы не в инвентаре актора")
+        log_line("отмена: предметы не у актора (artifact.parent=%s, container.parent=%s, actor=%s)",
+            tostring(artifact.parent_id), tostring(container.parent_id), tostring(db.actor.id))
         return
     end
 
-    -- Позиция и вершины берём у актора: они гарантированно валидны на текущей локации.
+    -- Вершины берём у актора: они гарантированно валидны на текущей локации.
     local position     = db.actor:position()
     local level_vertex = db.actor:level_vertex_id()
     local game_vertex  = db.actor:game_vertex_id()
 
-    log_line("меняю '%s' (id=%s) + контейнер (id=%s) -> '%s'",
+    log_line("замена: '%s'(%s) + контейнер(%s) -> '%s'",
         artifact:section_name(), tostring(task.artifact_id),
         tostring(task.container_id), task.combo)
 
@@ -86,33 +77,38 @@ local function apply_pending()
 
     local created = alife():create(task.combo, position, level_vertex, game_vertex, db.actor.id)
     if created then
-        local client = level.object_by_id(created.id)
-        if client then client:use_ai_locations(false) end
-        log_line("готово, id комбо-предмета = %s", tostring(created.id))
+        log_line("готово: '%s' id=%s", task.combo, tostring(created.id))
     else
         log_line("ОШИБКА: не удалось создать '%s'", task.combo)
     end
 end
 
 --------------------------------------------------------------------------
--- Колбэк перетаскивания. Ничего не меняем — только проверяем и запоминаем.
+-- Колбэк перетаскивания. Пишем всё, что приходит — по этим строкам видно,
+-- вызывается ли колбэк вообще и с какими аргументами.
 --------------------------------------------------------------------------
 function on_item_dropped(first, second)
     if not db.actor or not alife() then return true end
-    if not first or not second then return true end
-    -- second — предмет, на который бросили, то есть контейнер.
-    if second:section() ~= CONTAINER_SECTION then return true end
+    if not first or not second then
+        log_line("вызов: пустые аргументы")
+        return true
+    end
 
-    local item_section = first:section()
-    local combo = combo_section(item_section)
+    local sec_first  = first:section()
+    local sec_second = second:section()
+    log_line("вызов: тащим='%s' на='%s'", tostring(sec_first), tostring(sec_second))
+
+    -- second — предмет, на который бросили, то есть контейнер.
+    if sec_second ~= CONTAINER_SECTION then return true end
+
+    local combo = combo_section(sec_first)
     if not combo then
-        log_line("'%s' нельзя положить в контейнер (нет комбо-секции)", tostring(item_section))
+        log_line("'%s' нельзя положить в контейнер (нет комбо-секции)", tostring(sec_first))
         return true
     end
 
     pending = { artifact_id = first:id(), container_id = second:id(), combo = combo }
-    log_line("запрос: '%s' -> контейнер, замена на следующем кадре", item_section)
-    -- true: пусть движок спокойно переложит артефакт, мы вмешаемся позже.
+    log_line("принято: '%s' -> контейнер, замена на следующем кадре", sec_first)
     return true
 end
 
