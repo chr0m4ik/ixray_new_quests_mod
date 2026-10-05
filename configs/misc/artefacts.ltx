@@ -56,26 +56,13 @@
 ;dynamics\artefacts\artefact_electra_green.ogf
 ;-------------------------------------------------------------------------------
 
-;;--== Полевой контейнер для артефактов (bq_field_container) ==================
-;;-- Пустой контейнер. По пояс НЕ надевается (belt = false).
-;;-- radiation_restore_speed = 7 — по требованию заказчика.
-;;-- Логика «положить артефакт»: scripts\bq_field_container.script,
-;;-- колбэк включается строкой в configs\mod_game_global_z_bq.ltx.
-;;--
-;;-- КОМБО-СЕКЦИИ: имя = <секция артефакта>_field_container,
-;;--   radiation_restore_speed = (радиация артефакта) - 7,
-;;--   пример: af_eye 0.002 - 7 = -6.998 (минус снижает радиацию актора,
-;;--   см. CActor::UpdateArtefactsOnBeltAndOutfit в исходниках движка).
-;;--   Остальные свойства наследуются от артефакта как есть.
-;;--   Статы берутся из секции, поэтому для каждого нового артефакта нужна
-;;--   своя комбо-секция: Lua не умеет добавлять секции в pSettings.
-
-;;-- Родитель ОБЯЗАТЕЛЬНО af_base: CArtefact::Load и CHudItem::Load требуют
-;;-- hud, animation_slot, lights_enabled, *_restore_speed, additional_inventory_weight.
+;;--== Полевой контейнер для артефактов ========================================
+;;-- Пустой контейнер, поглощает 4 радиации. Пояс не надевается.
+;;-- Комбо-секции (артефакт внутри) идут ниже, вместе с универсальным и научным.
 [bq_field_container]:af_base
 $spawn                    = "artefacts\bq_field_container"
 class                     = ARTEFACT
-visual                    = dynamics\artefacts\af_eye.ogf   ; в модели артефакта есть кость link (particles_bone)
+visual                    = dynamics\artefacts\af_eye.ogf
 description               = bq_field_container_descr
 inv_name                  = bq_field_container_name
 inv_name_short            = bq_field_container_name
@@ -89,25 +76,21 @@ cost                      = 12000
 belt                      = false
 can_trade                 = false
 af_rank                   = 0
-lights_enabled            = false           ; тоже обязательный ключ, в af_base его нет
-
-;;-- Обязательные для CArtefact::Load параметры артефакта. В af_base их НЕТ,
-;;-- поэтому контейнер задаёт их явно нулями (иначе вылет "Can't find variable ...").
+lights_enabled            = false
 health_restore_speed      = 0
-radiation_restore_speed   = -0.007            ; в интерфейсе это -7 (ванильные значения 0.001..0.004)
+radiation_restore_speed   = -0.004            ; в интерфейсе -4 (полевой поглощает 4)
 satiety_restore_speed     = 0
 power_restore_speed       = 0
 bleeding_restore_speed    = 0
 additional_inventory_weight = 0
-hud                       = artefact_hud     ; секция HUD (CHudItem::Load, строгое чтение)
+hud                       = artefact_hud
 animation_slot            = 11
-particles_bone            = link             ; модель обязана иметь эту кость
-attach_angle_offset       = 0,0,0            ; CAttachableItem::Load, строгое чтение
+particles_bone            = link
+attach_angle_offset       = 0,0,0
 attach_position_offset    = -0.1,-0.1,0
 attach_bone_name          = bip01_root
 slot                      = -1
 hit_absorbation_sect      = bq_field_container_absorbation
-
 
 [bq_field_container_absorbation]
 burn_immunity             = 0
@@ -120,104 +103,294 @@ chemical_burn_immunity    = 0
 explosion_immunity        = 0
 fire_wound_immunity       = 0
 
-;;-- Броня комбо-предмета. Отдельная секция, потому что hit_absorbation_sect
-;;-- принимает ИМЯ ОДНОЙ секции (запятые не поддерживаются).
+;;--== Universal and scientific containers ==================================
+;;--== They absorb more radiation: universal 7, scientific 11 (field 4).
+;;--== Everything else is identical to the field container.
+;;--== Icons: atlas ui_bq_field_container, size 3x2 cells of 50x50.
+
+[bq_uni_container]:bq_field_container
+description               = bq_uni_container_descr
+inv_name                  = bq_uni_container_name
+inv_name_short            = bq_uni_container_name
+inv_grid_x                = 1
+inv_grid_y                = 0
+radiation_restore_speed   = -0.014
+
+[bq_sci_container]:bq_field_container
+description               = bq_sci_container_descr
+inv_name                  = bq_sci_container_name
+inv_name_short            = bq_sci_container_name
+inv_grid_x                = 2
+inv_grid_y                = 0
+radiation_restore_speed   = -0.022
+
+;;--== Combined items: artefact inside a container ==========================
+;;--== radiation = artefact radiation + min(container absorption, artefact radiation)
+;;--== all other stats are taken from the artefact unchanged
+
+[af_eye_field_container]:af_eye,bq_field_container
+radiation_restore_speed   = 0
+hit_absorbation_sect      = af_eye_field_container_absorbation
+inv_grid_x                = 0
+inv_grid_y                = 1
+inv_name                  = eye_field_name
+inv_name_short            = eye_field_name
+description               = eye_field_descr
+use1_text                 = bq_take_artifact
+use1_functor              = bq_field_container.take_artifact
+
 [af_eye_field_container_absorbation]
-burn_immunity = 0.0267   ; +4 в интерфейсе
-strike_immunity           = 0
+burn_immunity             = 0.02001
+chemical_burn_immunity    = 0
 shock_immunity            = 0
+telepatic_immunity        = 0
+strike_immunity           = 0
 wound_immunity            = 0
 radiation_immunity        = 0
-telepatic_immunity        = 0
-chemical_burn_immunity    = 0
 explosion_immunity        = 0
 fire_wound_immunity       = 0
 
-;;-- Глаз (af_eye) в контейнере: наследуем af_eye, меняем только радиацию.
-[af_eye_field_container]:af_eye,bq_field_container
-belt                      = true
-inv_weight                = 2.0
-radiation_restore_speed   = 0                ; контейнер радиацию НЕ излучает и не поглощает
-; броня — отдельной секцией (одно имя, запятые движок не понимает)
-hit_absorbation_sect      = af_eye_field_container_absorbation
-lights_enabled            = true             ; у комбо модель af_eye, свет как у обычного Глаза
-hud                       = artefact_hud
-animation_slot            = 11
-particles_bone            = link
-attach_angle_offset       = 0,0,0
-attach_position_offset    = -0.1,-0.1,0
-attach_bone_name          = bip01_root
-slot                      = -1
-
-;;-- Кнопка в контекстном меню: достать артефакт обратно.
+[af_eye_bq_uni_container]:af_eye,bq_uni_container
+radiation_restore_speed   = 0
+hit_absorbation_sect      = af_eye_bq_uni_container_absorbation
+inv_grid_x                = 1
+inv_grid_y                = 1
+inv_name                  = eye_uni_name
+inv_name_short            = eye_uni_name
+description               = eye_uni_descr
 use1_text                 = bq_take_artifact
 use1_functor              = bq_field_container.take_artifact
-;-------------------------------------------------------------------------------
-;Артефакты, которые при активизации создают аномальные зоны
-;формат: {секция_артефакта} = {секция_зоны},Radius,Power
-inv_name                  = bq_field_container_eye_name
-inv_name_short            = bq_field_container_eye_name
-description               = bq_field_container_eye_descr
-icons_texture             = ui\ui_bq_field_container
+
+[af_eye_bq_uni_container_absorbation]
+burn_immunity             = 0.02001
+chemical_burn_immunity    = 0
+shock_immunity            = 0
+telepatic_immunity        = 0
+strike_immunity           = 0
+wound_immunity            = 0
+radiation_immunity        = 0
+explosion_immunity        = 0
+fire_wound_immunity       = 0
+
+[af_eye_bq_sci_container]:af_eye,bq_sci_container
+radiation_restore_speed   = 0
+hit_absorbation_sect      = af_eye_bq_sci_container_absorbation
+inv_grid_x                = 2
+inv_grid_y                = 1
+inv_name                  = eye_sci_name
+inv_name_short            = eye_sci_name
+description               = eye_sci_descr
+use1_text                 = bq_take_artifact
+use1_functor              = bq_field_container.take_artifact
+
+[af_eye_bq_sci_container_absorbation]
+burn_immunity             = 0.02001
+chemical_burn_immunity    = 0
+shock_immunity            = 0
+telepatic_immunity        = 0
+strike_immunity           = 0
+wound_immunity            = 0
+radiation_immunity        = 0
+explosion_immunity        = 0
+fire_wound_immunity       = 0
+
+[af_cristall_field_container]:af_cristall,bq_field_container
+radiation_restore_speed   = -0.004
+hit_absorbation_sect      = af_cristall_field_container_absorbation
 inv_grid_x                = 0
-inv_grid_y                = 1   ; ТЕСТ: те же координаты, что у пустого контейнера
-inv_grid_width            = 1
-inv_grid_height           = 1
+inv_grid_y                = 1
+inv_name                  = cristall_field_name
+inv_name_short            = cristall_field_name
+description               = cristall_field_descr
+use1_text                 = bq_take_artifact
+use1_functor              = bq_field_container.take_artifact
 
-[artefact_spawn_zones]
-af_medusa 		= zone_mosquito_bald_weak, 2.0, 30.0
-af_cristall_flower 	= zone_mosquito_bald_weak, 3.0, 50.0
-af_night_star 		= zone_mosquito_bald_weak, 5.0, 100.0
-af_vyvert 		= zone_gravi_zone_weak, 2.0, 30.0
-af_gravi 		= zone_gravi_zone_weak, 3.0, 50.0
-af_gold_fish 		= zone_gravi_zone_weak, 5.0, 100.0
-af_cristall 		= torrid_zone, 3.0, 50.0
-af_blood 		= zone_mincer_weak, 2, 30.0
-af_mincer_meat 		= zone_mincer_weak, 3, 50.0
-af_soul 		= zone_mincer_weak, 5, 100.0
-af_electra_sparkler 	= zone_witches_galantine, 2, 30.0
-af_electra_flash 	= zone_witches_galantine, 3, 50.0
-af_electra_moonlight 	= zone_witches_galantine, 5, 100.0
-mp_af_electra_flash 	= mp_zone_witches_galantine, 3, 50.0
-mp_af_cta_green		= mp_zone_witches_galantine, 3, 50.0
-mp_af_cta_blue		= mp_zone_witches_galantine, 3, 50.0
+[af_cristall_field_container_absorbation]
+burn_immunity             = 0.03335
+chemical_burn_immunity    = 0
+shock_immunity            = 0
+telepatic_immunity        = 0
+strike_immunity           = 0
+wound_immunity            = 0
+radiation_immunity        = 0
+explosion_immunity        = 0
+fire_wound_immunity       = 0
 
-[af_activation_gravi]
-;----------------------------------------------------------------------------------------------------------------------------------------
-;format:						time(sec),	sound_name,	         	light_R,G,B,  	light_range,    	particle_name,						af_animation_name
-;----------------------------------------------------------------------------------------------------------------------------------------
-starting					=	5.0,		anomaly\gravi_idle00,	0.5, 1.0, 1.5,  	5.0,			"anomaly2\artefact_gravi_blast_start",	"idle"
-flying						=	2.0,		anomaly\gravi_idle01,	0.8, 1.0, 1.2,  	3.0,			"artefact\artefact_gravi",				"idle"
-idle_before_spawning				=	5.0,		anomaly\gravi_blowout5,	1.0, 1.0, 1,    	0.0,			"anomaly2\artefact_gravi_blast_finished",	"idle"
-spawning					=	1,  		anomaly\gravity_entrance,	0.9, 1.1, 1.01,  	0.0,		"",		"idle"
+[af_cristall_bq_uni_container]:af_cristall,bq_uni_container
+radiation_restore_speed   = 0
+hit_absorbation_sect      = af_cristall_bq_uni_container_absorbation
+inv_grid_x                = 1
+inv_grid_y                = 1
+inv_name                  = cristall_uni_name
+inv_name_short            = cristall_uni_name
+description               = cristall_uni_descr
+use1_text                 = bq_take_artifact
+use1_functor              = bq_field_container.take_artifact
 
-[af_activation_bold]
-;----------------------------------------------------------------------------------------------------------------------------------------
-;format:						time(sec),	sound_name,	         	light_R,G,B,  	light_range,    	particle_name,						af_animation_name
-;----------------------------------------------------------------------------------------------------------------------------------------
-starting					=	5.0,		anomaly\gravi_idle00,	0.8, 1.5, 0.9,  	5.0,			"anomaly2\artefact_bold_blast_start",	"idle"
-flying						=	2.0,		anomaly\gravi_idle01,	0.8, 0.9, 0.8,  	2.0,			"artefact\artefact_zharka",				"idle"
-idle_before_spawning				=	2.0,		anomaly\gravity_entrance,1.0, 1.1, 1.0,  	0.0,			"anomaly2\artefact_bold_blast_finished",	"idle"
-spawning					=	0.5,		anomaly\pux_blast,  	1.0, 1.0, 0.5,  	5.0,			"anomaly2\gravi_anomaly_00",		"idle"
+[af_cristall_bq_uni_container_absorbation]
+burn_immunity             = 0.03335
+chemical_burn_immunity    = 0
+shock_immunity            = 0
+telepatic_immunity        = 0
+strike_immunity           = 0
+wound_immunity            = 0
+radiation_immunity        = 0
+explosion_immunity        = 0
+fire_wound_immunity       = 0
 
-[af_activation_mincer]
-;----------------------------------------------------------------------------------------------------------------------------------------
-;format:						time(sec),	sound_name,	         	light_R,G,B,  	light_range,    	particle_name,						af_animation_name
-;----------------------------------------------------------------------------------------------------------------------------------------
-starting					=	5.0,		anomaly\gravi_idle00,	0.5, 1.0, 1.5,  	5.0,			"anomaly2\artefact_gravi_blast_start",	"idle"
-flying						=	2.0,		anomaly\gravi_idle01,	0.8, 1.0, 1.2,  	3.0,			"artefact\artefact_mincer",				"idle"
-idle_before_spawning				=	5.0,		anomaly\gravi_blowout2,	1.0, 1.0, 1.0,  	0.0,			"anomaly2\artefact_gravi_blast_finished",	"idle"
-spawning					=	0.0,		"",						1.0, 1.0, 0.5,  	0.0,			"",		"idle"
+[af_cristall_bq_sci_container]:af_cristall,bq_sci_container
+radiation_restore_speed   = 0
+hit_absorbation_sect      = af_cristall_bq_sci_container_absorbation
+inv_grid_x                = 2
+inv_grid_y                = 1
+inv_name                  = cristall_sci_name
+inv_name_short            = cristall_sci_name
+description               = cristall_sci_descr
+use1_text                 = bq_take_artifact
+use1_functor              = bq_field_container.take_artifact
 
-[af_activation_electra]
-;----------------------------------------------------------------------------------------------------------------------------------------
-;format:						time(sec),	sound_name,	         	light_R,G,B,  	light_range,    	particle_name,						af_animation_name
-;----------------------------------------------------------------------------------------------------------------------------------------
-starting					=	5.0,		anomaly\bfuzz_blowout,	0.8, 1.0, 1.5,  	5.0,			"anomaly2\artefact_electra_blast_start",	"idle"
-flying						=	2.0,		anomaly\electra_idle1,	1.0, 1.0, 1.0,  	5.0,			"artefact\artefact_electra",				"idle"
-idle_before_spawning				=	0.0,		"",	                	1.0, 1.0, 2.5,  	0,		    	"",	"idle"
-spawning					=	2,		"anomaly\pux_blast",	1.0, 1.0, 1.5,  	5.0,			"anomaly2\artefact_electra_blast_finished",		"idle"
+[af_cristall_bq_sci_container_absorbation]
+burn_immunity             = 0.03335
+chemical_burn_immunity    = 0
+shock_immunity            = 0
+telepatic_immunity        = 0
+strike_immunity           = 0
+wound_immunity            = 0
+radiation_immunity        = 0
+explosion_immunity        = 0
+fire_wound_immunity       = 0
 
+[af_fireball_field_container]:af_fireball,bq_field_container
+radiation_restore_speed   = -0.012
+hit_absorbation_sect      = af_fireball_field_container_absorbation
+inv_grid_x                = 0
+inv_grid_y                = 1
+inv_name                  = fireball_field_name
+inv_name_short            = fireball_field_name
+description               = fireball_field_descr
+use1_text                 = bq_take_artifact
+use1_functor              = bq_field_container.take_artifact
+
+[af_fireball_field_container_absorbation]
+burn_immunity             = 0.04669
+chemical_burn_immunity    = 0
+shock_immunity            = 0
+telepatic_immunity        = 0
+strike_immunity           = 0
+wound_immunity            = 0
+radiation_immunity        = 0
+explosion_immunity        = 0
+fire_wound_immunity       = 0
+
+[af_fireball_bq_uni_container]:af_fireball,bq_uni_container
+radiation_restore_speed   = -0.006
+hit_absorbation_sect      = af_fireball_bq_uni_container_absorbation
+inv_grid_x                = 1
+inv_grid_y                = 1
+inv_name                  = fireball_uni_name
+inv_name_short            = fireball_uni_name
+description               = fireball_uni_descr
+use1_text                 = bq_take_artifact
+use1_functor              = bq_field_container.take_artifact
+
+[af_fireball_bq_uni_container_absorbation]
+burn_immunity             = 0.04669
+chemical_burn_immunity    = 0
+shock_immunity            = 0
+telepatic_immunity        = 0
+strike_immunity           = 0
+wound_immunity            = 0
+radiation_immunity        = 0
+explosion_immunity        = 0
+fire_wound_immunity       = 0
+
+[af_fireball_bq_sci_container]:af_fireball,bq_sci_container
+radiation_restore_speed   = 0
+hit_absorbation_sect      = af_fireball_bq_sci_container_absorbation
+inv_grid_x                = 2
+inv_grid_y                = 1
+inv_name                  = fireball_sci_name
+inv_name_short            = fireball_sci_name
+description               = fireball_sci_descr
+use1_text                 = bq_take_artifact
+use1_functor              = bq_field_container.take_artifact
+
+[af_fireball_bq_sci_container_absorbation]
+burn_immunity             = 0.04669
+chemical_burn_immunity    = 0
+shock_immunity            = 0
+telepatic_immunity        = 0
+strike_immunity           = 0
+wound_immunity            = 0
+radiation_immunity        = 0
+explosion_immunity        = 0
+fire_wound_immunity       = 0
+
+[af_compass_field_container]:af_compass,bq_field_container
+radiation_restore_speed   = -0.022
+hit_absorbation_sect      = af_compass_field_container_absorbation
+inv_grid_x                = 0
+inv_grid_y                = 1
+inv_name                  = compass_field_name
+inv_name_short            = compass_field_name
+description               = compass_field_descr
+use1_text                 = bq_take_artifact
+use1_functor              = bq_field_container.take_artifact
+
+[af_compass_field_container_absorbation]
+burn_immunity             = 0.02668
+chemical_burn_immunity    = 0.532
+shock_immunity            = 0.06668
+telepatic_immunity        = 0.532
+strike_immunity           = 0
+wound_immunity            = 0
+radiation_immunity        = 0
+explosion_immunity        = 0
+fire_wound_immunity       = 0
+
+[af_compass_bq_uni_container]:af_compass,bq_uni_container
+radiation_restore_speed   = -0.016
+hit_absorbation_sect      = af_compass_bq_uni_container_absorbation
+inv_grid_x                = 1
+inv_grid_y                = 1
+inv_name                  = compass_uni_name
+inv_name_short            = compass_uni_name
+description               = compass_uni_descr
+use1_text                 = bq_take_artifact
+use1_functor              = bq_field_container.take_artifact
+
+[af_compass_bq_uni_container_absorbation]
+burn_immunity             = 0.02668
+chemical_burn_immunity    = 0.532
+shock_immunity            = 0.06668
+telepatic_immunity        = 0.532
+strike_immunity           = 0
+wound_immunity            = 0
+radiation_immunity        = 0
+explosion_immunity        = 0
+fire_wound_immunity       = 0
+
+[af_compass_bq_sci_container]:af_compass,bq_sci_container
+radiation_restore_speed   = -0.008
+hit_absorbation_sect      = af_compass_bq_sci_container_absorbation
+inv_grid_x                = 2
+inv_grid_y                = 1
+inv_name                  = compass_sci_name
+inv_name_short            = compass_sci_name
+description               = compass_sci_descr
+use1_text                 = bq_take_artifact
+use1_functor              = bq_field_container.take_artifact
+
+[af_compass_bq_sci_container_absorbation]
+burn_immunity             = 0.02668
+chemical_burn_immunity    = 0.532
+shock_immunity            = 0.06668
+telepatic_immunity        = 0.532
+strike_immunity           = 0
+wound_immunity            = 0
+radiation_immunity        = 0
+explosion_immunity        = 0
+fire_wound_immunity       = 0
 
 [af_base]:identity_immunities
 GroupControlSection		= spawn_group

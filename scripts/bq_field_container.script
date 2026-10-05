@@ -1,30 +1,30 @@
 -- bq_field_container.script
--- Полевой контейнер для артефактов.
+-- Контейнеры для артефактов: полевой, универсальный, научный.
 --
--- ВЛОЖИТЬ: перетащить артефакт на пустой контейнер в инвентаре.
---   Контейнер и артефакт исчезают, появляется комбо-предмет
---   "<секция артефакта>_field_container".
+-- ВЛОЖИТЬ: перетащить артефакт на пустой контейнер.
+--   Контейнер и артефакт исчезают, появляется комбо-секция
+--   "<артефакт>_<суффикс контейнера>" (см. configs\misc\artefacts.ltx).
 -- ДОСТАТЬ: правый клик по комбо-предмету -> "Достать артефакт".
---   Комбо исчезает, возвращаются артефакт и пустой контейнер.
 --
--- ПОЧЕМУ ЗАМЕНА ОТЛОЖЕННАЯ: менять инвентарь прямо внутри обработчика
--- перетаскивания нельзя — движок в этот момент сам правит список и падает.
--- Поэтому сначала запоминаем id предметов, а меняем на следующем кадре.
+-- Почему замена отложенная: менять инвентарь прямо внутри обработчика
+-- перетаскивания нельзя, движок в этот момент сам правит список.
 --
 -- Отладка: bq_container.log в корне игры (log() в игровой лог не попадает).
 
-local CONTAINER_SECTION = "bq_field_container"
-local SUFFIX            = "_field_container"
-local LOG_FILE          = "bq_container.log"
+local SND_BY_CONTAINER = {
+    bq_field_container = "interface\\inv_iam_open",
+    bq_uni_container   = "interface\\inv_aac_open",
+    bq_sci_container   = "interface\\inv_aam_open",
+}
 
--- Звуки. Путь без расширения, относительно папки sounds.
--- Путь в нижнем регистре: движок приводит имена к нижнему регистру,
--- а файл на диске лежит как inv_iam_open.ogg.
-local SND_PUT = "interface\\inv_iam_open"
+-- Суффиксы комбо-секций: <артефакт>_<суффикс>. Первым идёт самый длинный.
+local COMBO_SUFFIXES = { "bq_sci_container", "bq_uni_container", "field_container" }
 
-local pending   = nil   -- { artifact_id, container_id, combo } либо take-задача
+local LOG_FILE = "bq_container.log"
+
+local pending   = nil
 local hooked    = false
-local snd_cache = {}    -- кэш загруженных звуков
+local snd_cache = {}
 
 local function dbg(msg)
     local f = io.open(LOG_FILE, "a")
@@ -34,10 +34,9 @@ local function dbg(msg)
     end
 end
 
--- Проиграть звук (2D, интерфейсный). Звук загружается один раз и кэшируется.
--- Обёрнуто в pcall: если звук битый или не найден, замена предмета всё равно
--- выполнится, просто без звука.
+-- Проиграть звук (2D). Обёрнуто в pcall: битый звук не сорвёт замену.
 local function play_sound(path)
+    if not path then return end
     local ok, err = pcall(function()
         local snd = snd_cache[path]
         if not snd then
@@ -53,45 +52,44 @@ local function play_sound(path)
     if not ok then dbg("ошибка звука '" .. path .. "': " .. tostring(err)) end
 end
 
--- Секция комбо-предмета для артефакта, если она есть в конфиге.
+-- Секция комбо-предмета: <артефакт>_<суффикс> для любого типа контейнера.
 local function combo_section(artifact_section)
-    if not artifact_section or artifact_section == CONTAINER_SECTION then
-        return nil
-    end
-    local section = artifact_section .. SUFFIX
-    if system_ini():section_exist(section) then
-        return section
-    end
-    return nil
-end
-
--- Обратная операция: секция артефакта по секции комбо-предмета.
-local function artifact_from_combo(combo)
-    if not combo then return nil end
-    local n = string.len(SUFFIX)
-    if string.sub(combo, -n) ~= SUFFIX then return nil end
-    local base = string.sub(combo, 1, -(n + 1))
-    if system_ini():section_exist(base) then return base end
-    return nil
-end
-
--- Первый подходящий артефакт у актора (для кнопки на заполненном контейнере).
-local function first_artifact_in_inventory()
-    if not db.actor then return nil, nil end
-    local found_id, found_section = nil, nil
-    local function iter(_, item)
-        if found_id or not item then return end
-        local s = item:section()
-        if combo_section(s) then
-            found_id = item:id()
-            found_section = s
+    if not artifact_section then return nil end
+    for _, suffix in ipairs(COMBO_SUFFIXES) do
+        local candidate = artifact_section .. "_" .. suffix
+        if system_ini():section_exist(candidate) then
+            return candidate
         end
     end
-    db.actor:iterate_inventory(iter, db.actor)
-    return found_id, found_section
+    return nil
 end
 
--- Артефакт и контейнер лежат у актора? (db.actor.id — это функция, нужен :id())
+-- Секция пустого контейнера по секции комбо.
+local function container_of_combo(combo)
+    if not combo then return nil end
+    for _, suffix in ipairs(COMBO_SUFFIXES) do
+        local n = string.len(suffix)
+        if string.sub(combo, -(n + 1)) == "_" .. suffix then
+            local container = "bq_" .. suffix
+            if system_ini():section_exist(container) then return container end
+        end
+    end
+    return nil
+end
+
+-- Артефакт по секции комбо: отрезаем суффикс контейнера.
+local function artifact_of_combo(combo)
+    if not combo then return nil end
+    for _, suffix in ipairs(COMBO_SUFFIXES) do
+        local n = string.len(suffix)
+        if string.sub(combo, -(n + 1)) == "_" .. suffix then
+            local artifact = string.sub(combo, 1, -(n + 2))
+            if system_ini():section_exist(artifact) then return artifact end
+        end
+    end
+    return nil
+end
+
 local function owned_by_actor(object)
     return object and object.parent_id == db.actor:id()
 end
@@ -119,18 +117,16 @@ local function apply_pending()
             return
         end
         if not owned_by_actor(artifact) or not owned_by_actor(container) then
-            dbg("ОТМЕНА(put): не у актора (artifact=" .. tostring(artifact.parent_id)
-                .. ", container=" .. tostring(container.parent_id)
-                .. ", actor=" .. tostring(db.actor:id()) .. ")")
+            dbg("ОТМЕНА(put): не у актора")
             return
         end
-        dbg("ЗАМЕНА(put): '" .. artifact:section_name() .. "' + контейнер -> '" .. task.combo .. "'")
+        dbg("ЗАМЕНА(put): '" .. artifact:section_name() .. "' + '"
+            .. container:section_name() .. "' -> '" .. task.combo .. "'")
         alife():release(artifact, true)
         alife():release(container, true)
         local created = alife():create(task.combo, position, level_vertex, game_vertex, db.actor:id())
         dbg(created and ("  ГОТОВО: id=" .. tostring(created.id)) or "  ОШИБКА создания комбо")
-        -- Звук вложения артефакта.
-        if created then play_sound(SND_PUT) end
+        if created then play_sound(task.sound) end
 
     elseif task.mode == "take" then
         local combo = alife():object(task.combo_id)
@@ -139,15 +135,16 @@ local function apply_pending()
             return
         end
         if not owned_by_actor(combo) then
-            dbg("ОТМЕНА(take): комбо не у актора (" .. tostring(combo.parent_id) .. ")")
+            dbg("ОТМЕНА(take): комбо не у актора")
             return
         end
-        dbg("ЗАМЕНА(take): '" .. combo:section_name() .. "' -> '" .. task.artifact .. "' + контейнер")
+        dbg("ЗАМЕНА(take): '" .. combo:section_name() .. "' -> '"
+            .. task.artifact .. "' + '" .. task.container .. "'")
         alife():release(combo, true)
         local artifact  = alife():create(task.artifact, position, level_vertex, game_vertex, db.actor:id())
-        local container = alife():create(CONTAINER_SECTION, position, level_vertex, game_vertex, db.actor:id())
-        dbg((artifact and container) and "  ГОТОВО"
-            or ("  ОШИБКА: artifact=" .. tostring(artifact) .. ", container=" .. tostring(container)))
+        local container = alife():create(task.container, position, level_vertex, game_vertex, db.actor:id())
+        dbg((artifact and container) and "  ГОТОВО" or "  ОШИБКА при доставании")
+        if artifact and container then play_sound(task.sound) end
     end
 end
 
@@ -165,7 +162,8 @@ function on_item_dropped(first, second)
     local sec_second = second:section()
     dbg("OnItemDropped: тащим='" .. tostring(sec_first) .. "' на='" .. tostring(sec_second) .. "'")
 
-    if sec_second ~= CONTAINER_SECTION then return true end
+    local sound = SND_BY_CONTAINER[sec_second]
+    if not sound then return true end          -- цель не контейнер
 
     local combo = combo_section(sec_first)
     if not combo then
@@ -173,48 +171,31 @@ function on_item_dropped(first, second)
         return true
     end
 
-    pending = { mode = "put", artifact_id = first:id(), container_id = second:id(), combo = combo }
+    pending = { mode = "put", artifact_id = first:id(), container_id = second:id(),
+                combo = combo, sound = sound }
     dbg("  принято: вложение на следующем кадре")
     return true
 end
 
 --------------------------------------------------------------------------
 -- 2) Кнопка на комбо-предмете: достать артефакт.
---    Движок передаёт в функцию сам предмет (комбо-контейнер).
 --------------------------------------------------------------------------
 function take_artifact(combo)
     dbg("take_artifact: вызов из меню")
     if not db.actor or not alife() or not combo then return false end
 
-    local combo_section_name = combo:section()
-    local artifact = artifact_from_combo(combo_section_name)
-    if not artifact then
-        dbg("  '" .. tostring(combo_section_name) .. "' не комбо-секция")
+    local combo_sec = combo:section()
+    local artifact  = artifact_of_combo(combo_sec)
+    local container = container_of_combo(combo_sec)
+    local sound     = container and SND_BY_CONTAINER[container] or nil
+    if not artifact or not container then
+        dbg("  '" .. tostring(combo_sec) .. "' не распознан как комбо")
         return false
     end
 
-    pending = { mode = "take", combo_id = combo:id(), artifact = artifact }
-    dbg("  '" .. combo_section_name .. "' -> '" .. artifact .. "', замена на следующем кадре")
-    return false
-end
-
---------------------------------------------------------------------------
--- 3) Кнопка на пустом контейнере: положить первый подходящий артефакт.
---------------------------------------------------------------------------
-function put_artifact(container)
-    dbg("put_artifact: вызов из меню")
-    if not db.actor or not alife() or not container then return false end
-    if container:section() ~= CONTAINER_SECTION then return false end
-
-    local artifact_id, artifact_section = first_artifact_in_inventory()
-    if not artifact_id then
-        dbg("  подходящих артефактов в инвентаре нет")
-        return false
-    end
-
-    pending = { mode = "put", artifact_id = artifact_id, container_id = container:id(),
-                combo = combo_section(artifact_section) }
-    dbg("  взял '" .. artifact_section .. "', замена на следующем кадре")
+    pending = { mode = "take", combo_id = combo:id(), artifact = artifact,
+                container = container, sound = sound }
+    dbg("  '" .. combo_sec .. "' -> '" .. artifact .. "' + '" .. container .. "'")
     return false
 end
 
@@ -225,7 +206,7 @@ function on_game_start()
     if hooked then return end
     RegisterScriptCallback("update", apply_pending)
     hooked = true
-    dbg("==== скрипт контейнера загружен, хук обновления установлен ====")
+    dbg("==== скрипт контейнеров загружен (3 типа), хук установлен ====")
 end
 
 on_game_start()
