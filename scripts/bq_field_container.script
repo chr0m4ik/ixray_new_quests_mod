@@ -97,11 +97,8 @@ end
 --------------------------------------------------------------------------
 -- Замена. Выполняется на следующем кадре.
 --------------------------------------------------------------------------
-local function apply_pending()
+local function do_apply()
     if not pending then return end
-    if not db.actor or not alife() then return end
-    if db.actor:is_talking() then return end
-
     local task = pending
     pending = nil
 
@@ -120,26 +117,24 @@ local function apply_pending()
             dbg("ОТМЕНА(put): не у актора")
             return
         end
-        dbg("ЗАМЕНА(put): '" .. artifact:section_name() .. "' + '"
-            .. container:section_name() .. "' -> '" .. task.combo .. "'")
+        dbg("ЗАМЕНА(put): " .. artifact:section_name() .. " + " .. container:section_name() .. " -> " .. task.combo)
         alife():release(artifact, true)
         alife():release(container, true)
         local created = alife():create(task.combo, position, level_vertex, game_vertex, db.actor:id())
-        dbg(created and ("  ГОТОВО: id=" .. tostring(created.id)) or "  ОШИБКА создания комбо")
+        dbg(created and ("  ГОТОВО id=" .. tostring(created.id)) or "  ОШИБКА создания комбо")
         if created then play_sound(task.sound) end
 
     elseif task.mode == "take" then
         local combo = alife():object(task.combo_id)
         if not combo then
-            dbg("ОТМЕНА(take): комбо-предмет исчез")
+            dbg("ОТМЕНА(take): комбо исчез id=" .. tostring(task.combo_id))
             return
         end
         if not owned_by_actor(combo) then
-            dbg("ОТМЕНА(take): комбо не у актора")
+            dbg("ОТМЕНА(take): комбо не у актора parent=" .. tostring(combo.parent_id) .. " actor=" .. tostring(db.actor:id()))
             return
         end
-        dbg("ЗАМЕНА(take): '" .. combo:section_name() .. "' -> '"
-            .. task.artifact .. "' + '" .. task.container .. "'")
+        dbg("ЗАМЕНА(take): " .. combo:section_name() .. " -> " .. task.artifact .. " + " .. task.container)
         alife():release(combo, true)
         local artifact  = alife():create(task.artifact, position, level_vertex, game_vertex, db.actor:id())
         local container = alife():create(task.container, position, level_vertex, game_vertex, db.actor:id())
@@ -148,7 +143,16 @@ local function apply_pending()
     end
 end
 
---------------------------------------------------------------------------
+local function apply_pending()
+    if not pending then return end
+    if not db.actor or not alife() then return end
+    if db.actor:is_talking() then return end
+    local ok, err = pcall(do_apply)
+    if not ok then
+        pending = nil
+        dbg("ОШИБКА в apply_pending: " .. tostring(err))
+    end
+end
 -- 1) Перетаскивание: артефакт на пустой контейнер.
 --------------------------------------------------------------------------
 function on_item_dropped(first, second)
