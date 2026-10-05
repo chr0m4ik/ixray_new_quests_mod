@@ -17,8 +17,14 @@ local CONTAINER_SECTION = "bq_field_container"
 local SUFFIX            = "_field_container"
 local LOG_FILE          = "bq_container.log"
 
-local pending = nil   -- { artifact_id, container_id, combo } либо take-задача
-local hooked  = false
+-- Звуки. Путь без расширения, относительно папки sounds.
+-- Путь в нижнем регистре: движок приводит имена к нижнему регистру,
+-- а файл на диске лежит как inv_iam_open.ogg.
+local SND_PUT = "interface\\inv_iam_open"
+
+local pending   = nil   -- { artifact_id, container_id, combo } либо take-задача
+local hooked    = false
+local snd_cache = {}    -- кэш загруженных звуков
 
 local function dbg(msg)
     local f = io.open(LOG_FILE, "a")
@@ -26,6 +32,25 @@ local function dbg(msg)
         f:write(os.date("%H:%M:%S") .. "  " .. msg .. "\n")
         f:close()
     end
+end
+
+-- Проиграть звук (2D, интерфейсный). Звук загружается один раз и кэшируется.
+-- Обёрнуто в pcall: если звук битый или не найден, замена предмета всё равно
+-- выполнится, просто без звука.
+local function play_sound(path)
+    local ok, err = pcall(function()
+        local snd = snd_cache[path]
+        if not snd then
+            snd = sound_object(path)
+            snd_cache[path] = snd
+        end
+        if snd then
+            snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector():set(0, 0, 0), 1.0)
+        else
+            dbg("звук не загрузился: " .. path)
+        end
+    end)
+    if not ok then dbg("ошибка звука '" .. path .. "': " .. tostring(err)) end
 end
 
 -- Секция комбо-предмета для артефакта, если она есть в конфиге.
@@ -104,6 +129,8 @@ local function apply_pending()
         alife():release(container, true)
         local created = alife():create(task.combo, position, level_vertex, game_vertex, db.actor:id())
         dbg(created and ("  ГОТОВО: id=" .. tostring(created.id)) or "  ОШИБКА создания комбо")
+        -- Звук вложения артефакта.
+        if created then play_sound(SND_PUT) end
 
     elseif task.mode == "take" then
         local combo = alife():object(task.combo_id)
