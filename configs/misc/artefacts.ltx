@@ -88,8 +88,23 @@ cost                      = 12000
 belt                      = false
 can_trade                 = false
 af_rank                   = 0
-lights_enabled           = false            ; обязательный ключ CArtefact::Load, в af_base его нет
+lights_enabled            = false           ; тоже обязательный ключ, в af_base его нет
+
+;;-- Обязательные для CArtefact::Load параметры артефакта. В af_base их НЕТ,
+;;-- поэтому контейнер задаёт их явно нулями (иначе вылет "Can't find variable ...").
+health_restore_speed      = 0
 radiation_restore_speed   = 7
+satiety_restore_speed     = 0
+power_restore_speed       = 0
+bleeding_restore_speed    = 0
+additional_inventory_weight = 0
+hud                       = artefact_hud     ; секция HUD (CHudItem::Load, строгое чтение)
+animation_slot            = 11
+particles_bone            = link             ; модель обязана иметь эту кость
+attach_angle_offset       = 0,0,0            ; CAttachableItem::Load, строгое чтение
+attach_position_offset    = -0.1,-0.1,0
+attach_bone_name          = bip01_root
+slot                      = -1
 hit_absorbation_sect      = bq_field_container_absorbation
 
 [bq_field_container_absorbation]
@@ -111,6 +126,14 @@ radiation_restore_speed   = -6.998
 ; af_eye_absorbation вторым родителем перекрывает таблицу брони af_eye (все нули)
 hit_absorbation_sect      = af_eye_absorbation,bq_field_container_absorbation
 
+lights_enabled            = true             ; у комбо модель af_eye, свет как у обычного Глаза
+hud                       = artefact_hud
+animation_slot            = 11
+particles_bone            = link
+attach_angle_offset       = 0,0,0
+attach_position_offset    = -0.1,-0.1,0
+attach_bone_name          = bip01_root
+slot                      = -1
 ;-------------------------------------------------------------------------------
 ;Артефакты, которые при активизации создают аномальные зоны
 ;формат: {секция_артефакта} = {секция_зоны},Radius,Power
