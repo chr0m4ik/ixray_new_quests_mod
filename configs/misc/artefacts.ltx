@@ -75,7 +75,7 @@
 [bq_field_container]:af_base
 $spawn                    = "artefacts\bq_field_container"
 class                     = ARTEFACT
-visual                    = dynamics\devices\dev_pda\dev_pda.ogf
+visual                    = dynamics\artefacts\af_eye.ogf   ; в модели артефакта есть кость link (particles_bone)
 description               = st_field_container_descr
 inv_name                  = st_field_container_name
 inv_name_short            = st_field_container_name
@@ -102,10 +102,8 @@ chemical_burn_immunity    = 0
 explosion_immunity        = 0
 fire_wound_immunity       = 0
 
-;;-- Глаз (af_eye) в контейнере: наследуем af_eye, меняем визуал и радиацию.
+;;-- Глаз (af_eye) в контейнере: наследуем af_eye, меняем только радиацию.
 [af_eye_field_container]:af_eye,bq_field_container
-$spawn                    = "artefacts\af_eye_field_container"
-visual                    = dynamics\devices\dev_pda\dev_pda.ogf
 belt                      = true
 inv_weight                = 2.0
 radiation_restore_speed   = -6.998
