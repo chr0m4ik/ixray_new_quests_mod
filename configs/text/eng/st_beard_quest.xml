@@ -335,12 +335,7 @@
     </string>
 
     <string id="bq_take_artifact">
-        <text>Take out artefact</text>
-    </string>
-
-    <!-- Artifact inside container: names and descriptions -->
-    <string id="eye_field_name">
-        <text>Container (Eye)</text>
+        <text>take out artefact</text>
     </string>
     <string id="eye_field_descr">
         <text>Container with an artefact. Contains: Eye</text>
@@ -407,6 +402,80 @@
     </string>
     <string id="compass_sci_name">
         <text>Container (Compass)</text>
+    </string>
+    <string id="compass_sci_descr">
+        <text>Container with an artefact. Contains: Compass</text>
+    </string>
+
+    <!-- Артефакт в контейнере: уникальные имена и описания -->
+    <string id="eye_field_name">
+        <text>Field container (Eye)</text>
+    </string>
+    <string id="eye_field_descr">
+        <text>Container with an artefact. Contains: Eye</text>
+    </string>
+    <string id="eye_uni_name">
+        <text>Universal container (Eye)</text>
+    </string>
+    <string id="eye_uni_descr">
+        <text>Container with an artefact. Contains: Eye</text>
+    </string>
+    <string id="eye_sci_name">
+        <text>Scientific container (Eye)</text>
+    </string>
+    <string id="eye_sci_descr">
+        <text>Container with an artefact. Contains: Eye</text>
+    </string>
+    <string id="cristall_field_name">
+        <text>Field container (Crystal)</text>
+    </string>
+    <string id="cristall_field_descr">
+        <text>Container with an artefact. Contains: Crystal</text>
+    </string>
+    <string id="cristall_uni_name">
+        <text>Universal container (Crystal)</text>
+    </string>
+    <string id="cristall_uni_descr">
+        <text>Container with an artefact. Contains: Crystal</text>
+    </string>
+    <string id="cristall_sci_name">
+        <text>Scientific container (Crystal)</text>
+    </string>
+    <string id="cristall_sci_descr">
+        <text>Container with an artefact. Contains: Crystal</text>
+    </string>
+    <string id="fireball_field_name">
+        <text>Field container (Fireball)</text>
+    </string>
+    <string id="fireball_field_descr">
+        <text>Container with an artefact. Contains: Fireball</text>
+    </string>
+    <string id="fireball_uni_name">
+        <text>Universal container (Fireball)</text>
+    </string>
+    <string id="fireball_uni_descr">
+        <text>Container with an artefact. Contains: Fireball</text>
+    </string>
+    <string id="fireball_sci_name">
+        <text>Scientific container (Fireball)</text>
+    </string>
+    <string id="fireball_sci_descr">
+        <text>Container with an artefact. Contains: Fireball</text>
+    </string>
+    <string id="compass_field_name">
+        <text>Field container (Compass)</text>
+    </string>
+    <string id="compass_field_descr">
+        <text>Container with an artefact. Contains: Compass</text>
+    </string>
+    <string id="compass_uni_name">
+        <text>Universal container (Compass)</text>
+    </string>
+    <string id="compass_uni_descr">
+        <text>Container with an artefact. Contains: Compass</text>
+    </string>
+    <string id="compass_sci_name">
+        <text>Scientific container (Compass)</text>
     </string>
     <string id="compass_sci_descr">
         <text>Container with an artefact. Contains: Compass</text>

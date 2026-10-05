@@ -335,12 +335,7 @@
     </string>
 
     <string id="bq_take_artifact">
-        <text>Достать артефакт</text>
-    </string>
-
-    <!-- Artifact inside container: names and descriptions -->
-    <string id="eye_field_name">
-        <text>Контейнер (Глаз)</text>
+        <text>достать артефакт</text>
     </string>
     <string id="eye_field_descr">
         <text>Контейнер с артефактом. Содержит в себе: Глаз</text>
@@ -407,6 +402,80 @@
     </string>
     <string id="compass_sci_name">
         <text>Контейнер (Компасс)</text>
+    </string>
+    <string id="compass_sci_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Компасс</text>
+    </string>
+
+    <!-- Артефакт в контейнере: уникальные имена и описания -->
+    <string id="eye_field_name">
+        <text>Полевой контейнер (Глаз)</text>
+    </string>
+    <string id="eye_field_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Глаз</text>
+    </string>
+    <string id="eye_uni_name">
+        <text>Универсальный контейнер (Глаз)</text>
+    </string>
+    <string id="eye_uni_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Глаз</text>
+    </string>
+    <string id="eye_sci_name">
+        <text>Научный контейнер (Глаз)</text>
+    </string>
+    <string id="eye_sci_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Глаз</text>
+    </string>
+    <string id="cristall_field_name">
+        <text>Полевой контейнер (Кристалл)</text>
+    </string>
+    <string id="cristall_field_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Кристалл</text>
+    </string>
+    <string id="cristall_uni_name">
+        <text>Универсальный контейнер (Кристалл)</text>
+    </string>
+    <string id="cristall_uni_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Кристалл</text>
+    </string>
+    <string id="cristall_sci_name">
+        <text>Научный контейнер (Кристалл)</text>
+    </string>
+    <string id="cristall_sci_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Кристалл</text>
+    </string>
+    <string id="fireball_field_name">
+        <text>Полевой контейнер (Огненный шар)</text>
+    </string>
+    <string id="fireball_field_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Огненный шар</text>
+    </string>
+    <string id="fireball_uni_name">
+        <text>Универсальный контейнер (Огненный шар)</text>
+    </string>
+    <string id="fireball_uni_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Огненный шар</text>
+    </string>
+    <string id="fireball_sci_name">
+        <text>Научный контейнер (Огненный шар)</text>
+    </string>
+    <string id="fireball_sci_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Огненный шар</text>
+    </string>
+    <string id="compass_field_name">
+        <text>Полевой контейнер (Компасс)</text>
+    </string>
+    <string id="compass_field_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Компасс</text>
+    </string>
+    <string id="compass_uni_name">
+        <text>Универсальный контейнер (Компасс)</text>
+    </string>
+    <string id="compass_uni_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Компасс</text>
+    </string>
+    <string id="compass_sci_name">
+        <text>Научный контейнер (Компасс)</text>
     </string>
     <string id="compass_sci_descr">
         <text>Контейнер с артефактом. Содержит в себе: Компасс</text>
