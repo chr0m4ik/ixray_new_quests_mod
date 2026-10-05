@@ -313,4 +313,25 @@
         <text>I don't have that kind of money right now.</text>
     </string>
 
+    <!-- =============================================
+         Field artefact container
+    ============================================= -->
+
+    <string id="bq_field_container_name">
+        <text>Field artefact container</text>
+    </string>
+    <string id="bq_field_container_descr">
+        <text>Hand-made container. It can hold an artefact and absorb part of its radiation</text>
+    </string>
+
+    <string id="bq_field_container_eye_name">
+        <text>Field artefact container (Eye)</text>
+    </string>
+    <string id="bq_field_container_eye_descr">
+        <text>Hand-made container. It can hold an artefact and absorb part of its radiation. Contains: Eye</text>
+    </string>
+
+    <string id="bq_take_artifact">
+        <text>Take out artefact</text>
+    </string>
 </string_table>
