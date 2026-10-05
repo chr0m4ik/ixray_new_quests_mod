@@ -1,3 +1,8 @@
-copy_files.py
+﻿copy_files.py
 *.md
 .claude/
+
+# Атлас иконок Anomaly - локальный источник для tools\extract_icon.js,
+# в репозиторий не коммитим (33 МБ и чужая графика). Файл должен лежать
+# в textures\ui\, чтобы из него можно было вырезать иконки.
+textures/ui/ui_anomaly_icons.dds
