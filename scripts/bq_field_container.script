@@ -1,31 +1,23 @@
 -- bq_field_container.script
 -- Полевой контейнер для артефактов.
 --
--- Механика: игрок перетаскивает артефакт на контейнер в инвентаре.
--- Контейнер и артефакт исчезают, вместо них появляется комбо-предмет
--- "<секция артефакта>_field_container" (см. configs\misc\artefacts.ltx).
+-- ВЛОЖИТЬ: перетащить артефакт на пустой контейнер в инвентаре.
+--   Контейнер и артефакт исчезают, появляется комбо-предмет
+--   "<секция артефакта>_field_container".
+-- ДОСТАТЬ: правый клик по комбо-предмету -> "Достать артефакт".
+--   Комбо исчезает, возвращаются артефакт и пустой контейнер.
 --
 -- ПОЧЕМУ ЗАМЕНА ОТЛОЖЕННАЯ: менять инвентарь прямо внутри обработчика
 -- перетаскивания нельзя — движок в этот момент сам правит список и падает.
--- Колбэк только запоминает id предметов и разрешает обычное перекладывание,
--- а замена идёт на следующем кадре.
+-- Поэтому сначала запоминаем id предметов, а меняем на следующем кадре.
 --
--- Точки входа:
---   1) колбэк OnItemDropped (перетаскивание) — включается строкой в
---      configs\mod_game_global_z_bq.ltx (секция ![callbacks]);
---   2) функция bq_field_container.put_artifact — контекстное меню предмета
---      ("Вложить артефакт"), включается через use1_text/use1_functor в
---      configs\misc\artefacts.ltx. Запасной способ на случай, если
---      перетаскивание в этой сборке не доходит до колбэка.
---
--- Отладка: всё пишется в файл bq_container.log в корне игры (log() из скриптов
--- в игровой лог этой сборки не попадает, поэтому пишем напрямую в файл).
+-- Отладка: bq_container.log в корне игры (log() в игровой лог не попадает).
 
 local CONTAINER_SECTION = "bq_field_container"
 local SUFFIX            = "_field_container"
 local LOG_FILE          = "bq_container.log"
 
-local pending = nil   -- { artifact_id, container_id, combo }
+local pending = nil   -- { artifact_id, container_id, combo } либо take-задача
 local hooked  = false
 
 local function dbg(msg)
@@ -48,7 +40,17 @@ local function combo_section(artifact_section)
     return nil
 end
 
--- Первый подходящий артефакт у актора (для запасного способа через меню).
+-- Обратная операция: секция артефакта по секции комбо-предмета.
+local function artifact_from_combo(combo)
+    if not combo then return nil end
+    local n = string.len(SUFFIX)
+    if string.sub(combo, -n) ~= SUFFIX then return nil end
+    local base = string.sub(combo, 1, -(n + 1))
+    if system_ini():section_exist(base) then return base end
+    return nil
+end
+
+-- Первый подходящий артефакт у актора (для кнопки на заполненном контейнере).
 local function first_artifact_in_inventory()
     if not db.actor then return nil, nil end
     local found_id, found_section = nil, nil
@@ -64,9 +66,13 @@ local function first_artifact_in_inventory()
     return found_id, found_section
 end
 
+-- Артефакт и контейнер лежат у актора? (db.actor.id — это функция, нужен :id())
+local function owned_by_actor(object)
+    return object and object.parent_id == db.actor:id()
+end
+
 --------------------------------------------------------------------------
--- Замена. Выполняется на следующем кадре, когда движок уже закончил
--- обработку перетаскивания.
+-- Замена. Выполняется на следующем кадре.
 --------------------------------------------------------------------------
 local function apply_pending()
     if not pending then return end
@@ -76,40 +82,50 @@ local function apply_pending()
     local task = pending
     pending = nil
 
-    local artifact  = alife():object(task.artifact_id)
-    local container = alife():object(task.container_id)
-    if not artifact or not container then
-        dbg("ОТМЕНА: предмет уже исчез (artifact=" .. tostring(artifact)
-            .. ", container=" .. tostring(container) .. ")")
-        return
-    end
-    if artifact.parent_id ~= db.actor.id or container.parent_id ~= db.actor.id then
-        dbg("ОТМЕНА: не у актора (artifact.parent=" .. tostring(artifact.parent_id)
-            .. ", container.parent=" .. tostring(container.parent_id)
-            .. ", actor=" .. tostring(db.actor.id) .. ")")
-        return
-    end
-
     local position     = db.actor:position()
     local level_vertex = db.actor:level_vertex_id()
     local game_vertex  = db.actor:game_vertex_id()
 
-    dbg("ЗАМЕНА: '" .. artifact:section_name() .. "'(" .. tostring(task.artifact_id)
-        .. ") + контейнер(" .. tostring(task.container_id) .. ") -> '" .. task.combo .. "'")
+    if task.mode == "put" then
+        local artifact  = alife():object(task.artifact_id)
+        local container = alife():object(task.container_id)
+        if not artifact or not container then
+            dbg("ОТМЕНА(put): предмет исчез")
+            return
+        end
+        if not owned_by_actor(artifact) or not owned_by_actor(container) then
+            dbg("ОТМЕНА(put): не у актора (artifact=" .. tostring(artifact.parent_id)
+                .. ", container=" .. tostring(container.parent_id)
+                .. ", actor=" .. tostring(db.actor:id()) .. ")")
+            return
+        end
+        dbg("ЗАМЕНА(put): '" .. artifact:section_name() .. "' + контейнер -> '" .. task.combo .. "'")
+        alife():release(artifact, true)
+        alife():release(container, true)
+        local created = alife():create(task.combo, position, level_vertex, game_vertex, db.actor:id())
+        dbg(created and ("  ГОТОВО: id=" .. tostring(created.id)) or "  ОШИБКА создания комбо")
 
-    alife():release(artifact, true)
-    alife():release(container, true)
-
-    local created = alife():create(task.combo, position, level_vertex, game_vertex, db.actor.id)
-    if created then
-        dbg("ГОТОВО: '" .. task.combo .. "' id=" .. tostring(created.id))
-    else
-        dbg("ОШИБКА: не удалось создать '" .. task.combo .. "'")
+    elseif task.mode == "take" then
+        local combo = alife():object(task.combo_id)
+        if not combo then
+            dbg("ОТМЕНА(take): комбо-предмет исчез")
+            return
+        end
+        if not owned_by_actor(combo) then
+            dbg("ОТМЕНА(take): комбо не у актора (" .. tostring(combo.parent_id) .. ")")
+            return
+        end
+        dbg("ЗАМЕНА(take): '" .. combo:section_name() .. "' -> '" .. task.artifact .. "' + контейнер")
+        alife():release(combo, true)
+        local artifact  = alife():create(task.artifact, position, level_vertex, game_vertex, db.actor:id())
+        local container = alife():create(CONTAINER_SECTION, position, level_vertex, game_vertex, db.actor:id())
+        dbg((artifact and container) and "  ГОТОВО"
+            or ("  ОШИБКА: artifact=" .. tostring(artifact) .. ", container=" .. tostring(container)))
     end
 end
 
 --------------------------------------------------------------------------
--- Колбэк перетаскивания (пишем каждый вызов — по файлу видно, доходит ли он).
+-- 1) Перетаскивание: артефакт на пустой контейнер.
 --------------------------------------------------------------------------
 function on_item_dropped(first, second)
     if not db.actor or not alife() then return true end
@@ -130,14 +146,33 @@ function on_item_dropped(first, second)
         return true
     end
 
-    pending = { artifact_id = first:id(), container_id = second:id(), combo = combo }
-    dbg("  принято: замена на следующем кадре")
+    pending = { mode = "put", artifact_id = first:id(), container_id = second:id(), combo = combo }
+    dbg("  принято: вложение на следующем кадре")
     return true
 end
 
 --------------------------------------------------------------------------
--- Запасной способ: контекстное меню предмета "Вложить артефакт".
--- Вызывается движком как use1_functor, аргумент — сам контейнер.
+-- 2) Кнопка на комбо-предмете: достать артефакт.
+--    Движок передаёт в функцию сам предмет (комбо-контейнер).
+--------------------------------------------------------------------------
+function take_artifact(combo)
+    dbg("take_artifact: вызов из меню")
+    if not db.actor or not alife() or not combo then return false end
+
+    local combo_section_name = combo:section()
+    local artifact = artifact_from_combo(combo_section_name)
+    if not artifact then
+        dbg("  '" .. tostring(combo_section_name) .. "' не комбо-секция")
+        return false
+    end
+
+    pending = { mode = "take", combo_id = combo:id(), artifact = artifact }
+    dbg("  '" .. combo_section_name .. "' -> '" .. artifact .. "', замена на следующем кадре")
+    return false
+end
+
+--------------------------------------------------------------------------
+-- 3) Кнопка на пустом контейнере: положить первый подходящий артефакт.
 --------------------------------------------------------------------------
 function put_artifact(container)
     dbg("put_artifact: вызов из меню")
@@ -147,12 +182,11 @@ function put_artifact(container)
     local artifact_id, artifact_section = first_artifact_in_inventory()
     if not artifact_id then
         dbg("  подходящих артефактов в инвентаре нет")
-
         return false
     end
 
-    local combo = combo_section(artifact_section)
-    pending = { artifact_id = artifact_id, container_id = container:id(), combo = combo }
+    pending = { mode = "put", artifact_id = artifact_id, container_id = container:id(),
+                combo = combo_section(artifact_section) }
     dbg("  взял '" .. artifact_section .. "', замена на следующем кадре")
     return false
 end

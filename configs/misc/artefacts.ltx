@@ -107,11 +107,6 @@ attach_bone_name          = bip01_root
 slot                      = -1
 hit_absorbation_sect      = bq_field_container_absorbation
 
-;;-- Запасной способ положить артефакт: контекстное меню предмета.
-;;-- use1_text показывает пункт, use1_functor его вызывает (движок передаёт
-;;-- в функцию сам предмет-контейнер).
-use1_text                 = Вложить артефакт
-use1_functor              = bq_field_container.put_artifact
 
 [bq_field_container_absorbation]
 burn_immunity             = 0
@@ -127,7 +122,7 @@ fire_wound_immunity       = 0
 ;;-- Броня комбо-предмета. Отдельная секция, потому что hit_absorbation_sect
 ;;-- принимает ИМЯ ОДНОЙ секции (запятые не поддерживаются).
 [af_eye_field_container_absorbation]
-burn_immunity = 4
+burn_immunity = 0.004
 strike_immunity           = 0
 shock_immunity            = 0
 wound_immunity            = 0
@@ -152,6 +147,10 @@ attach_angle_offset       = 0,0,0
 attach_position_offset    = -0.1,-0.1,0
 attach_bone_name          = bip01_root
 slot                      = -1
+
+;;-- Кнопка в контекстном меню: достать артефакт обратно.
+use1_text                 = Достать артефакт
+use1_functor              = bq_field_container.take_artifact
 ;-------------------------------------------------------------------------------
 ;Артефакты, которые при активизации создают аномальные зоны
 ;формат: {секция_артефакта} = {секция_зоны},Radius,Power
@@ -801,7 +800,7 @@ additional_inventory_weight2 = 0
 hit_absorbation_sect = af_eye_absorbation
 
 [af_eye_absorbation]
-burn_immunity = 4
+burn_immunity = 0.004
 strike_immunity = 0
 shock_immunity = 0
 wound_immunity = 0
