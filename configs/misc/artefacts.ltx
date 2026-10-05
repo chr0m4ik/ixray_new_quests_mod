@@ -70,7 +70,9 @@
 ;;--   Статы берутся из секции, поэтому для каждого нового артефакта нужна
 ;;--   своя комбо-секция: Lua не умеет добавлять секции в pSettings.
 
-[bq_field_container]:identity_immunities
+;;-- Родитель ОБЯЗАТЕЛЬНО af_base: CArtefact::Load и CHudItem::Load требуют
+;;-- hud, animation_slot, lights_enabled, *_restore_speed, additional_inventory_weight.
+[bq_field_container]:af_base
 $spawn                    = "artefacts\bq_field_container"
 class                     = ARTEFACT
 visual                    = dynamics\devices\dev_pda\dev_pda.ogf
