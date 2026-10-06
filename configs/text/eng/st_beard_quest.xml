@@ -433,4 +433,8 @@
     <string id="eye_field_descr">
         <text>Container with an artefact. Contains: Eye</text>
     </string>
+        <string id="bq_combo_base_name">
+            <text>Artefact container (template)</text>
+        </string>
+
 </string_table>

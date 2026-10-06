@@ -433,4 +433,8 @@
     <string id="eye_field_descr">
         <text>Контейнер с артефактом. Содержит в себе: Глаз</text>
     </string>
+        <string id="bq_combo_base_name">
+            <text>Контейнер с артефактом (шаблон)</text>
+        </string>
+
 </string_table>
