@@ -114,7 +114,7 @@ inv_name                  = bq_uni_container_name
 inv_name_short            = bq_uni_container_name
 inv_grid_x                = 1
 inv_grid_y                = 0
-radiation_restore_speed   = -0.014
+radiation_restore_speed   = -0.007
 
 [bq_sci_container]:bq_field_container
 description               = bq_sci_container_descr
@@ -122,14 +122,14 @@ inv_name                  = bq_sci_container_name
 inv_name_short            = bq_sci_container_name
 inv_grid_x                = 2
 inv_grid_y                = 0
-radiation_restore_speed   = -0.022
+radiation_restore_speed   = -0.011
 
 ;;--== Combined items: artefact inside a container ==========================
 ;;--== radiation = artefact radiation + min(container absorption, artefact radiation)
 ;;--== all other stats are taken from the artefact unchanged
 
 [af_eye_field_container_absorbation]
-burn_immunity             = 0.033333
+burn_immunity             = 0.03
 chemical_burn_immunity    = 0
 shock_immunity            = 0
 telepatic_immunity        = 0
@@ -140,7 +140,7 @@ explosion_immunity        = 0
 fire_wound_immunity       = 0
 
 [af_eye_bq_uni_container_absorbation]
-burn_immunity             = 0.026667
+burn_immunity             = 0.03
 chemical_burn_immunity    = 0
 shock_immunity            = 0
 telepatic_immunity        = 0
@@ -151,7 +151,7 @@ explosion_immunity        = 0
 fire_wound_immunity       = 0
 
 [af_eye_bq_sci_container_absorbation]
-burn_immunity             = 0.026667
+burn_immunity             = 0.03
 chemical_burn_immunity    = 0
 shock_immunity            = 0
 telepatic_immunity        = 0
@@ -162,7 +162,7 @@ explosion_immunity        = 0
 fire_wound_immunity       = 0
 
 [af_cristall_field_container_absorbation]
-burn_immunity             = 0.026667
+burn_immunity             = 0.035
 chemical_burn_immunity    = 0
 shock_immunity            = 0
 telepatic_immunity        = 0
@@ -173,7 +173,7 @@ explosion_immunity        = 0
 fire_wound_immunity       = 0
 
 [af_cristall_bq_uni_container_absorbation]
-burn_immunity             = 0.02
+burn_immunity             = 0.035
 chemical_burn_immunity    = 0
 shock_immunity            = 0
 telepatic_immunity        = 0
@@ -184,7 +184,7 @@ explosion_immunity        = 0
 fire_wound_immunity       = 0
 
 [af_cristall_bq_sci_container_absorbation]
-burn_immunity             = 0.02
+burn_immunity             = 0.035
 chemical_burn_immunity    = 0
 shock_immunity            = 0
 telepatic_immunity        = 0
@@ -687,7 +687,7 @@ additional_inventory_weight2	= 0
 hit_absorbation_sect = af_cristall_absorbation
 
 [af_cristall_absorbation]
-burn_immunity             = 0.05
+burn_immunity             = 0.035
 strike_immunity 		= 0
 shock_immunity            = 0
 wound_immunity 			= 0
@@ -1959,7 +1959,7 @@ actor_properties          = on
 can_be_controlled         = true
 script_binding            = bind_artefact.bind
 health_restore_speed      = 0
-radiation_restore_speed   = -0.004
+radiation_restore_speed   = 0.003
 satiety_restore_speed     = 0
 power_restore_speed       = 0
 bleeding_restore_speed    = 0
@@ -2010,7 +2010,7 @@ actor_properties          = on
 can_be_controlled         = true
 script_binding            = bind_artefact.bind
 health_restore_speed      = 0
-radiation_restore_speed   = -0.004
+radiation_restore_speed   = 0
 satiety_restore_speed     = 0
 power_restore_speed       = 0
 bleeding_restore_speed    = 0
@@ -2061,7 +2061,7 @@ actor_properties          = on
 can_be_controlled         = true
 script_binding            = bind_artefact.bind
 health_restore_speed      = 0
-radiation_restore_speed   = -0.004
+radiation_restore_speed   = 0
 satiety_restore_speed     = 0
 power_restore_speed       = 0
 bleeding_restore_speed    = 0
@@ -2112,7 +2112,7 @@ actor_properties          = on
 can_be_controlled         = true
 script_binding            = bind_artefact.bind
 health_restore_speed      = 0
-radiation_restore_speed   = 0
+radiation_restore_speed   = 0.006
 satiety_restore_speed     = 0
 power_restore_speed       = 0
 bleeding_restore_speed    = 0
@@ -2163,7 +2163,7 @@ actor_properties          = on
 can_be_controlled         = true
 script_binding            = bind_artefact.bind
 health_restore_speed      = 0
-radiation_restore_speed   = -0.006
+radiation_restore_speed   = 0.003
 satiety_restore_speed     = 0
 power_restore_speed       = 0
 bleeding_restore_speed    = 0
@@ -2214,7 +2214,7 @@ actor_properties          = on
 can_be_controlled         = true
 script_binding            = bind_artefact.bind
 health_restore_speed      = 0
-radiation_restore_speed   = -0.012
+radiation_restore_speed   = 0
 satiety_restore_speed     = 0
 power_restore_speed       = 0
 bleeding_restore_speed    = 0
@@ -2265,7 +2265,7 @@ actor_properties          = on
 can_be_controlled         = true
 script_binding            = bind_artefact.bind
 health_restore_speed      = 0
-radiation_restore_speed   = -0.008
+radiation_restore_speed   = 0.011
 satiety_restore_speed     = 0
 power_restore_speed       = 0
 bleeding_restore_speed    = 0
@@ -2316,7 +2316,7 @@ actor_properties          = on
 can_be_controlled         = true
 script_binding            = bind_artefact.bind
 health_restore_speed      = 0
-radiation_restore_speed   = -0.012
+radiation_restore_speed   = 0.008
 satiety_restore_speed     = 0
 power_restore_speed       = 0
 bleeding_restore_speed    = 0
@@ -2367,7 +2367,7 @@ actor_properties          = on
 can_be_controlled         = true
 script_binding            = bind_artefact.bind
 health_restore_speed      = 0
-radiation_restore_speed   = -0.022
+radiation_restore_speed   = 0.004
 satiety_restore_speed     = 0
 power_restore_speed       = 0
 bleeding_restore_speed    = 0
