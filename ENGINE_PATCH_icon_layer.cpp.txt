@@ -136,6 +136,39 @@
 // через .thm на ui_icon_equipment_hd.dds, не меняя логическое имя, поэтому
 // ключ работает и с HD-иконками.
 //
+// ---------------------------------------------------------------------------
+// ВАЖНО 2 (см. MEMO.md 17.9): геометрию НЕЛЬЗЯ считать в конструкторе.
+// В конструкторе ячейка ещё не имеет размера (GetWidth/GetHeight = 0), и слой
+// получится нулевым - невидимым. В конструкторе только создаём слой:
+//
+// 	m_layer = new CUIStatic();
+// 	m_layer->SetAutoDelete(true);
+// 	AttachChild(m_layer);
+// 	m_layer->SetShader(InventoryUtilities::GetEquipmentIconsShader(layer_tex));
+// 	m_layer->SetTextureColor(GetTextureColor());
+// 	m_layer->Show(false);          // покажем, когда посчитаем геометрию
+//
+// а сам расчёт делаем на первом Update(), когда размеры уже заданы:
+//
+// 	if (m_layer)
+// 	{
+// 		if (!m_layer_ready)                       // bool m_layer_ready; в классе
+// 		{
+// 			if (GetWidth() > 0.0f && GetHeight() > 0.0f)
+// 			{
+// 				UpdateLayer();
+// 				m_layer_ready = true;
+// 			}
+// 		}
+// 		else if (bHeadingBefore != Heading())     // разворот предмета (R)
+// 		{
+// 			UpdateLayer();
+// 		}
+// 	}
+//
+// и защиту в начале UpdateLayer:
+// 	if (GetWidth() <= 0.0f || GetHeight() <= 0.0f)	return;
+//
 // 	m_layer = new CUIStatic();
 // 	m_layer->SetAutoDelete(true);
 // 	AttachChild(m_layer);
