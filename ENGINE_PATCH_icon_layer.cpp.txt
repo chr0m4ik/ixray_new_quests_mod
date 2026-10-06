@@ -189,39 +189,46 @@
 //
 // 	LPCSTR layer_sect = READ_IF_EXISTS(pSettings, r_string, itm->m_section_id.c_str(), "1icon_layer", nullptr);
 // 	if (!layer_sect) return;
+// 	if (GetWidth() <= 0.0f || GetHeight() <= 0.0f) return;   // размеры ещё не заданы
 //
-// 	const float scale       = READ_IF_EXISTS(pSettings, r_float, itm->m_section_id.c_str(), "1icon_layer_scale", 0.5f);
-// 	const float offset_x    = READ_IF_EXISTS(pSettings, r_float, itm->m_section_id.c_str(), "1icon_layer_x", 0.0f);
-// 	const float offset_y    = READ_IF_EXISTS(pSettings, r_float, itm->m_section_id.c_str(), "1icon_layer_y", 0.0f);
-// 	const float scale_icon  = READ_IF_EXISTS(pSettings, r_float, layer_sect, "inv_scale", 1.0f);
+// 	const float fScale     = READ_IF_EXISTS(pSettings, r_float, itm->m_section_id.c_str(), "1icon_layer_scale", 0.5f);
+// 	const float fOffsetX   = READ_IF_EXISTS(pSettings, r_float, itm->m_section_id.c_str(), "1icon_layer_x", 2.0f);
+// 	const float fOffsetY   = READ_IF_EXISTS(pSettings, r_float, itm->m_section_id.c_str(), "1icon_layer_y", 2.0f);
+// 	const float fScaleIcon = READ_IF_EXISTS(pSettings, r_float, layer_sect, "inv_scale", 1.0f);
 //
-// 	// Размер значка = размер клетки слоя (по умолчанию 1x1) * scale
-// 	Fvector2 cell_size;
-// 	cell_size.x = pSettings->r_u32(layer_sect, "inv_grid_width")  * INV_GRID_WIDTH(scale_icon)  * scale;
-// 	cell_size.y = pSettings->r_u32(layer_sect, "inv_grid_height") * INV_GRID_HEIGHT(scale_icon) * scale;
+// 	const u32 uGridW = pSettings->r_u32(layer_sect, "inv_grid_width");
+// 	const u32 uGridH = pSettings->r_u32(layer_sect, "inv_grid_height");
 //
-// 	// Область в атласе: своя у секции слоя
+// 	// Область слоя в атласе
 // 	Frect tex_rect;
-// 	tex_rect.x1 = pSettings->r_u32(layer_sect, "inv_grid_x") * INV_GRID_WIDTH(scale_icon);
-// 	tex_rect.y1 = pSettings->r_u32(layer_sect, "inv_grid_y") * INV_GRID_HEIGHT(scale_icon);
-// 	tex_rect.rb.add(tex_rect.lt, Fvector2().set(
-// 		pSettings->r_u32(layer_sect, "inv_grid_width")  * INV_GRID_WIDTH(scale_icon),
-// 		pSettings->r_u32(layer_sect, "inv_grid_height") * INV_GRID_HEIGHT(scale_icon)));
+// 	tex_rect.x1 = pSettings->r_u32(layer_sect, "inv_grid_x") * INV_GRID_WIDTH(fScaleIcon);
+// 	tex_rect.y1 = pSettings->r_u32(layer_sect, "inv_grid_y") * INV_GRID_HEIGHT(fScaleIcon);
+// 	tex_rect.rb.add(tex_rect.lt, Fvector2().set(uGridW * INV_GRID_WIDTH(fScaleIcon),
+// 	                                            uGridH * INV_GRID_HEIGHT(fScaleIcon)));
 //
-// 	// Масштаб ячейки: сколько пикселей экрана приходится на пиксель атласа
-// 	Fvector2 base_scale;
-// 	base_scale.x = GetWidth()  / (INV_GRID_WIDTH(scale_icon)  * m_grid_size.x);
-// 	base_scale.y = GetHeight() / (INV_GRID_HEIGHT(scale_icon) * m_grid_size.y);
+// 	// ЕДИНЫЙ коэффициент от высоты клетки: клетка на экране не квадратная
+// 	// (например 33x41), и разные коэффициенты по осям сплющивают иконку.
+// 	const float fBase = GetHeight() / (INV_GRID_HEIGHT(fScaleIcon) * m_grid_size.y);
 //
+// 	// Поправка на соотношение сторон экрана: при отрисовке статиков движок
+// 	// умножает координаты на этот коэффициент (CUIStaticItem::RenderInternal
+// 	// -> ClientToScreenScaled). Так же поступают иконки предметов.
+// 	const float fKx = UI().get_current_kx();
+//
+// 	Fvector2 sz;
+// 	sz.x = uGridW * INV_GRID_WIDTH(fScaleIcon)  * fBase * fScale / fKx;
+// 	sz.y = uGridH * INV_GRID_HEIGHT(fScaleIcon) * fBase * fScale;
+//
+// 	// Прижатие к ПРАВОМУ НИЖНЕМУ углу: 1icon_layer_x/y - отступ в пикселях
+// 	// от правого/нижнего края клетки.
 // 	Fvector2 pos;
-// 	pos.x = offset_x * base_scale.x * UI().get_current_kx();
-// 	pos.y = offset_y * base_scale.y;
+// 	pos.x = (GetWidth()  - sz.x - fOffsetX) / fKx;
+// 	pos.y = GetHeight() - sz.y - fOffsetY;
 //
-// 	m_layer->SetWndPos(pos);
-// 	m_layer->SetWndSize(Fvector2().set(cell_size.x * base_scale.x * UI().get_current_kx(),
-// 	                                   cell_size.y * base_scale.y));
 // 	m_layer->SetTextureRect(tex_rect);
 // 	m_layer->SetStretchTexture(true);
+// 	m_layer->SetWndPos(pos);
+// 	m_layer->SetWndSize(sz);
 // 	m_layer->Show(true);
 // }
 // // --- end patched ---------------------------------------------------------
