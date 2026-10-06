@@ -13,3 +13,6 @@ tools/
 
 # Атлас иконок из аномали
 textures/ui/ui_anomaly_icons.dds
+
+# Объяснение патча (debug)
+ENGINE_PATCH_icon_layer.cpp.txt
