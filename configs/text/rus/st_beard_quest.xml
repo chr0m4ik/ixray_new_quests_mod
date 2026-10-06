@@ -410,22 +410,22 @@
         <text>Контейнер с артефактом. Содержит в себе: Огненный шар</text>
     </string>
     <string id="compass_field_name">
-        <text>Полевой контейнер (Компасс)</text>
+        <text>Полевой контейнер (Компас)</text>
     </string>
     <string id="compass_field_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Компасс</text>
+        <text>Контейнер с артефактом. Содержит в себе: Компас</text>
     </string>
     <string id="compass_uni_name">
-        <text>Универсальный контейнер (Компасс)</text>
+        <text>Универсальный контейнер (Компас)</text>
     </string>
     <string id="compass_uni_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Компасс</text>
+        <text>Контейнер с артефактом. Содержит в себе: Компас</text>
     </string>
     <string id="compass_sci_name">
-        <text>Научный контейнер (Компасс)</text>
+        <text>Научный контейнер (Компас)</text>
     </string>
     <string id="compass_sci_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Компасс</text>
+        <text>Контейнер с артефактом. Содержит в себе: Компас</text>
     </string>
     <string id="eye_field_name">
         <text>Полевой контейнер (Глаз)</text>
