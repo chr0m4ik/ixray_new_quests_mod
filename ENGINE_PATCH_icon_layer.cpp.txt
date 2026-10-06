@@ -1,0 +1,265 @@
+// ============================================================================
+// ПАТЧ ДВИЖКА: слой-иконка артефакта поверх иконки контейнера в инвентаре.
+//
+// ЗАЧЕМ
+//   Заполненный контейнер должен визуально отличаться от пустого: поверх
+//   иконки контейнера рисуется уменьшенная иконка лежащего внутри артефакта
+//   (как в Anomaly ключами Nicon_layer).
+//
+// ПОЧЕМУ НЕЛЬЗЯ СДЕЛАТЬ СКРИПТОМ
+//   Колбэки OnItemFocusReceive/OnItemFocusLost в движке есть
+//   (UIActorMenu_action.cpp:339), но в Lua передаётся только игровой объект:
+//       PIItem _iitem = (PIItem)itm->m_pData;
+//       CGameObject* GO = _iitem ? _iitem->cast_game_object() : NULL;
+//       if (GO) funct1(GO->lua_game_object());
+//   Сама ячейка (CUICellItem*) в Lua не выведена, поэтому прицепить оверлей
+//   из скрипта нечем - нет ни объекта ячейки, ни её экранной позиции.
+//
+// ПОЧЕМУ ПРАВКА МАЛЕНЬКАЯ
+//   В движке УЖЕ есть ровно эта механика для оружия - иконки обвеса поверх
+//   иконки ствола: CUIWeaponCellItem::CreateIcon / InitAddon
+//   (ui/UICellCustomItems.cpp:228 и :387). Патч повторяет этот приём для
+//   обычной ячейки инвентаря. Все нужные функции (pSettings,
+//   InventoryUtilities::GetEquipmentIconsShader, SetTextureRect, AttachChild,
+//   INV_GRID_WIDTH) уже используются в этом же файле - новых зависимостей нет.
+//
+// КЛЮЧИ КОНФИГА (в секции комбо-предмета, например af_eye_field_container)
+//   1icon_layer         = af_eye     ; секция, ЧЬЮ иконку накладываем
+//   1icon_layer_x       = 28         ; смещение значка внутри клетки (пиксели при базе 50)
+//   1icon_layer_y       = 28
+//   1icon_layer_scale   = 0.5        ; 0.5 -> значок 25x25 в клетке 50x50
+//   В пустых контейнерах этих ключей нет - они рисуются как раньше.
+//
+// ФАЙЛЫ ДЛЯ ПРАВКИ (в дереве исходников движка, напр. src/xrGame/ui/)
+//   UICellCustomItems.h
+//   UICellCustomItems.cpp
+// ============================================================================
+
+
+// ============================================================================
+// 1) UICellCustomItems.h - добавить в класс CUIInventoryCellItem
+// ============================================================================
+//
+// Найти:
+//
+// class CUIInventoryCellItem :public CUICellItem
+// {
+// 	typedef  CUICellItem	inherited;
+// public:
+// 								CUIInventoryCellItem		(CInventoryItem* itm);
+// 	virtual		bool			EqualTo						(CUICellItem* itm);
+// 	virtual		void			UpdateItemText				();
+// 				CUIDragItem*	CreateDragItem				();
+// 	virtual		bool			IsHelper					();
+// 	virtual		void			SetIsHelper					(bool is_helper);
+// 				bool			IsHelperOrHasHelperChild	();
+// 				void			Update						();
+// 				CInventoryItem* object						() {return (CInventoryItem*)m_pData;}
+//
+// Добавить ПОСЛЕ строки с Update() (и до ui_cast_window):
+//
+// 	// --- patched: слой-иконка содержимого (артефакт в контейнере) ---
+// 				void			InitLayer					();
+// 				void			UpdateLayer					();
+// 				CUIStatic*		m_layer						= nullptr;
+// 	// --- end patched ---
+
+
+// ============================================================================
+// 2) UICellCustomItems.cpp - конструктор CUIInventoryCellItem
+// ============================================================================
+//
+// Найти (начало файла, около строки 23):
+//
+// CUIInventoryCellItem::CUIInventoryCellItem(CInventoryItem* itm)
+// {
+// 	m_pData = (void*)itm;
+//
+// 	inherited::SetShader(InventoryUtilities::GetEquipmentIconsShader(itm->IconsTexture.c_str()));
+//
+// 	m_grid_size.set(itm->GetInvGridRect().rb);
+// 	Frect rect;
+// 	rect.lt.set(INV_GRID_WIDTH(itm->ScaleIcon) * itm->GetInvGridRect().x1,
+// 		INV_GRID_HEIGHT(itm->ScaleIcon) * itm->GetInvGridRect().y1);
+//
+// 	rect.rb.set(rect.lt.x + INV_GRID_WIDTH(itm->ScaleIcon) * m_grid_size.x,
+// 		rect.lt.y + INV_GRID_HEIGHT(itm->ScaleIcon) * m_grid_size.y);
+//
+// 	inherited::SetTextureRect(rect);
+// 	inherited::SetStretchTexture(true);
+// }
+//
+// Дописать ПЕРЕД закрывающей скобкой:
+//
+// 	InitLayer();		// --- patched: значок содержимого поверх иконки ---
+
+
+// ============================================================================
+// 3) UICellCustomItems.cpp - реализация InitLayer / UpdateLayer
+// ============================================================================
+//
+// Вставить целиком после конструктора CUIInventoryCellItem (перед
+// "bool CUIInventoryCellItem::EqualTo"):
+//
+// // --- patched: слой-иконка содержимого контейнера -------------------------
+// // Рисует поверх иконки предмета уменьшенную иконку другого предмета.
+// // Секция слоя берётся из ключа "1icon_layer" секции самого предмета.
+// // Геометрия: значок размером inv_grid_width/height секции слоя, умноженным
+// // на 1icon_layer_scale, со смещением 1icon_layer_x / 1icon_layer_y.
+// void CUIInventoryCellItem::InitLayer()
+// {
+// 	CInventoryItem* itm = object();
+// 	if (!itm) return;
+//
+// 	LPCSTR layer_sect = READ_IF_EXISTS(pSettings, r_string, itm->m_section_id.c_str(), "1icon_layer", nullptr);
+// 	if (!layer_sect) return;			// у пустого контейнера ключа нет
+//
+// 	// Текстура слоя: берём её из секции слоя, а если там не задана -
+// 	// из текстуры самого предмета (как сделано для обвесов оружия).
+// 	LPCSTR layer_tex = READ_IF_EXISTS(pSettings, r_string, layer_sect, "icons_texture", nullptr);
+// 	if (!layer_tex) layer_tex = itm->IconsTexture.c_str();
+//
+// 	m_layer = new CUIStatic();
+// 	m_layer->SetAutoDelete(true);
+// 	AttachChild(m_layer);
+// 	m_layer->SetShader(InventoryUtilities::GetEquipmentIconsShader(layer_tex));
+// 	m_layer->SetTextureColor(GetTextureColor());
+//
+// 	UpdateLayer();
+// }
+//
+// // Пересчёт геометрии слоя. Вызывается при создании и при смене Heading,
+// // потому что у повёрнутой (развёрнутой) ячейки размеры меняются местами.
+// void CUIInventoryCellItem::UpdateLayer()
+// {
+// 	if (!m_layer) return;
+//
+// 	CInventoryItem* itm = object();
+// 	if (!itm) return;
+//
+// 	LPCSTR layer_sect = READ_IF_EXISTS(pSettings, r_string, itm->m_section_id.c_str(), "1icon_layer", nullptr);
+// 	if (!layer_sect) return;
+//
+// 	const float scale       = READ_IF_EXISTS(pSettings, r_float, itm->m_section_id.c_str(), "1icon_layer_scale", 0.5f);
+// 	const float offset_x    = READ_IF_EXISTS(pSettings, r_float, itm->m_section_id.c_str(), "1icon_layer_x", 0.0f);
+// 	const float offset_y    = READ_IF_EXISTS(pSettings, r_float, itm->m_section_id.c_str(), "1icon_layer_y", 0.0f);
+// 	const float scale_icon  = READ_IF_EXISTS(pSettings, r_float, layer_sect, "inv_scale", 1.0f);
+//
+// 	// Размер значка = размер клетки слоя (по умолчанию 1x1) * scale
+// 	Fvector2 cell_size;
+// 	cell_size.x = pSettings->r_u32(layer_sect, "inv_grid_width")  * INV_GRID_WIDTH(scale_icon)  * scale;
+// 	cell_size.y = pSettings->r_u32(layer_sect, "inv_grid_height") * INV_GRID_HEIGHT(scale_icon) * scale;
+//
+// 	// Область в атласе: своя у секции слоя
+// 	Frect tex_rect;
+// 	tex_rect.x1 = pSettings->r_u32(layer_sect, "inv_grid_x") * INV_GRID_WIDTH(scale_icon);
+// 	tex_rect.y1 = pSettings->r_u32(layer_sect, "inv_grid_y") * INV_GRID_HEIGHT(scale_icon);
+// 	tex_rect.rb.add(tex_rect.lt, Fvector2().set(
+// 		pSettings->r_u32(layer_sect, "inv_grid_width")  * INV_GRID_WIDTH(scale_icon),
+// 		pSettings->r_u32(layer_sect, "inv_grid_height") * INV_GRID_HEIGHT(scale_icon)));
+//
+// 	// Масштаб ячейки: сколько пикселей экрана приходится на пиксель атласа
+// 	Fvector2 base_scale;
+// 	base_scale.x = GetWidth()  / (INV_GRID_WIDTH(scale_icon)  * m_grid_size.x);
+// 	base_scale.y = GetHeight() / (INV_GRID_HEIGHT(scale_icon) * m_grid_size.y);
+//
+// 	Fvector2 pos;
+// 	pos.x = offset_x * base_scale.x * UI().get_current_kx();
+// 	pos.y = offset_y * base_scale.y;
+//
+// 	m_layer->SetWndPos(pos);
+// 	m_layer->SetWndSize(Fvector2().set(cell_size.x * base_scale.x * UI().get_current_kx(),
+// 	                                   cell_size.y * base_scale.y));
+// 	m_layer->SetTextureRect(tex_rect);
+// 	m_layer->SetStretchTexture(true);
+// 	m_layer->Show(true);
+// }
+// // --- end patched ---------------------------------------------------------
+
+
+// ============================================================================
+// 4) UICellCustomItems.cpp - обновление слоя при повороте ячейки
+// ============================================================================
+//
+// Найти метод CUIInventoryCellItem::Update() (около строки 120) и дописать
+// в его конце вызов UpdateLayer(). Если Update() отсутствует - можно
+// ограничиться вызовом из SetHeading, но проще добавить в Update().
+//
+// Также в CUIInventoryCellItem::SetIsHelper и т.п. трогать не нужно.
+//
+// ЕСЛИ ПОСЛЕ ПРАВКИ СЛОЙ НЕ ПЕРЕСЧИТЫВАЕТСЯ при развороте предмета
+// (клавиша R в инвентаре), добавить переопределение:
+//
+// 	virtual void SetHeading(float x);
+//
+// и в реализации:
+//
+// void CUIInventoryCellItem::SetHeading(float x)
+// {
+// 	inherited::SetHeading(x);
+// 	UpdateLayer();
+// }
+
+
+// ============================================================================
+// 5) КОНФИГ: добавить ключи слоя в комбо-секции
+// ============================================================================
+//
+// В configs\misc\artefacts_bq_containers.ltx, в каждую секцию комбо
+// (af_eye_field_container и остальные 11), дописать:
+//
+// 	1icon_layer               = af_eye          ; секция артефакта
+// 	1icon_layer_x             = 28
+// 	1icon_layer_y             = 28
+// 	1icon_layer_scale         = 0.5
+//
+// Значение 1icon_layer = <секция артефакта> (без суффикса контейнера).
+// Для сгенерированного файла artefacts_bq_containers_generated.ltx это
+// добавит генератор (generate_containers.js) - в нём есть переменная
+// artifact с именем секции артефакта.
+//
+// ПРОВЕРКА: у пустого контейнера (bq_field_container и др.) ключа
+// 1icon_layer быть НЕ должно - они рисуются как раньше, одной иконкой.
+
+
+// ============================================================================
+// 6) СБОРКА
+// ============================================================================
+//
+// 1. Положить исходники движка в рабочую папку.
+// 2. Внести правки 1-4.
+// 3. Собрать в той же конфигурации, что и текущий bin (Release, x86/x64 -
+//    как в проекте IX-Ray 1.6 STCoP).
+// 4. Заменить бинарник и запустить игру.
+//
+// ЧТО ПРОВЕРИТЬ В ИГРЕ
+//   1. Пустые контейнеры - иконка как была.
+//   2. Заполненные - поверх иконки контейнера маленькая иконка артефакта
+//      справа снизу.
+//   3. Развернуть предмет (R) - слой должен повернуться вместе с иконкой.
+//   4. Смена режима инвентаря (рюкзак/торговля/обыск) - слой не пропадает.
+//   5. Никаких вылетов при перетаскивании и при снятии с пояса.
+
+
+// ============================================================================
+// 7) ПОДВОДНЫЕ КАМНИ
+// ============================================================================
+//
+// - Если READ_IF_EXISTS/pSettings недоступны в этом .cpp - добавить
+//   #include "../InventoryOwner.h" или тот заголовок, откуда pSettings
+//   приходит в InitAddon (он уже используется в этом же файле, строка 392,
+//   значит доступен).
+// - Если UI() недоступен - добавить #include "../../xrEngine/... " такой же,
+//   как в остальных UI-файлах (в этом файле UI().get_current_kx() уже
+//   используется в InitAddon, строка 422).
+// - Ключ "1icon_layer" начинается с цифры. Именно так сделано в Anomaly,
+//   но если парсер IX-Ray не примет ключ с цифры - используем имена
+//   "icon_layer", "icon_layer_x/y/scale" (тогда поправить и генератор).
+// - Слой создаётся в конструкторе ячейки. Ячейки кэшируются
+//   (CUICellItem есть список childs), поэтому при изменении содержимого
+//   контейнера ячейка пересоздаётся - слой обновится сам.
+//
+// ЕСЛИ ПРАВКА ДВИЖКА ОКАЖЕТСЯ НЕПОДЪЁМНОЙ - запасной вариант (см. MEMO.md):
+// генерировать по одной совмещённой текстуре на каждое комбо с помощью
+// scripts и атласа. Работает без правок движка, но требует текстуру на
+// каждую пару «артефакт + контейнер».
