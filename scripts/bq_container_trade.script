@@ -1,0 +1,148 @@
+-- bq_container_trade.script
+-- Продажа пустых контейнеров для артефактов торговцу Сычу
+-- (zat_b30_owl_stalker_trader, story_id = zat_b30_owl_stalker_trader_id).
+--
+-- ПОЧЕМУ ЧЕРЕЗ СКРИПТ, А НЕ ЧЕРЕЗ КОНФИГ ТОРГОВЛИ:
+-- файл configs\misc\trade\trade_zat_b30_stalker_trader.ltx переопределён
+-- другим аддоном (ixray-stcop-wp-3.7-cop-r1.0) - у него своя версия файла
+-- более чем на 1400 строк со своими таблицами trade_generic_buy/sell и
+-- supplies_generic. Движок берёт его версию, поэтому наш mod_trade_*.ltx до
+-- этого файла не доходит. Здесь то же самое делается в рантайме через Lua-API
+-- торговца, и результат не зависит от того, чей файл загрузился.
+--
+-- Комбо-предметы (артефакт внутри контейнера) в списки НЕ добавляются,
+-- поэтому Сыч их не продаёт и не покупает.
+--
+-- Данные: configs\misc\trade\bq_container_trade.ltx (наш файл, конфликтов нет).
+-- Отладка: bq_container.log в корне игры.
+
+local TRADER_STORY_ID    = "zat_b30_owl_stalker_trader_id"
+local TRADE_DATA         = "misc\\trade\\bq_container_trade.ltx"
+local SECTION_PRICE_SELL = "bq_price_sell"   -- игрок покупает у торговца
+local SECTION_PRICE_BUY  = "bq_price_buy"    -- игрок продаёт торговцу
+local SECTION_SUPPLIES   = "bq_supplies"
+local SECTION_PARAMS     = "bq_trade_params"
+
+local LOG_FILE = "bq_container.log"
+
+local trade_ini = nil
+local done      = false
+local seed      = 0
+
+local function dbg(msg)
+    local f = io.open(LOG_FILE, "a")
+    if f then
+        f:write(os.date("%H:%M:%S") .. "  [trade] " .. msg .. "\n")
+        f:close()
+    end
+end
+
+-- Свой генератор случайных чисел: math.random в этой сборке ненадёжен.
+local function rnd()
+    seed = (seed * 1103515245 + 12345) % 2147483648
+    return seed / 2147483648
+end
+
+-- Прочитать список поставок: r_line(section, index, sec, key, value)
+local function read_supplies()
+    local rows = {}
+    if not trade_ini or not trade_ini:section_exist(SECTION_SUPPLIES) then
+        return rows
+    end
+    for i = 0, 63 do
+        local s, key, value = trade_ini:r_line(SECTION_SUPPLIES, i, "", "", "")
+        if not key or key == "" then break end
+        local count = tonumber(string.match(value or "", "^%s*([%d%.]+)")) or 1
+        local prob  = tonumber(string.match(value or "", ",\\s*([%d%.]+)")) or 1.0
+        rows[#rows + 1] = { section = key, count = math.floor(count), prob = prob }
+    end
+    return rows
+end
+
+-- Создать предметы в инвентаре торговца (parent_id = id торговца)
+local function spawn_supplies(npc, rows)
+    local spawned = 0
+    for _, row in ipairs(rows) do
+        if not system_ini():section_exist(row.section) then
+            dbg("  секции нет, пропуск: " .. row.section)
+        else
+            local n = 0
+            if row.prob >= 1.0 or rnd() <= row.prob then n = row.count end
+            for _ = 1, n do
+                local obj = alife():create(row.section,
+                    npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
+                if obj then spawned = spawned + 1 end
+            end
+            dbg(string.format("  наличие: %s x%d (шанс %.2f) -> создано %d",
+                row.section, row.count, row.prob, n))
+        end
+    end
+    return spawned
+end
+
+-- Найти клиентский объект торговца на текущем уровне
+local function find_trader()
+    local ok, server_obj = pcall(function()
+        return alife():story_object(TRADER_STORY_ID)
+    end)
+    if not ok or not server_obj then return nil end
+    return level.object_by_id(server_obj.id)
+end
+
+local function setup_trade()
+    if done then return true end
+    if not db.actor or not alife() then return false end
+
+    if not trade_ini then
+        trade_ini = ini_file(TRADE_DATA)
+        if not trade_ini then
+            dbg("НЕ загрузился файл данных: " .. TRADE_DATA)
+            done = true
+            return true
+        end
+    end
+
+    local npc = find_trader()
+    if not npc then
+        return false   -- торговец ещё не в онлайне, повторим на следующем кадре
+    end
+
+    dbg("найден торговец: " .. tostring(npc:name()) .. " id=" .. tostring(npc:id()))
+
+    -- Цены: что платит игрок, и что платит торговец
+    npc:sell_condition(trade_ini, SECTION_PRICE_SELL)
+    npc:buy_condition(trade_ini, SECTION_PRICE_BUY)
+
+    -- Минимальное состояние предмета для скупки
+    if trade_ini:section_exist(SECTION_PARAMS) then
+        local f = trade_ini:r_float(SECTION_PARAMS, "buy_item_condition_factor")
+        if f and f > 0 then npc:buy_item_condition_factor(f) end
+    end
+
+    local rows = read_supplies()
+    if #rows == 0 then
+        dbg("ВНИМАНИЕ: список поставок пуст, проверь секцию " .. SECTION_SUPPLIES)
+    end
+    local spawned = spawn_supplies(npc, rows)
+
+    dbg("торговля настроена, создано предметов: " .. spawned)
+    done = true
+    return true
+end
+
+local function on_update()
+    if done then return end
+    local ok, err = pcall(setup_trade)
+    if not ok then
+        done = true
+        dbg("ОШИБКА настройки торговли: " .. tostring(err))
+    end
+end
+
+function on_game_start()
+    seed = os.time() % 2147483647
+    RegisterScriptCallback("update", on_update)
+    dbg("==== скрипт торговли контейнерами загружен ====")
+end
+
+on_game_start()
