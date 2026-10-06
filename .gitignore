@@ -14,5 +14,5 @@ tools/
 # Атлас иконок из аномали
 textures/ui/ui_anomaly_icons.dds
 
-# Объяснение патча (debug)
+# Описание патча движка (локальный файл, не публикуем)
 ENGINE_PATCH_icon_layer.cpp.txt
