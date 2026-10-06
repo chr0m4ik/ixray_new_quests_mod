@@ -356,6 +356,13 @@ for (const artifact of ARTIFACTS) {
         out.push("inv_grid_y                = 1");
         out.push("inv_grid_width            = 1");
         out.push("inv_grid_height           = 1");
+        // Слой-иконка содержимого: поверх иконки контейнера рисуется
+        // уменьшенная иконка артефакта (см. ENGINE_PATCH_icon_layer.cpp.txt).
+        // Без патча движка ключи просто игнорируются - вреда нет.
+        out.push("1icon_layer               = " + artifact);
+        out.push("1icon_layer_x             = 28");
+        out.push("1icon_layer_y             = 28");
+        out.push("1icon_layer_scale         = 0.5");
         out.push("use1_text                 = bq_take_artifact");
         out.push("use1_functor              = bq_field_container.take_artifact");
 
