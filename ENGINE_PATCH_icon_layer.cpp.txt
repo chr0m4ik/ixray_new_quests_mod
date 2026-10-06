@@ -119,6 +119,23 @@
 // 	LPCSTR layer_tex = READ_IF_EXISTS(pSettings, r_string, layer_sect, "icons_texture", nullptr);
 // 	if (!layer_tex) layer_tex = itm->IconsTexture.c_str();
 //
+// ВНИМАНИЕ - ЭТО ИСПРАВЛЕНО ПО РЕЗУЛЬТАТАМ ПЕРВОГО ЗАПУСКА (см. MEMO.md 17.7):
+// так делать НЕЛЬЗЯ. У артефактов ключа icons_texture нет (текстуру им даёт класс,
+// штатный атлас ui\ui_icon_equipment), а у комбо icons_texture - это атлас
+// КОНТЕЙНЕРОВ. В итоге вырезался участок чужого атласа по координатам артефакта,
+// и слой был пустым (невидимым). Правильный вариант:
+//
+// 	LPCSTR layer_tex = READ_IF_EXISTS(pSettings, r_string, itm->m_section_id.c_str(), "1icon_layer_texture", nullptr);
+// 	if (!layer_tex) layer_tex = "ui\\ui_icon_equipment";
+//
+// То есть текстура слоя по умолчанию - штатный атлас иконок предметов,
+// независимо от текстуры самого комбо. Переопределяется ключом
+// 1icon_layer_texture в секции комбо.
+//
+// Штатный атлас лежит в архиве resources\configs.db; мод HQ Icons подменяет его
+// через .thm на ui_icon_equipment_hd.dds, не меняя логическое имя, поэтому
+// ключ работает и с HD-иконками.
+//
 // 	m_layer = new CUIStatic();
 // 	m_layer->SetAutoDelete(true);
 // 	AttachChild(m_layer);
