@@ -203,6 +203,21 @@ for (const name of ours.keys()) {
             err(`[${name}] шаблон виден в спавнере (inv_grid_width/height = ${gw}/${gh}) — ` +
                 `должны быть 0, иначе игрок сможет его заспавнить`);
         }
+        // И ГЛАВНОЕ для шаблона: он идёт ПОСЛЕДНИМ родителем комбо, поэтому
+        // любой его ключ важнее статов артефакта. Задавать здесь belt и
+        // *_restore_speed нельзя — это уже приводило к потере всех эффектов
+        // артефакта в комбо (пропадало замедление кровотечения у Глаза).
+        const SHADOWING = [
+            'belt', 'additional_inventory_weight',
+            'health_restore_speed', 'satiety_restore_speed',
+            'power_restore_speed', 'bleeding_restore_speed',
+        ];
+        for (const key of SHADOWING) {
+            if (ours.get(name).keys.has(key)) {
+                err(`[${name}] задаёт '${key}' — он перебьёт статы артефакта в комбо ` +
+                    `(шаблон идёт последним родителем). Задавайте это в наследниках.`);
+            }
+        }
     }
     const parents = ours.get(name).parents;
     for (const p of parents) if (!merged.has(p)) err(`[${name}] родитель [${p}] не найден`);
@@ -273,6 +288,27 @@ for (const spec of TESTED_ARTEFACTS) {
             if (m.keys.has(key)) {
                 err(`[${combo}] переопределяет '${key}' — должен наследовать от артефакта`);
             }
+        }
+
+        // И ГЛАВНОЕ: итоговое значение этих статов у комбо должно совпадать с
+        // артефактом. Проверки "комбо не переопределяет ключ" недостаточно:
+        // bq_container_base идёт ВТОРЫМ родителем (он важнее), и его нули
+        // перебивали статы артефакта. Так пропадало замедление кровотечения
+        // (af_eye: bleeding_restore_speed = 0.004).
+        for (const key of INHERITED_FROM_ARTEFACT) {
+            const want = artRes.get(key);
+            const have = r.get(key);
+            if (want !== have) {
+                err(`[${combo}] ${key} = '${have}', а у артефакта '${want}' — ` +
+                    `стат артефакта потерян (bq_container_base важнее как последний родитель)`);
+            }
+        }
+        // отдельно и явно — то, что заказчик проверяет в игре
+        if (Math.abs(parseFloat(r.get('bleeding_restore_speed')) - spec.bleeding) > 1e-9) {
+            err(`[${combo}] bleeding_restore_speed = ${r.get('bleeding_restore_speed')}, ` +
+                `ожидалось ${spec.bleeding} (как у ${art})`);
+        } else {
+            ok(`[${combo}] bleeding_restore_speed = ${r.get('bleeding_restore_speed')} (от ${art})`);
         }
 
         // belt у комбо ОБЯЗАН быть true. Тонкость наследования в X-Ray:

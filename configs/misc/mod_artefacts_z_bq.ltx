@@ -60,8 +60,7 @@
 class                       = ARTEFACT
 ; af_actor_properties = on - именно по этому ключу движок решает, показывать ли
 ; окно характеристик артефакта (CUIArtefactParams::Check, ui_af_params.cpp:195)
-; и обрабатывать ли статы предмета. В af_base он есть, но задаём явно: от него
-; зависит и тултип, и эффект на поясе.
+; и обрабатывать ли статы предмета. В af_base он есть, но задаём явно.
 af_actor_properties         = on
 actor_properties            = on
 $spawn                      = "artefacts\bq_container"
@@ -70,22 +69,22 @@ inv_name_short              = bq_container_name
 description                 = bq_container_descr
 inv_weight                  = 2.0
 cost                        = 15000
-belt                        = false
 can_trade                   = true
 af_rank                     = 0
 lights_enabled              = false
 jump_height                 = 0
-health_restore_speed        = 0
-radiation_restore_speed     = 0
-satiety_restore_speed       = 0
-power_restore_speed         = 0
-bleeding_restore_speed      = 0
-additional_inventory_weight = 0
+; ВНИМАНИЕ: здесь НЕЛЬЗЯ задавать belt и *_restore_speed!
+; В множественном наследовании X-Ray важнее ПОСЛЕДНИЙ родитель, а этот шаблон
+; идёт вторым родителем комбо. Пока здесь стояли belt = false, все
+; *_restore_speed = 0 и additional_inventory_weight = 0, они перебивали статы
+; артефакта, и комбо теряло ВСЕ его эффекты: у Глаза пропадало замедление
+; кровотечения (0.004), а на пояс комбо вообще не надевалось.
+; Эти ключи теперь задают наследники: нули - пустые контейнеры, belt = true -
+; комбо. af_base уже даёт belt = true, дополнительный вес = 0 и все
+; *_restore_speed = 0.
 ; inv_grid_width/height = 0 скрывает ШАБЛОН из debug-спавнера: он считает
 ; секцию фиктивной, если оба ключа есть и оба <= 0
-; (SpawnManager.cpp:160-161: isFakeItem => isInvItem = false). Раньше здесь
-; стояло 1, и bq_container_base появлялся в спавнере как обычный предмет, а
-; спавн его падал. Настоящие контейнеры задают 1 сами.
+; (SpawnManager.cpp:160-161: isFakeItem => isInvItem = false).
 inv_grid_width              = 0
 inv_grid_height             = 0
 ; inv_grid_x/y ОБЯЗАТЕЛЬНЫ и на шаблоне: движок читает их строго, а не
@@ -101,6 +100,16 @@ inv_grid_y                  = 0
 visual                      = dynamics\artefacts\af_eye.ogf
 radiation_restore_speed     = -0.004
 hit_absorbation_sect        = bq_field_container_absorbation
+; Пустой контейнер сам по себе НЕ даёт ничего, кроме поглощения радиации,
+; и на пояс его надевать нельзя. Эти ключи заданы здесь, а не в шаблоне,
+; потому что шаблон идёт последним родителем комбо и перебил бы статы
+; артефакта (см. комментарий в bq_container_base).
+belt                        = false
+additional_inventory_weight = 0
+health_restore_speed        = 0
+satiety_restore_speed       = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
 inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 12
@@ -128,6 +137,12 @@ inv_name_short              = bq_uni_container_name
 cost                        = 25000
 radiation_restore_speed     = -0.008
 hit_absorbation_sect        = bq_uni_container_absorbation
+belt                        = false
+additional_inventory_weight = 0
+health_restore_speed        = 0
+satiety_restore_speed       = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
 inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 14
@@ -155,6 +170,12 @@ inv_name_short              = bq_sci_container_name
 cost                        = 40000
 radiation_restore_speed     = -0.014
 hit_absorbation_sect        = bq_sci_container_absorbation
+belt                        = false
+additional_inventory_weight = 0
+health_restore_speed        = 0
+satiety_restore_speed       = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
 inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 13
