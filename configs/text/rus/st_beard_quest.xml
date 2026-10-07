@@ -362,4 +362,24 @@
         <text>Артефакт «Глаз» в научном контейнере. Контейнер поглощает 14 единиц радиации артефакта.</text>
     </string>
 
+    <!-- Комбо-предметы: Кристалл (проверка защиты) -->
+    <string id="bq_cristall_field_name">
+        <text>Кристалл в полевом контейнере</text>
+    </string>
+    <string id="bq_cristall_field_descr">
+        <text>Артефакт «Кристалл» в полевом контейнере. Контейнер поглощает 4 единицы радиации артефакта.</text>
+    </string>
+    <string id="bq_cristall_uni_name">
+        <text>Кристалл в универсальном контейнере</text>
+    </string>
+    <string id="bq_cristall_uni_descr">
+        <text>Артефакт «Кристалл» в универсальном контейнере. Контейнер поглощает 8 единиц радиации артефакта.</text>
+    </string>
+    <string id="bq_cristall_sci_name">
+        <text>Кристалл в научном контейнере</text>
+    </string>
+    <string id="bq_cristall_sci_descr">
+        <text>Артефакт «Кристалл» в научном контейнере. Контейнер поглощает 14 единиц радиации артефакта.</text>
+    </string>
+
 </string_table>

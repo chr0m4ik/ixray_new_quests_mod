@@ -362,4 +362,24 @@
         <text>The "Eye" artefact inside a scientific container. The container absorbs 14 units of the artefact radiation.</text>
     </string>
 
+    <!-- Combo items: Crystal (protection test) -->
+    <string id="bq_cristall_field_name">
+        <text>Crystal in a field container</text>
+    </string>
+    <string id="bq_cristall_field_descr">
+        <text>The "Crystal" artefact inside a field container. The container absorbs 4 units of the artefact radiation.</text>
+    </string>
+    <string id="bq_cristall_uni_name">
+        <text>Crystal in a universal container</text>
+    </string>
+    <string id="bq_cristall_uni_descr">
+        <text>The "Crystal" artefact inside a universal container. The container absorbs 8 units of the artefact radiation.</text>
+    </string>
+    <string id="bq_cristall_sci_name">
+        <text>Crystal in a scientific container</text>
+    </string>
+    <string id="bq_cristall_sci_descr">
+        <text>The "Crystal" artefact inside a scientific container. The container absorbs 14 units of the artefact radiation.</text>
+    </string>
+
 </string_table>

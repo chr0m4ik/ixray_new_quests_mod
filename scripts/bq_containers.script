@@ -71,7 +71,20 @@ local function container_section_of(object)
     if not object then return nil end
     local sec = object:section()
     for _, item in ipairs(CONTAINERS) do
-        if item.section == sec then return sec end
+        -- ВАЖНО: не присваивать полям таблицы CONTAINERS ничего. Ранее здесь
+        -- было item.combo = item.section, из-за чего первый элемент таблицы
+        -- портился и последующие поиски комбо ломались
+        -- (в логе: "af_eye_bq_field_container не распознан как комбо").
+        local candidate = item.section
+        if candidate == sec then return candidate end
+    end
+    return nil
+end
+
+-- Суффикс комбо по секции контейнера.
+local function combo_marker_of(container_section)
+    for _, item in ipairs(CONTAINERS) do
+        if item.section == container_section then return item.combo end
     end
     return nil
 end
@@ -80,20 +93,17 @@ end
 -- Если комбо-секции нет (генератор её ещё не создал), вернём nil.
 local function combo_section_of(artifact_section, container_section)
     if not artifact_section or not container_section then return nil end
-    for _, item in ipairs(CONTAINERS) do
-        if item.section == container_section then
-            local candidate = artifact_section .. "_" .. item.combo
-            if system_ini():section_exist(candidate) then
-                return candidate
-            end
-            return nil
-        end
+    local marker = combo_marker_of(container_section)
+    if not marker then return nil end
+    local candidate = artifact_section .. "_" .. marker
+    if system_ini():section_exist(candidate) then
+        return candidate
     end
     return nil
 end
 
 -- Разбор секции комбо на артефакт и контейнер.
--- "af_eye_field_container" -> ("af_eye", "bq_field_container")
+-- "af_eye_bq_field_container" -> ("af_eye", "bq_field_container")
 local function split_combo(combo_section)
     if not combo_section then return nil, nil end
     for _, item in ipairs(CONTAINERS) do

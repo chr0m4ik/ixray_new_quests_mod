@@ -112,6 +112,27 @@ const CONTAINERS = [
     { section: 'bq_sci_container', combo: 'af_eye_bq_sci_container', absorb: 0.014 },
 ];
 
+// Артефакты, для которых есть комбо. Каждая запись: артефакт + имена комбо по
+// контейнерам. Держать в согласии с mod_artefacts_z_bq.ltx.
+const TESTED_ARTEFACTS = [
+    {
+        artefact: 'af_eye',
+        combos: {
+            bq_field_container: 'af_eye_bq_field_container',
+            bq_uni_container:   'af_eye_bq_uni_container',
+            bq_sci_container:   'af_eye_bq_sci_container',
+        },
+    },
+    {
+        artefact: 'af_cristall',
+        combos: {
+            bq_field_container: 'af_cristall_bq_field_container',
+            bq_uni_container:   'af_cristall_bq_uni_container',
+            bq_sci_container:   'af_cristall_bq_sci_container',
+        },
+    },
+];
+
 // Шаблонные секции: не самостоятельные предметы, у них намеренно нет
 // inv_grid_x/y и hit_absorbation_sect (их задают наследники).
 const TEMPLATES = new Set(['bq_container_base', 'bq_combo_base']);
@@ -130,6 +151,12 @@ for (const name of ours.keys()) {
             err(`[${name}] class='${r.get('class')}', ожидалось ARTEFACT` +
                 (r.get('class') === 'SCRPTART' ? ' (SCRPTART в этой сборке не зарегистрирован: object_factory_register.cpp:446)' : ''));
         }
+        // inv_grid_x/y читаются СТРОГО (inventory_item.cpp:190 и др.) и нужны
+        // даже шаблону: он тоже попадает в UI-списки (проверено вылетом
+        // "Can't find variable inv_grid_x in [bq_container_base]").
+        if (!r.has('inv_grid_x') || !r.has('inv_grid_y')) {
+            err(`[${name}] нет inv_grid_x/inv_grid_y — движок упадёт при работе с UI`);
+        }
     }
     if (isItemSection(r) && !TEMPLATES.has(name)) {
         const missing = REQUIRED.filter((k) => !r.has(k));
@@ -143,7 +170,6 @@ for (const name of ours.keys()) {
 }
 
 console.log('== 2. Комбо: иконка, защита, радиация ==');
-const ART = ['af_eye'];
 const locIds = new Set();
 const rusXml = fs.readFileSync(path.join(MOD, 'text', 'rus', 'st_beard_quest.xml'), 'utf8');
 for (const m of rusXml.matchAll(/<string id="([^"]+)"/g)) {
@@ -151,16 +177,19 @@ for (const m of rusXml.matchAll(/<string id="([^"]+)"/g)) {
     locIds.add(m[1]);
 }
 
-for (const art of ART) {
+for (const spec of TESTED_ARTEFACTS) {
+    const art = spec.artefact;
     const artRes = resolve(art);
     if (!artRes.size) continue;
     const artRad = parseFloat(artRes.get('radiation_restore_speed'));
     const artAbs = artRes.get('hit_absorbation_sect');
-    console.log(`  артефакт ${art}: radiation=${artRad}, absorbation=${artAbs}`);
+    const artBurn = parseFloat(resolve(artAbs).get('burn_immunity') || '0');
+    console.log(`  артефакт ${art}: radiation=${artRad}, absorbation=${artAbs} (burn ${artBurn})`);
     for (const c of CONTAINERS) {
-        const combo = c.combo;
+        const combo = spec.combos[c.section];
+        if (!combo) { err(`для ${art} не задано имя комбо для ${c.section}`); continue; }
         const r = resolve(combo);
-        if (!r.size) continue;
+        if (!r.size) { err(`[${combo}] секция не найдена`); continue; }
         const m = merged.get(combo);
 
         // иконка: свои координаты, не унаследованные от артефакта
