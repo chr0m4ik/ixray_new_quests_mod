@@ -348,13 +348,86 @@ if (!locIds.has('bq_container_name')) err(`строка 'bq_container_name' не
 if (locIds.has('bq_take_artifact')) ok(`строка кнопки 'bq_take_artifact' есть`);
 
 // ---------------------------------------------------------------------------
+// 4. Icons against the real atlas file.
+//    Container atlas: textures/ui/ui_bq_field_container.dds, cells 50x50,
+//    top row = empty containers (0,0) field, (1,0) universal, (2,0) scientific.
+//    A combo must point at the cell of ITS container, and the cell must not be
+//    empty - an empty cell means a wrong or missing icon in game.
+// ---------------------------------------------------------------------------
+console.log('== 4. Иконки: атлас и ячейки ==');
+const dds = require('./dds.js');
+const ICONS_DIR = path.join(MOD, '..', 'textures', 'ui');
+const ATLAS_NAME = 'ui\\ui_bq_field_container';
+const ATLAS_PATH = path.join(ICONS_DIR, 'ui_bq_field_container.dds');
+const CELL = 50;
+if (!fs.existsSync(ATLAS_PATH)) {
+    err(`нет файла атласа ${ATLAS_PATH}`);
+} else {
+    const buf = fs.readFileSync(ATLAS_PATH);
+    const hdr = dds.readHeader(buf);
+    console.log(`  атлас ${hdr.width}x${hdr.height}, ${hdr.fourCC}, мипмапы ${hdr.mipMaps}, ${hdr.actual} байт`);
+    if (hdr.fourCC !== 'DXT5') err(`атлас должен быть DXT5 (нужна альфа), а он ${hdr.fourCC}`);
+    if (hdr.expected !== null && hdr.expected !== hdr.actual) {
+        err(`размер атласа не совпадает с заголовком: данных ${hdr.actual}, ожидалось ${hdr.expected}`);
+    }
+    if (hdr.mipMaps > 1) err(`мипмапы включены (${hdr.mipMaps}) - иконки портятся, должно быть 1`);
+    if (hdr.width % 4 || hdr.height % 4) err('стороны атласа должны быть кратны 4 (блок DXT 4x4)');
+
+    const decoded = dds.decodeDXT5(buf);
+    // Проверяем и пустые контейнеры, и комбо.
+    const expectations = [];
+    for (const c of CONTAINERS) {
+        expectations.push({ section: c.section, texture: ATLAS_NAME });
+    }
+    for (const spec of TESTED_ARTEFACTS) {
+        for (const c of CONTAINERS) expectations.push({ section: spec.combos[c.section], texture: ATLAS_NAME });
+    }
+    for (const e of expectations) {
+        const r = resolve(e.section);
+        if (!r.size) continue;
+        const tex = r.get('icons_texture');
+        const gx = parseInt(r.get('inv_grid_x'), 10);
+        const gy = parseInt(r.get('inv_grid_y'), 10);
+        const gw = parseInt(r.get('inv_grid_width'), 10);
+        const gh = parseInt(r.get('inv_grid_height'), 10);
+        if (tex !== e.texture) {
+            err(`[${e.section}] icons_texture = '${tex}', ожидалось '${e.texture}'`);
+            continue;
+        }
+        if (gx * CELL + gw * CELL > hdr.width || gy * CELL + gh * CELL > hdr.height) {
+            err(`[${e.section}] ячейка (${gx},${gy}) ${gw}x${gh} выходит за пределы атласа ` +
+                `${hdr.width}x${hdr.height}`);
+            continue;
+        }
+        const { opaque, total } = dds.countOpaqueInCell(decoded, gx, gy, CELL);
+        if (opaque === 0) {
+            err(`[${e.section}] ячейка (${gx},${gy}) в атласе пустая - иконки не будет`);
+        } else if (opaque < total * 0.05) {
+            err(`[${e.section}] в ячейке (${gx},${gy}) почти нет картинки (${opaque}/${total} пикселей)`);
+        } else {
+            ok(`[${e.section}] атлас, ячейка (${gx},${gy}), пикселей ${opaque}/${total}`);
+        }
+    }
+    // Ожидаемая раскладка атласа: три непустые ячейки в верхнем ряду.
+    for (let i = 0; i < CONTAINERS.length; i++) {
+        const { opaque } = dds.countOpaqueInCell(decoded, i, 0, CELL);
+        if (opaque === 0) err(`верхний ряд атласа: ячейка (${i},0) пустая, а это контейнер ${CONTAINERS[i].section}`);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 5. Сверка скрипта с конфигом: суффиксы комбо из bq_containers.script должны
+//    давать те же имена секций, что есть в конфиге.
+// ---------------------------------------------------------------------------
+console.log('== 5. Соответствие скрипт <-> конфиг ==');
+
+// ---------------------------------------------------------------------------
 // 4. Сверка скрипта с конфигом: суффиксы комбо из bq_containers.script должны
 //    давать ровно те имена секций, что есть в конфиге. Именно это
 //    рассогласование (в скрипте 'field_container', в конфиге
 //    'bq_field_container') ломало вложение в полевой контейнер и доставание
 //    из него: имя, которое строил скрипт, не существовало.
 // ---------------------------------------------------------------------------
-console.log('== 4. Соответствие скрипт <-> конфиг ==');
 const scriptPath = path.join(__dirname, '..', 'scripts', 'bq_containers.script');
 const scriptSrc = fs.readFileSync(scriptPath, 'utf8');
 const scriptContainers = [];
