@@ -44,11 +44,30 @@
 ;   chance. Requested by the customer: field 50%, universal 20%, scientific 5%.
 ; ===========================================================================
 
-; What Sych pays the player (item cost * factor)
+; What Sych pays the player.
+;
+; PRICE FORMULA (trade2.cpp:270-286):
+;   price = cost * condition_factor * action_factor * get_buy_discount(trader_id)
+;
+; When the PLAYER SELLS to the trader, the engine uses the "buy" branch, i.e.
+; the FIRST factor of this line (1), and get_buy_discount() multiplies it by the
+; trader's discount section ("buy" value of [discount_1/2/3]). The second factor
+; (0.6) is what the trader pays when HE buys from the player only through the
+; buy branch as well - which is why a value of 0.6 alone gave 12/20/32 instead
+; of the intended 9/15/24: 15000 * 1 * 0.8 = 12000.
+;
+; The discount depends on the player's standing ("+zat_b7_actor_really_helped_
+; bandits +zat_b30_barmen_under_sultan" -> [discount_3], buy = 0.8), so to land
+; on 60% of the cost with THAT discount we need 0.6 / 0.8 = 0.75:
+;   15000 * 0.75 * 0.8 = 9000,  25000 * 0.75 * 0.8 = 15000,
+;   40000 * 0.75 * 0.8 = 24000.
+; With a different discount ([discount_2] buy = 1 or [discount_1] buy = 1) the
+; payout will be 0.75 * cost = 11250 / 18750 / 30000 instead. The discount is the
+; engine's own relation system, we do not change it here.
 ![trade_generic_buy]
-bq_field_container = 1, 0.6
-bq_uni_container   = 1, 0.6
-bq_sci_container   = 1, 0.6
+bq_field_container = 0.75, 0.75
+bq_uni_container   = 0.75, 0.75
+bq_sci_container   = 0.75, 0.75
 
 ; What Sych is willing to sell. The value is REQUIRED: an entry without a value
 ; is treated as "disabled" (CTradeParameters::process,

@@ -37,7 +37,14 @@ const CONTAINERS = {
     bq_uni_container:   { cost: 25000, count: 2, prob: 0.2 },
     bq_sci_container:   { cost: 40000, count: 2, prob: 0.05 },
 };
+// Скидка торговца: цена = cost * condition_factor * action_factor * discount
+// (trade2.cpp:270-286). Для продажи игроком берётся ветка buy, то есть первый
+// фактор нашей строки, умноженный на "buy" из секции discounts торговца.
+// У Сыча это [discount_3].buy = 0.8 при хороших отношениях с бандитами.
+const TRADER_DISCOUNT_BUY = 0.8;
 const RESALE = 0.6;
+// Ожидаемая доля от cost, которую получит игрок при этой скидке.
+const EXPECTED_PAYOUT_RATIO = RESALE;
 const COMBOS = [
     'af_eye_bq_field_container', 'af_eye_bq_uni_container', 'af_eye_bq_sci_container',
     'af_cristall_bq_field_container', 'af_cristall_bq_uni_container', 'af_cristall_bq_sci_container',
@@ -155,16 +162,22 @@ for (const [sec, spec] of Object.entries(CONTAINERS)) {
             (buy && buy.how === 'ignored' ? ' - ключа нет в базовой секции, а префикс ">" ' +
                 'дописывает только к существующему ключу' : ''));
     } else {
+        // При продаже игроком движок берёт ветку buy: первый фактор строки,
+        // умноженный на скидку торговца (trade2.cpp:270-286).
         const parts = buy.value.split(',').map((s) => s.trim());
-        const factor = parseFloat(parts[1]);
-        const price = Math.round(spec.cost * factor);
-        if (Math.abs(factor - RESALE) > 1e-9) {
-            err(`[trade_generic_buy] ${sec}: коэффициент ${factor}, ожидался ${RESALE}`);
+        const factor = parseFloat(parts[0]);
+        const ratio = factor * TRADER_DISCOUNT_BUY;
+        const price = Math.round(spec.cost * ratio);
+        if (Math.abs(ratio - EXPECTED_PAYOUT_RATIO) > 0.01) {
+            err(`[trade_generic_buy] ${sec}: игрок получает ${Math.round(ratio * 100)}% цены ` +
+                `(фактор ${factor} * скидка ${TRADER_DISCOUNT_BUY}), а ожидалось ` +
+                `${Math.round(EXPECTED_PAYOUT_RATIO * 100)}%`);
         } else if (price >= spec.cost) {
             err(`[trade_generic_buy] ${sec}: торговец платит ${price} при цене ${spec.cost} - ` +
                 `перепродажа даёт наживу`);
         } else {
-            ok(`${sec}: цена ${spec.cost}, выкуп ${price} (${Math.round(factor * 100)}%)`);
+            ok(`${sec}: цена ${spec.cost}, выкуп ${price} ` +
+                `(фактор ${factor} * скидка ${TRADER_DISCOUNT_BUY} = ${Math.round(ratio * 100)}%)`);
         }
     }
 
