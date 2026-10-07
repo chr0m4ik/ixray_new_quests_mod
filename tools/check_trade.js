@@ -51,14 +51,50 @@ ok(`файл торговли на месте: ${TRADE_REL}`);
 
 const text = fs.readFileSync(TRADE_FILE).toString('latin1');
 
-// 1. include оригинального файла
-if (!/#include\s+"misc\\trade\\trade_zat_b30_stalker_trader\.ltx"/.test(text)) {
-    err('файл не подключает оригинальный trade_zat_b30_stalker_trader.ltx через #include');
+// 1. include оригинального файла. ВАЖНО: имя должно быть КОРОТКИМ - движок
+// ищет файл относительно папки текущего файла (Xr_ini.cpp:1224-1227), поэтому
+// путь с папками ("misc\trade\...") даёт "configs\misc\trade\misc\trade\..."
+// и падение "Can't find include file".
+if (!/#include\s+"trade_zat_b30_stalker_trader\.ltx"/.test(text)) {
+    err('файл не подключает оригинальный trade_zat_b30_stalker_trader.ltx ' +
+        '(нужно КОРОТКОЕ имя, без папок)');
 } else {
-    ok('подключает оригинальный файл торговли');
+    ok('подключает оригинальный файл торговли коротким именем');
+}
+if (/#include\s+"[^"]*[\\/][^"]*"/.test(text)) {
+    err('в #include указан путь с папками: include ищется относительно папки ' +
+        'текущего файла, поэтому путь сломается');
 }
 if (!fs.existsSync(BASE_TRADE)) {
     err(`не найден базовый файл торговли (${BASE_TRADE}) - include не сработает`);
+}
+
+// Короткое имя "#include "trade_zat_b30_stalker_trader.ltx"" разрешается
+// относительно ПАПКИ НАШЕГО ФАЙЛА (Xr_ini.cpp:1224-1227). Значит движок ищет
+// файл по пути "configs\misc\trade\trade_zat_b30_stalker_trader.ltx" в
+// виртуальной ФС, и этот путь должен быть доступен. Проверяем реально:
+// временно кладём файл по этому пути к себе (по правилам сборки наш аддон
+// монтируется последним и всё равно побеждает по этому пути, содержимое
+// копии совпадает с победившей версией) и убеждаемся, что он виден.
+const OWN_BASE = path.join(path.dirname(TRADE_FILE), 'trade_zat_b30_stalker_trader.ltx');
+{
+    const existed = fs.existsSync(OWN_BASE);
+    const backup = existed ? fs.readFileSync(OWN_BASE) : null;
+    try {
+        fs.copyFileSync(BASE_TRADE, OWN_BASE);
+        if (fs.existsSync(OWN_BASE) && fs.statSync(OWN_BASE).size === fs.statSync(BASE_TRADE).size) {
+            ok(`путь include доступен: ${path.relative(ROOT, OWN_BASE)} ` +
+                `(${fs.statSync(OWN_BASE).size} байт)`);
+        } else {
+            err(`не удалось положить базовый файл по пути include: ${OWN_BASE}`);
+        }
+    } catch (e) {
+        err(`базовый файл не удалось положить по пути include: ${e.message}`);
+    } finally {
+        // вернуть как было, чтобы проверка не оставляла следов
+        if (existed) fs.writeFileSync(OWN_BASE, backup);
+        else fs.rmSync(OWN_BASE, { force: true });
+    }
 }
 
 // 2. синтаксис добавления записей

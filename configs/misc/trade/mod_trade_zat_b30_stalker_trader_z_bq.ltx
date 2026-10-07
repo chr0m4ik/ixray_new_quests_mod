@@ -49,5 +49,13 @@
 ; ===========================================================================
 ; Original (winning) file goes last: our ">" entries above are merged into its
 ; sections, because our entries were read while THIS file is the root one.
+;
+; PATH MATTERS: #include is resolved relative to the FOLDER OF THIS FILE
+; (Xr_ini.cpp:1224-1227 builds the path as <folder of current file> + name).
+; So the name must be bare - "trade_zat_b30_stalker_trader.ltx", NOT
+; "misc\trade\trade_zat_b30_stalker_trader.ltx": with the long form the engine
+; looked for "configs\misc\trade\misc\trade\..." and died with
+;   FATAL ERROR: Can't find include file: misc\trade\trade_zat_b30_stalker_trader.ltx
+; Other addons in the build do the same: weapons.ltx includes "weapons_ammo.ltx".
 ; ===========================================================================
-#include "misc\trade\trade_zat_b30_stalker_trader.ltx"
+#include "trade_zat_b30_stalker_trader.ltx"
