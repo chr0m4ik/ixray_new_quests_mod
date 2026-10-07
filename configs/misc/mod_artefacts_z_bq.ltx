@@ -236,7 +236,7 @@ inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 0
 inv_grid_y                  = 0
-radiation_restore_speed     = 0
+radiation_restore_speed     = 0.002
 use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
 
@@ -334,7 +334,7 @@ inv_grid_width               = 1
 inv_grid_height              = 1
 inv_grid_x                   = 0
 inv_grid_y                   = 0
-radiation_restore_speed      = 0
+radiation_restore_speed      = 0.011
 use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
@@ -349,7 +349,7 @@ inv_grid_width               = 1
 inv_grid_height              = 1
 inv_grid_x                   = 1
 inv_grid_y                   = 0
-radiation_restore_speed      = 0
+radiation_restore_speed      = 0.007
 use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
@@ -364,7 +364,7 @@ inv_grid_width               = 1
 inv_grid_height              = 1
 inv_grid_x                   = 2
 inv_grid_y                   = 0
-radiation_restore_speed      = 0
+radiation_restore_speed      = 0.001
 use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
@@ -379,7 +379,7 @@ inv_grid_width               = 1
 inv_grid_height              = 1
 inv_grid_x                   = 0
 inv_grid_y                   = 0
-radiation_restore_speed      = 0
+radiation_restore_speed      = 0.007
 use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
@@ -394,7 +394,7 @@ inv_grid_width               = 1
 inv_grid_height              = 1
 inv_grid_x                   = 1
 inv_grid_y                   = 0
-radiation_restore_speed      = 0
+radiation_restore_speed      = 0.003
 use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
@@ -413,3 +413,114 @@ radiation_restore_speed      = 0
 use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
+; ===========================================================================
+; ARTEFACT STATS (by rarity tier list). Only ASCII comments here!
+;
+; Overrides of vanilla sections, written as "![Name]" (the bang goes BEFORE the
+; bracket). An override EXTENDS the section: it replaces only the keys it names,
+; all other vanilla values stay. That is why EVERY stat is listed here, zeros
+; included - otherwise vanilla values (Snowflake power 0.003, Eye bleeding
+; 0.004) would remain and stack with ours.
+;
+; Radiation by rarity: tier 1 +11 (0.011), tier 2 +6 (0.006),
+; tier 3 +3 (0.003), unique +15 (0.015).
+;
+; Protection lives ONLY in the *_absorbation tables, and also completely.
+; ===========================================================================
+
+; --- af_ice (Snowflake), tier 1, electric --------------------------------
+; radiation +11, power restore +6, shock protection +5
+![af_ice]
+cost                        = 18000
+radiation_restore_speed     = 0.011
+health_restore_speed        = 0
+power_restore_speed         = 0.006
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_ice_absorbation
+
+![af_ice_absorbation]
+burn_immunity               = 0
+strike_immunity             = 0
+shock_immunity              = 0.0833
+wound_immunity              = 0
+radiation_immunity          = 0
+telepatic_immunity          = 0
+chemical_burn_immunity      = 0
+explosion_immunity          = 0
+fire_wound_immunity         = 0
+
+; --- af_eye (Eye), tier 2, fire ------------------------------------------
+; radiation +6, bleeding +5, thermal protection +4, power restore +2
+![af_eye]
+cost                        = 12000
+radiation_restore_speed     = 0.006
+health_restore_speed        = 0
+power_restore_speed         = 0.003
+bleeding_restore_speed      = 0.005
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_eye_absorbation
+
+![af_eye_absorbation]
+burn_immunity               = 0.0267
+strike_immunity             = 0
+shock_immunity              = 0
+wound_immunity              = 0
+radiation_immunity          = 0
+telepatic_immunity          = 0
+chemical_burn_immunity      = 0
+explosion_immunity          = 0
+fire_wound_immunity         = 0
+
+; --- af_cristall (Crystal), tier 3, fire ---------------------------------
+; radiation +3, thermal protection +4, health regeneration +1
+![af_cristall]
+cost                        = 4000
+radiation_restore_speed     = 0.003
+health_restore_speed        = 0.00015
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_cristall_absorbation
+
+![af_cristall_absorbation]
+burn_immunity               = 0.0267
+strike_immunity             = 0
+shock_immunity              = 0
+wound_immunity              = 0
+radiation_immunity          = 0
+telepatic_immunity          = 0
+chemical_burn_immunity      = 0
+explosion_immunity          = 0
+fire_wound_immunity         = 0
+
+; --- af_compass (Compass), unique, "everything at once" -------------------
+; radiation +15, power restore +4, health +3,
+; thermal / chemical / psi / shock protection +4 each
+![af_compass]
+cost                        = 50000
+radiation_restore_speed     = 0.015
+health_restore_speed        = 0.00045
+power_restore_speed         = 0.004
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_compass_absorbation
+
+![af_compass_absorbation]
+burn_immunity               = 0.0267
+strike_immunity             = 0
+shock_immunity              = 0.0667
+wound_immunity              = 0
+radiation_immunity          = 0
+telepatic_immunity          = 0.01
+chemical_burn_immunity      = 0.02
+explosion_immunity          = 0
+fire_wound_immunity         = 0

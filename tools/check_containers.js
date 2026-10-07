@@ -101,16 +101,29 @@ const CONTAINERS = [
     { section: 'bq_sci_container', combo: 'af_eye_bq_sci_container', absorb: 0.014 },
 ];
 
-// Артефакты, для которых есть комбо. `radiation` - абсолютное значение
-// radiation_restore_speed артефакта в оригинальном artefacts.ltx (проверять
-// по файлу, не по памяти!), `bleeding` - его bleeding_restore_speed.
-// Комбо обязано НЕ переопределять ничего, кроме радиации, - остальные статы
-// (включая замедление кровотечения) наследуются от артефакта.
+// Артефакты, для которых есть комбо. `radiation` - ИТОГОВОЕ значение
+// radiation_restore_speed артефакта (с учётом наших переопределений статов),
+// `bleeding` - его bleeding_restore_speed в единицах конфига.
+// Радиация по редкости (тир-лист): 1 тир +11 -> 0.011, 2 тир +6 -> 0.006,
+// 3 тир +3 -> 0.003, уникальный +15 -> 0.015.
+// Комбо обязано НЕ переопределять статы артефакта (кроме радиации).
 const TESTED_ARTEFACTS = [
     {
+        artefact: 'af_ice',
+        radiation: 0.011,
+        bleeding: 0,
+        absorbation: 'af_ice_absorbation',
+        combos: {
+            bq_field_container: 'af_ice_bq_field_container',
+            bq_uni_container:   'af_ice_bq_uni_container',
+            bq_sci_container:   'af_ice_bq_sci_container',
+        },
+    },
+    {
         artefact: 'af_eye',
-        radiation: 0.002,
-        bleeding: 0.004,
+        radiation: 0.006,
+        bleeding: 0.005,
+        absorbation: 'af_eye_absorbation',
         combos: {
             bq_field_container: 'af_eye_bq_field_container',
             bq_uni_container:   'af_eye_bq_uni_container',
@@ -119,8 +132,9 @@ const TESTED_ARTEFACTS = [
     },
     {
         artefact: 'af_cristall',
-        radiation: 0.001,
+        radiation: 0.003,
         bleeding: 0,
+        absorbation: 'af_cristall_absorbation',
         combos: {
             bq_field_container: 'af_cristall_bq_field_container',
             bq_uni_container:   'af_cristall_bq_uni_container',
@@ -128,30 +142,29 @@ const TESTED_ARTEFACTS = [
         },
     },
     {
-        // Внимание: в оригинале у Компаса class = SCRPTART. Комбо получает
-        // class = ARTEFACT от bq_container_base, а script_binding наследует
-        // от af_base (bind_artefact.bind), поэтому работать должно.
+        // В оригинале у Компаса class = SCRPTART (не ARTEFACT!), и этот класс в
+        // сборке не зарегистрирован. Комбо получает class = ARTEFACT от
+        // bq_container_base, а script_binding наследует от af_base.
         artefact: 'af_compass',
-        radiation: 0.004,
+        radiation: 0.015,
         bleeding: 0,
+        absorbation: 'af_compass_absorbation',
         combos: {
             bq_field_container: 'af_compass_bq_field_container',
             bq_uni_container:   'af_compass_bq_uni_container',
             bq_sci_container:   'af_compass_bq_sci_container',
         },
     },
-    {
-        artefact: 'af_ice',
-        radiation: 0.003,
-        bleeding: 0,
-        combos: {
-            bq_field_container: 'af_ice_bq_field_container',
-            bq_uni_container:   'af_ice_bq_uni_container',
-            bq_sci_container:   'af_ice_bq_sci_container',
-        },
-    },
 ];
 
+// Секции НАШЕГО аддона, которые являются предметами и должны иметь полный
+// набор ключей: пустые контейнеры и комбо. Переопределения ванильных
+// артефактов ("![af_eye]" и т.п.) сюда НЕ входят: у них свои наборы ключей,
+// а class может быть SCRPTART (Компас).
+const OUR_ITEM_SECTIONS = [
+    ...CONTAINERS.map((c) => c.section),
+    ...TESTED_ARTEFACTS.flatMap((a) => Object.values(a.combos)),
+];
 // Формула, подтверждённая заказчиком в игре: контейнер поглощает НЕ БОЛЬШЕ,
 // чем артефакт излучает, поэтому результат никогда не отрицательный.
 const comboRadiation = (artRad, absorb) => Math.max(0, artRad - absorb);
@@ -169,12 +182,14 @@ const INHERITED_FROM_ARTEFACT = [
 const TEMPLATES = new Set(['bq_container_base', 'bq_combo_base']);
 
 console.log('== 1. Наши секции и их родители ==');
-// Таблицы иммунитетов — это не предметы: у них нет и не должно быть
-// ключей предмета (hud, inv_name, inv_grid_* и т.д.).
+// Проверяем ПОЛНЫЙ набор ключей только у своих предметов (контейнеры и комбо)
+// и у шаблона. Переопределения ванильных артефактов проверяются отдельно:
+// у них другой набор ключей, а class у Компаса вообще SCRPTART.
 const isItemSection = (r) => ![...r.keys()].some((k) => k.endsWith('_immunity'));
 for (const name of ours.keys()) {
     const r = resolve(name);
-    if (isItemSection(r)) {
+    const isOurs = OUR_ITEM_SECTIONS.includes(name) || TEMPLATES.has(name);
+    if (isItemSection(r) && isOurs) {
         // class обязателен: без него движок падает в r_clsid
         if (!r.has('class')) {
             err(`[${name}] нет ключа 'class' — движок упадёт: Can't find variable class`);
@@ -277,10 +292,12 @@ for (const spec of TESTED_ARTEFACTS) {
         if (!own('icons_texture')) err(`[${combo}] icons_texture не задан явно`);
         if (!own('radiation_restore_speed')) err(`[${combo}] radiation_restore_speed не задан явно`);
 
-        // защита: должна остаться таблица артефакта
-        if (r.get('hit_absorbation_sect') !== artAbs) {
-            err(`[${combo}] hit_absorbation_sect='${r.get('hit_absorbation_sect')}', ожидалось '${artAbs}'`);
-        } else ok(`[${combo}] защита от артефакта (${artAbs})`);
+        // защита: таблица иммунитетов артефакта, заданная в проверке явно
+        // (а не выведенная из того же конфига - иначе проверка бессмысленна)
+        if (r.get('hit_absorbation_sect') !== spec.absorbation) {
+            err(`[${combo}] hit_absorbation_sect='${r.get('hit_absorbation_sect')}', ` +
+                `ожидалось '${spec.absorbation}'`);
+        } else ok(`[${combo}] защита от артефакта (${spec.absorbation})`);
 
         // радиация: combo = artefact + min(-absorb, artefact), то есть
         // контейнер поглощает не больше, чем артефакт излучает (MEMO 13.2).
@@ -478,6 +495,93 @@ for (const sc of scriptContainers) {
         }
     }
     ok(`'${sc.section}' -> суффикс комбо '${sc.combo}'`);
+}
+
+// ---------------------------------------------------------------------------
+// 6. Статы артефактов: наши переопределения должны давать ровно задуманное.
+//
+// Самая коварная ошибка этого этапа: переопределение "![Секция]" ДОПОЛНЯЕТ
+// секцию, а не заменяет её. Если в переопределении не назвать ключ, останется
+// ванильное значение и сложится с нашим (у Снежинки так осталась выносливость
+// 0.003, у Глаза - кровотечение 0.004). Поэтому здесь проверяется ИТОГОВОЕ
+// значение каждого стата, а не наличие ключа.
+// ---------------------------------------------------------------------------
+console.log('== 6. Статы артефактов (по тир-листу) ==');
+// factor: множитель "значение в конфиге -> показ в интерфейсе" (MEMO 13.3)
+const ARTEFACT_STATS = {
+    af_ice: {
+        tier: 1, stats: {
+            radiation_restore_speed: [1000, 11], power_restore_speed: [1000, 6],
+            health_restore_speed: [1 / 0.00015, 0], bleeding_restore_speed: [1000, 0],
+            satiety_restore_speed: [1000, 0], additional_inventory_weight: [1, 0],
+        },
+        immunities: { shock_immunity: [1 / 0.01667, 5], burn_immunity: [1 / 0.00667, 0] },
+    },
+    af_eye: {
+        tier: 2, stats: {
+            radiation_restore_speed: [1000, 6], power_restore_speed: [1000, 2],
+            health_restore_speed: [1 / 0.00015, 0], bleeding_restore_speed: [1000, 5],
+            satiety_restore_speed: [1000, 0], additional_inventory_weight: [1, 0],
+        },
+        immunities: { burn_immunity: [1 / 0.00667, 4], shock_immunity: [1 / 0.01667, 0] },
+    },
+    af_cristall: {
+        tier: 3, stats: {
+            radiation_restore_speed: [1000, 3], power_restore_speed: [1000, 0],
+            health_restore_speed: [1 / 0.00015, 1], bleeding_restore_speed: [1000, 0],
+            satiety_restore_speed: [1000, 0], additional_inventory_weight: [1, 0],
+        },
+        immunities: { burn_immunity: [1 / 0.00667, 4] },
+    },
+    af_compass: {
+        tier: 'unique', stats: {
+            radiation_restore_speed: [1000, 15], power_restore_speed: [1000, 4],
+            health_restore_speed: [1 / 0.00015, 3], bleeding_restore_speed: [1000, 0],
+            satiety_restore_speed: [1000, 0], additional_inventory_weight: [1, 0],
+        },
+        immunities: {
+            burn_immunity: [1 / 0.00667, 4], shock_immunity: [1 / 0.01667, 4],
+            chemical_burn_immunity: [1 / 0.005, 4], telepatic_immunity: [1 / 0.0025, 4],
+        },
+    },
+};
+
+for (const [art, spec] of Object.entries(ARTEFACT_STATS)) {
+    const r = resolve(art);
+    if (!r.size) { err(`[${art}] секция не найдена`); continue; }
+    const shown = [];
+    for (const [key, [factor, want]] of Object.entries(spec.stats)) {
+        if (!r.has(key)) { err(`[${art}] нет ключа ${key} - ванильное значение останется и сложится`); continue; }
+        const got = Math.round(parseFloat(r.get(key)) * factor);
+        if (Math.abs(got - want) > 1) {
+            err(`[${art}] ${key}: в интерфейсе ${got}, ожидалось ${want} ` +
+                `(частый случай: ключ не назван в переопределении, и ванильное значение сложилось)`);
+        } else if (want !== 0) shown.push(`${key.replace(/_restore_speed|_immunity/, '')}=${got}`);
+    }
+    const absSec = r.get('hit_absorbation_sect');
+    if (!absSec) { err(`[${art}] нет hit_absorbation_sect`); continue; }
+    const abs = resolve(absSec);
+    for (const [key, [factor, want]] of Object.entries(spec.immunities)) {
+        if (!abs.has(key)) { err(`[${absSec}] нет ключа ${key} - ванильное значение сложится`); continue; }
+        const got = Math.round(parseFloat(abs.get(key)) * factor);
+        if (Math.abs(got - want) > 1) {
+            err(`[${absSec}] ${key}: в интерфейсе ${got}, ожидалось ${want}`);
+        } else if (want !== 0) shown.push(`${key.replace('_immunity', '')}=${got}`);
+    }
+    ok(`${art} (тир ${spec.tier}): ${shown.join(', ')}`);
+}
+
+// Обратная проверка: если ключ есть в ванили и не назван в нашем
+// переопределении, его значение протечёт в игру. Требуем полноты.
+for (const art of Object.keys(ARTEFACT_STATS)) {
+    const ourKeys = ours.get(art)?.keys;
+    if (!ourKeys) continue;
+    for (const k of ['radiation_restore_speed', 'health_restore_speed', 'power_restore_speed',
+        'bleeding_restore_speed', 'satiety_restore_speed']) {
+        if (!ourKeys.has(k)) {
+            err(`[${art}] переопределение не называет ${k} - останется ванильное значение`);
+        }
+    }
 }
 
 if (errors === 0) {

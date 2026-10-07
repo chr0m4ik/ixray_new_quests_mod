@@ -37,46 +37,10 @@ const ADDONS = 'Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_IXRAY\\ixr_ad
 // берётся двойной размер иконки.
 const DLTX_MODS = [path.join(ADDONS, 'ixray-hq-icons-v2.0', 'configs', 'mod_system_hqicons.ltx')];
 
-function readLtx(file) {
-    const text = fs.readFileSync(file).toString('latin1');   // побайтово, cp1251 цел
-    const map = new Map();
-    let cur = null;
-    for (const raw of text.split(/\r?\n/)) {
-        const line = raw.replace(/;.*$/, '').trim();
-        if (!line) continue;
-        // ВНИМАНИЕ на синтаксис: переопределение пишется "![Имя]", то есть
-        // восклицательный знак ПЕРЕД скобкой. Вариант "[!Имя]" движок понимает
-        // как обычную секцию с именем "!Имя" - так терялись переопределения
-        // мода HQ Icons (он задаёт артефактам inv_scale = 2.0).
-        const h = line.match(/^(!?)\[([^\]]+)\](?:\s*:\s*(.*))?$/);
-        if (h) {
-            const isOverride = h[1] === '!';
-            const name = h[2].trim();
-            const parents = (h[3] || '').split(',').map((s) => s.trim()).filter(Boolean);
-            // Секция с "!" ДОПОЛНЯЕТ существующую, а не заменяет её
-            // (так же ведёт себя движок: Xr_ini.cpp, insert_item).
-            if (isOverride && map.has(name)) {
-                const prev = map.get(name);
-                prev.parents = parents.length ? parents : prev.parents;
-                prev.overriddenBy = path.basename(file);
-                cur = prev;
-                continue;
-            }
-            cur = {
-                name,
-                parents,
-                keys: new Map(),
-                file: path.basename(file),
-                overriddenBy: null,
-            };
-            map.set(name, cur);
-            continue;
-        }
-        const kv = line.match(/^([A-Za-z0-9_.$]+)\s*=\s*(.*)$/);
-        if (kv && cur) cur.keys.set(kv[1], kv[2].trim());
-    }
-    return map;
-}
+// Разбор конфигов - в общем модуле (tools/ini_resolver.js). Своя копия парсера
+// здесь уже приводила к неверным выводам: она не дополняла секцию при
+// переопределении, из-за чего статы артефакта "терялись".
+const { readLtxInto, makeResolver } = require('./ini_resolver.js');
 
 const merged = new Map();
 const loadOrder = [
@@ -85,21 +49,9 @@ const loadOrder = [
     ...DLTX_MODS.filter((f) => fs.existsSync(f)),
     path.join(MOD, 'misc', 'mod_artefacts_z_bq.ltx'),
 ];
-for (const f of loadOrder) {
-    for (const [k, v] of readLtx(f)) merged.set(k, v);
-}
+for (const f of loadOrder) readLtxInto(f, merged);
 
-const cache = new Map();
-function resolve(name) {
-    if (cache.has(name)) return cache.get(name);
-    const sec = merged.get(name);
-    if (!sec) return new Map();
-    const acc = new Map();
-    for (const p of sec.parents) for (const [k, v] of resolve(p)) acc.set(k, v);
-    for (const [k, v] of sec.keys) acc.set(k, v);
-    cache.set(name, acc);
-    return acc;
-}
+const resolve = makeResolver(merged);
 
 for (const sec of sections) {
     const src = merged.get(sec);
