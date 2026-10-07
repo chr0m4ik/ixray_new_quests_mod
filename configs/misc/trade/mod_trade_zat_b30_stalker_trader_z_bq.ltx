@@ -2,28 +2,32 @@
 ; DLTX addon for Sych's trade file (zat_b30_owl_stalker_trader).
 ; Adds the artefact containers to his assortment.
 ;
-; WHY THIS FILE HAS NO "!#include" AND NO SECTIONS OF ITS OWN
+; HOW THIS FILE IS LOADED
 ;   The engine opens its trade file by the path
-;   configs\misc\trade\trade_zat_b30_stalker_trader.ltx, which is provided by
-;   the addon ixray-stcop-wp-3.7-cop-r1.0. While reading that root file the
-;   engine automatically looks for "mod_<rootfile>_*.ltx" in the same folder and
-;   picks up THIS file (its name matches mod_trade_zat_b30_stalker_trader_*.ltx,
-;   Xr_ini.cpp:1138). So the file is loaded by itself - no include needed.
+;   configs\misc\trade\trade_zat_b30_stalker_trader.ltx, and while reading that
+;   root file it automatically looks for "mod_<rootfile>_*.ltx" in the same
+;   folder and picks up THIS file (Xr_ini.cpp:1138). So the file is loaded by
+;   itself - no "#include" needed (including the base file would read it twice
+;   and die with "Duplicate section 'trader'").
 ;
-;   DO NOT add "#include "trade_zat_b30_stalker_trader.ltx"" here: the engine
-;   would read the base file a SECOND time and die with
-;       FATAL ERROR, Xr_ini.cpp:1071
-;       Duplicate section 'trader' wasn't marked as an override
-;   (that is exactly what happened on the first attempt).
+; WHY THE SECTION IS MARKED "!"
+;   "[trade_generic_buy]" would declare a section that already exists -> the
+;   engine dies with "Duplicate section ... wasn't marked as an override".
+;   "![trade_generic_buy]" means "extend the existing section": our keys are
+;   merged into it (Xr_ini.cpp:1067-1091).
 ;
-; HOW THE ADDITIONS WORK
-;   A line starting with ">" does not declare a section: the engine appends the
-;   value to the list of the section named after ">" and splits it by commas
-;   (Xr_ini.cpp:445 and 371). So we only list our own entries and never repeat
-;   the 1476-line trade table.
-;   NOTE: the header is ">[section]", NOT "[>section]" - the latter would be read
-;   as a section literally named ">section" (same family of mistakes as
-;   "![Name]" vs "[!Name]", see MEMO 20).
+; HOW EACH ENTRY MUST BE WRITTEN (the tricky part)
+;   - A NEW key is a plain assignment:      bq_field_container = 1, 0.6
+;     It creates the key in the section. A stale value from another addon would
+;     be replaced, which is what we want for prices.
+;   - The ">" prefix does NOT create a key: it APPENDS values to a key that
+;     ALREADY exists in the section (Xr_ini.cpp:314-321 - if the key is not
+;     found the whole entry is silently skipped). Our containers are absent from
+;     the base trade lists, so ">bq_field_container" did nothing at all: the
+;     trader paid full price and never had stock.
+;   - ">" is only used below for "bq_container_base" which DOES exist in the
+;     trade lists of the other addon: there we genuinely want to add to the
+;     existing list rather than replace it.
 ;
 ; WHAT SYCH TRADES
 ;   Empty containers only. Combos (an artefact inside a container) have
@@ -34,22 +38,26 @@
 ;     field 15000, universal 25000, scientific 40000.
 ;   The player SELLS it back at 60% (9000 / 15000 / 24000) - the same rate Sych
 ;   buys artefacts at, so reselling is never profitable.
+;
+; STOCK
+;   "count, probability": each of the 1-2 units of a kind appears with its own
+;   chance. Requested by the customer: field 50%, universal 20%, scientific 5%.
 ; ===========================================================================
 
 ; What Sych pays the player (item cost * factor)
->[trade_generic_buy]
->bq_field_container = 1, 0.6
->bq_uni_container   = 1, 0.6
->bq_sci_container   = 1, 0.6
+![trade_generic_buy]
+bq_field_container = 1, 0.6
+bq_uni_container   = 1, 0.6
+bq_sci_container   = 1, 0.6
 
-; What Sych is willing to sell (stock comes from the supplies list below)
->[trade_generic_sell]
->bq_field_container
->bq_uni_container
->bq_sci_container
+; What Sych is willing to sell (the item itself is listed by name, no value)
+![trade_generic_sell]
+bq_field_container
+bq_uni_container
+bq_sci_container
 
-; Stock: count, probability
->[supplies_generic]
->bq_field_container = 2, 1.0
->bq_uni_container   = 1, 0.2
->bq_sci_container   = 1, 0.05
+; Stock: count, probability (1-2 units per kind)
+![supplies_generic]
+bq_field_container = 2, 0.5
+bq_uni_container   = 2, 0.2
+bq_sci_container   = 2, 0.05

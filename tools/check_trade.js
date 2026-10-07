@@ -1,15 +1,17 @@
 // tools/check_trade.js — проверка торговли контейнерами у Сыча.
 //
-// Что проверяет:
-//   1. файл торговли лежит по тому же пути, что и у игры, и подключает
-//      оригинальный (победивший) файл через #include;
-//   2. записи добавлены через ">ключ = ..." (добавление в существующий список),
-//      а не через "[>секция]" — второй вариант движок понял бы как секцию
-//      с именем ">секция" и ничего бы не добавил;
-//   3. в списках есть все три пустых контейнера и нет комбо-предметов;
-//   4. цена продажи игроку равна cost контейнера, а выкуп не даёт наживы;
-//   5. у контейнеров can_trade = true, у комбо can_trade = false (иначе комбо
-//      попадут в торговлю).
+// Моделирует РЕАЛЬНОЕ поведение движка, на котором я дважды ошибся:
+//
+//  1. ">[секция]" — не заголовок, а указание «дописать в список этой секции».
+//     Заголовком движок считает только строку с "[" в позиции 0 или "!["
+//     (Xr_ini.cpp:1277).
+//  2. Префикс ">" ДОПИСЫВАЕТ значения к ключу, который УЖЕ ЕСТЬ в секции.
+//     Если ключа нет, вся строка молча игнорируется (Xr_ini.cpp:314-321).
+//     Поэтому НОВЫЙ ключ (наш контейнер) надо задавать обычным присваиванием.
+//     Именно из-за этого цена выкупа была 100%, а товара не было вовсе.
+//  3. Мод не должен объявлять секции и не должен включать базовый файл:
+//     движок читает базу сам и подхватывает мод по маске имени
+//     (Xr_ini.cpp:1138). Иначе — "Duplicate section 'trader'".
 //
 // Запуск: node tools/check_trade.js
 'use strict';
@@ -31,11 +33,11 @@ const err = (m) => { console.error('FAIL: ' + m); errors++; };
 const ok = (m) => console.log('  ok: ' + m);
 
 const CONTAINERS = {
-    bq_field_container: 15000,
-    bq_uni_container:   25000,
-    bq_sci_container:   40000,
+    bq_field_container: { cost: 15000, count: 2, prob: 0.5 },
+    bq_uni_container:   { cost: 25000, count: 2, prob: 0.2 },
+    bq_sci_container:   { cost: 40000, count: 2, prob: 0.05 },
 };
-// Комбо (артефакт внутри) в торговле быть не должно
+const RESALE = 0.6;
 const COMBOS = [
     'af_eye_bq_field_container', 'af_eye_bq_uni_container', 'af_eye_bq_sci_container',
     'af_cristall_bq_field_container', 'af_cristall_bq_uni_container', 'af_cristall_bq_sci_container',
@@ -43,134 +45,160 @@ const COMBOS = [
     'af_ice_bq_field_container', 'af_ice_bq_uni_container', 'af_ice_bq_sci_container',
 ];
 
-if (!fs.existsSync(TRADE_FILE)) {
-    err(`нет файла торговли ${TRADE_REL}`);
-    process.exit(1);
-}
-ok(`файл торговли на месте: ${TRADE_REL}`);
+// ---------------------------------------------------------------- 1. файл мода
+if (!fs.existsSync(TRADE_FILE)) { err(`нет файла мода торговли ${TRADE_REL}`); process.exit(1); }
+ok(`файл на месте: ${TRADE_REL}`);
 
 const text = fs.readFileSync(TRADE_FILE).toString('latin1');
 const lines = text.split(/\r?\n/);
-
-// 1. Файл должен быть DLTX-модом к базовому файлу торговли, и в нём НЕ должно
-//    быть #include этого же базового файла. Причина: движок, читая корневой
-//    trade_zat_b30_stalker_trader.ltx, сам подхватывает
-//    "mod_trade_zat_b30_stalker_trader_*.ltx" из той же папки (Xr_ini.cpp:1138).
-//    Если такой мод ещё и включит базовый файл через #include, база прочитается
-//    второй раз и игра упадёт:
-//      FATAL ERROR, Xr_ini.cpp:1071
-//      Duplicate section 'trader' wasn't marked as an override
-//    (ровно этот вылет и случился).
-const baseName = path.basename(BASE_TRADE, '.ltx');          // trade_zat_b30_stalker_trader
-const ownName = path.basename(TRADE_FILE, '.ltx');           // mod_trade_zat_b30_stalker_trader_z_bq
+const baseName = path.basename(BASE_TRADE, '.ltx');
+const ownName = path.basename(TRADE_FILE, '.ltx');
 if (ownName !== `mod_${baseName}_z_bq`) {
-    err(`имя файла "${ownName}.ltx" не подходит под маску автоподхвата ` +
-        `"mod_${baseName}_*.ltx" - движок его не найдёт`);
+    err(`имя "${ownName}.ltx" не подпадает под маску автоподхвата "mod_${baseName}_*.ltx"`);
 } else {
     ok(`имя подпадает под автоподхват mod_${baseName}_*.ltx`);
 }
-// Проверяем именно строки с директивой, а не весь текст: в комментариях файла
-// слово с этой директивой упоминается (в объяснении, почему её быть не должно).
 const includeLines = lines.filter((l) => /^\s*#\s*include\b/.test(l));
 if (includeLines.length) {
-    err(`в DLTX-моде не должно быть директивы включения базового файла (строка ` +
-        `${includeLines[0].trim()}): движок читает базу сам и подхватывает этот ` +
-        `мод, поэтому включение даёт дубликат секций ("Duplicate section 'trader'")`);
+    err(`директива включения базового файла недопустима (${includeLines[0].trim()}): ` +
+        `движок читает базу сам, включение даёт дубликат секций`);
 } else {
-    ok('директивы включения базового файла нет (движок подхватывает мод сам)');
-}
-if (!fs.existsSync(BASE_TRADE)) {
-    err(`не найден базовый файл торговли (${BASE_TRADE}) - мод не к чему применить`);
+    ok('директивы включения базового файла нет');
 }
 
-// 2. синтаксис добавления записей
-const badHeader = lines.filter((l) => /^\s*\[>/.test(l));
-if (badHeader.length) {
-    err(`найдена запись "${badHeader[0].trim()}" - движок поймёт её как секцию с именем ` +
-        `">..."; правильный синтаксис: ">[секция]"`);
-} else {
-    ok('синтаксис добавления записей верный (">ключ", а не "[>секция]")');
+// --------------------- 2. секции в моде должны быть помечены "!" (оверрайд)
+// "[trade_generic_buy]" объявило бы секцию, которая уже есть -> движок падает
+// с "Duplicate section ... wasn't marked as an override". Правильно:
+// "![trade_generic_buy]" - дополнение существующей секции.
+const ownHeaders = lines
+    .map((l) => l.replace(/;.*$/, '').trim())
+    .filter((s) => /^\[/.test(s) || /^!\[/.test(s));
+for (const h of ownHeaders) {
+    if (!/^!\[/.test(h)) {
+        err(`секция ${h} не помечена "!": движок упадёт с "Duplicate section" ` +
+            `(нужно "![имя]")`);
+    }
 }
+if (ownHeaders.length) ok(`секции помечены "!": ${ownHeaders.join(', ')}`);
 
-// 3. разбор наших добавлений
-const added = { buy: new Map(), sell: new Set(), supplies: new Map() };
-let section = null;
+// ----------------------------- 3. разбор записей мода с учётом семантики
+// Структура: { '<секция>': { plain: Map(ключ->значение), list: Map(ключ->[значения]) } }
+const mod = new Map();
+let target = null;                     // секция, в чью секцию пишем
 for (const raw of lines) {
     const line = raw.replace(/;.*$/, '').trim();
     if (!line) continue;
 
-    // Заголовок ">[секция]" - это указание, в чей список добавлять.
-    // Настоящий заголовок секции в таких файлах не встречается (он в
-    // подключаемом оригинале), но проверим и его на всякий случай.
-    const listHeader = line.match(/^>\s*\[([^\]]+)\]/);
-    if (listHeader) { section = listHeader[1].trim(); continue; }
-    const plainHeader = line.match(/^!?\[([^\]]+)\]/);
-    if (plainHeader) { section = plainHeader[1].trim(); continue; }
+    const sectionHeader = line.match(/^!\[([^\]]+)\]/);      // "![секция]"
+    if (sectionHeader) { target = sectionHeader[1].trim(); continue; }
+    if (/^\[/.test(line)) { err(`настоящий заголовок секции в моде: ${line}`); continue; }
 
-    const add = line.match(/^>\s*([A-Za-z0-9_.]+)\s*=\s*(.*)$/);
-    if (add) {
-        const [, key, val] = add;
-        const m = section === 'trade_generic_buy' ? added.buy
-            : section === 'trade_generic_sell' ? added.sell
-                : section === 'supplies_generic' ? added.supplies : null;
-        if (!m) { err(`запись "${key}" вне ожидаемых секций (текущая: ${section})`); continue; }
-        if (m instanceof Map) m.set(key, val.split(',').map((s) => s.trim()));
-        else m.add(key);
+    // ">[секция]" вне секции - указание дописать в список
+    const listTarget = line.match(/^>\s*\[([^\]]+)\]/);
+    if (listTarget) { target = listTarget[1].trim(); continue; }
+    if (!target) continue;
+
+    if (!mod.has(target)) mod.set(target, { plain: new Map(), list: new Map() });
+    const bucket = mod.get(target);
+
+    const listEntry = line.match(/^>\s*([A-Za-z0-9_.]+)\s*(?:=\s*(.*))?$/);
+    if (listEntry) {
+        const key = listEntry[1], val = listEntry[2];
+        if (!bucket.list.has(key)) bucket.list.set(key, []);
+        if (val !== undefined && val !== '') bucket.list.get(key).push(...val.split(',').map((s) => s.trim()));
         continue;
     }
-    const justAdd = line.match(/^>\s*([A-Za-z0-9_.]+)$/);
-    if (justAdd) {
-        if (section !== 'trade_generic_sell') { err(`"${justAdd[1]}" без "=" вне trade_generic_sell`); continue; }
-        added.sell.add(justAdd[1]);
+    const plainEntry = line.match(/^([A-Za-z0-9_.]+)\s*=\s*(.*)$/);
+    if (plainEntry) { bucket.plain.set(plainEntry[1], plainEntry[2].trim()); continue; }
+    const bareEntry = line.match(/^([A-Za-z0-9_.]+)$/);
+    if (bareEntry) {
+        if (!bucket.list.has(bareEntry[1])) bucket.list.set(bareEntry[1], []);
         continue;
     }
+    err(`непонятная строка в моде: ${line}`);
 }
 
-// 4. состав и цены
-for (const [sec, cost] of Object.entries(CONTAINERS)) {
-    if (!added.buy.has(sec)) err(`[trade_generic_buy] нет записи для ${sec}`);
-    if (!added.sell.has(sec)) err(`[trade_generic_sell] нет записи для ${sec}`);
-    if (!added.supplies.has(sec)) err(`[supplies_generic] нет записи для ${sec}`);
+// Модель движка: берём базовый файл и применяем к нему наши записи.
+const baseSections = readLtx(BASE_TRADE);
+function baseHasKey(section, key) {
+    const s = baseSections.get(section);
+    return !!s && s.keys.has(key);
+}
+function effective(section, key, prefix) {
+    // plain-присваивание создаёт/перекрывает ключ; ">" дописывает ТОЛЬКО к
+    // существующему ключу, иначе строка игнорируется
+    const bucket = mod.get(section);
+    if (!bucket) return undefined;
+    if (bucket.plain.has(key)) return { value: bucket.plain.get(key), how: 'plain' };
+    if (bucket.list.has(key)) {
+        if (!baseHasKey(section, key)) return { value: undefined, how: 'ignored' };
+        return { value: (baseSections.get(section).keys.get(key) + ',' +
+            bucket.list.get(key).join(',')), how: 'append' };
+    }
+    return undefined;
+}
 
-    const buy = added.buy.get(sec);
-    if (buy) {
-        // "x, y": x - при хорошем отношении, y - при нейтральном.
-        // Игрок покупает у торговца по trade_generic_sell, поэтому цена
-        // продажи игроку берётся из discounts и cost; factor в buy - выкуп.
-        const resale = parseFloat(buy[1]);
-        if (!(resale > 0 && resale < 1)) {
-            err(`[trade_generic_buy] ${sec}: коэффициент выкупа ${buy[1]}, ожидался между 0 и 1`);
+// -------------------------------------------------- 4. выкуп и наличие
+for (const [sec, spec] of Object.entries(CONTAINERS)) {
+    const buy = effective('trade_generic_buy', sec);
+    if (!buy || buy.value === undefined) {
+        err(`[trade_generic_buy] ${sec}: запись не сработает` +
+            (buy && buy.how === 'ignored' ? ' - ключа нет в базовой секции, а префикс ">" ' +
+                'дописывает только к существующему ключу' : ''));
+    } else {
+        const parts = buy.value.split(',').map((s) => s.trim());
+        const factor = parseFloat(parts[1]);
+        const price = Math.round(spec.cost * factor);
+        if (Math.abs(factor - RESALE) > 1e-9) {
+            err(`[trade_generic_buy] ${sec}: коэффициент ${factor}, ожидался ${RESALE}`);
+        } else if (price >= spec.cost) {
+            err(`[trade_generic_buy] ${sec}: торговец платит ${price} при цене ${spec.cost} - ` +
+                `перепродажа даёт наживу`);
         } else {
-            const back = Math.round(cost * resale);
-            ok(`${sec}: цена ${cost}, выкуп ${back} (${Math.round(resale * 100)}%)`);
+            ok(`${sec}: цена ${spec.cost}, выкуп ${price} (${Math.round(factor * 100)}%)`);
         }
     }
-}
-for (const c of COMBOS) {
-    if (added.buy.has(c) || added.sell.has(c) || added.supplies.has(c)) {
-        err(`комбо ${c} попало в торговлю, а не должно`);
+
+    const sup = effective('supplies_generic', sec);
+    if (!sup || sup.value === undefined) {
+        err(`[supplies_generic] ${sec}: запись не сработает` +
+            (sup && sup.how === 'ignored' ? ' - ключа нет в базовой секции (нужен префикс ">" ' +
+                'только для существующих ключей, наш надо задавать обычным присваиванием)' : ''));
+    } else {
+        const [cnt, prob] = sup.value.split(',').map((s) => s.trim());
+        if (parseInt(cnt, 10) !== spec.count) err(`[supplies_generic] ${sec}: количество ${cnt}, ожидалось ${spec.count}`);
+        else if (Math.abs(parseFloat(prob) - spec.prob) > 1e-9) {
+            err(`[supplies_generic] ${sec}: вероятность ${prob}, ожидалось ${spec.prob}`);
+        } else ok(`${sec}: наличие ${cnt} шт, шанс ${prob}`);
     }
-}
-if (!COMBOS.some((c) => added.buy.has(c) || added.supplies.has(c))) {
-    ok('комбо-предметы в торговле отсутствуют');
+
+    const sell = effective('trade_generic_sell', sec);
+    if (!sell) err(`[trade_generic_sell] ${sec}: записи нет - торговец не продаст контейнер`);
+    else ok(`${sec}: есть в списке продажи`);
 }
 
-// 5. can_trade у предметов
-const merged = loadAll([
-    path.join(GAME, 'defines.ltx'),
-    path.join(GAME, 'misc', 'artefacts.ltx'),
-    MOD_ARTEFACTS,
-]);
+// -------------------------------------------------- 5. комбо и can_trade
+for (const c of COMBOS) {
+    for (const sec of ['trade_generic_buy', 'trade_generic_sell', 'supplies_generic']) {
+        const e = effective(sec, c);
+        if (e && e.value !== undefined) err(`комбо ${c} попало в ${sec}, а не должно`);
+    }
+}
+ok('комбо-предметы в торговле отсутствуют');
+
+const merged = loadAll([path.join(GAME, 'defines.ltx'), path.join(GAME, 'misc', 'artefacts.ltx'), MOD_ARTEFACTS]);
 const resolve = makeResolver(merged);
 for (const sec of Object.keys(CONTAINERS)) {
     const r = resolve(sec);
+    const cost = parseInt(r.get('cost'), 10);
     if (r.get('can_trade') !== 'true') err(`[${sec}] can_trade = ${r.get('can_trade')}, нужно true`);
-    else ok(`[${sec}] can_trade = true`);
+    else if (cost !== CONTAINERS[sec].cost) {
+        err(`[${sec}] cost = ${cost}, а проверка ждёт ${CONTAINERS[sec].cost}`);
+    } else ok(`[${sec}] can_trade = true, cost = ${cost}`);
 }
 for (const c of COMBOS) {
     const r = resolve(c);
-    if (!r.size) continue;
-    if (r.get('can_trade') !== 'false') err(`[${c}] can_trade = ${r.get('can_trade')}, нужно false`);
+    if (r.size && r.get('can_trade') !== 'false') err(`[${c}] can_trade = ${r.get('can_trade')}, нужно false`);
 }
 ok('у всех комбо can_trade = false');
 

@@ -44,8 +44,8 @@ function sectionsOf(file) {
     return out;
 }
 
-// Известные секции: ванильные файлы + корневые файлы аддонов (в них и
-// переопределяют секции) + наш аддон.
+// Известные секции: ванильные файлы + ВСЕ ltx аддонов сборки (в них лежат
+// секции, которые мы переопределяем, например списки торговли).
 const known = new Set();
 function addKnown(file) {
     if (!fs.existsSync(file)) return;
@@ -54,21 +54,22 @@ function addKnown(file) {
 // оригинальная gamedata
 addKnown(path.join(GAME, 'defines.ltx'));
 addKnown(path.join(GAME, 'misc', 'artefacts.ltx'));
-// корневые файлы, которые переопределяют аддоны сборки
-const roots = [
-    path.join(GAME, 'system.ltx'),
-    path.join(GAME, 'game_global.ltx'),
-    path.join(GAME, 'misc', 'devices.ltx'),
-];
-for (const addon of fs.readdirSync(ADDONS, { withFileTypes: true })) {
-    if (!addon.isDirectory()) continue;
-    const cfg = path.join(ADDONS, addon.name, 'configs');
-    if (!fs.existsSync(cfg)) continue;
-    for (const f of fs.readdirSync(cfg)) {
-        if (f.endsWith('.ltx')) roots.push(path.join(cfg, f));
+addKnown(path.join(GAME, 'system.ltx'));
+addKnown(path.join(GAME, 'game_global.ltx'));
+addKnown(path.join(GAME, 'misc', 'devices.ltx'));
+// все файлы аддонов сборки (рекурсивно: торговля и прочее лежат в подпапках)
+function addKnownTree(dir) {
+    if (!fs.existsSync(dir)) return;
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) addKnownTree(p);
+        else if (e.name.endsWith('.ltx')) addKnown(p);
     }
 }
-for (const f of roots) addKnown(f);
+for (const addon of fs.readdirSync(ADDONS, { withFileTypes: true })) {
+    if (!addon.isDirectory()) continue;
+    addKnownTree(path.join(ADDONS, addon.name, 'configs'));
+}
 
 const files = process.argv.length > 2
     ? process.argv.slice(2)
