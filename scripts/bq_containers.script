@@ -21,9 +21,17 @@
 -- ОТЛАДКА: log() из скриптов аддона в игровой лог не попадает (MEMO 13.5),
 -- поэтому пишем в файл bq_containers.log в корне игры.
 
--- Секция контейнера -> имя, которое добавляется к секции артефакта.
+-- Секция контейнера -> суффикс комбо-секции. Имя комбо = <артефакт>_<суффикс>.
+--
+-- ВНИМАНИЕ: суффикс НЕ всегда равен имени секции контейнера. У полевого
+-- контейнера суффикс без префикса bq_ (`af_eye_bq_field_container`), у
+-- универсального и научного - с префиксом (`af_eye_bq_uni_container`).
+-- Это историческое правило (шаблон из прежней версии мода), и оно совпадает
+-- с именами секций в конфиге, поэтому менять его нельзя: у заказчика уже есть
+-- сейвы с заспавненными комбо, и переименование секций их сломает.
+-- Именно из-за этого несовпадения полевое комбо не находилось по имени.
 local CONTAINERS = {
-    { section = "bq_field_container", combo = "field_container" },
+    { section = "bq_field_container", combo = "bq_field_container" },
     { section = "bq_uni_container",   combo = "bq_uni_container" },
     { section = "bq_sci_container",   combo = "bq_sci_container" },
 }
@@ -71,31 +79,31 @@ local function container_section_of(object)
     if not object then return nil end
     local sec = object:section()
     for _, item in ipairs(CONTAINERS) do
-        -- ВАЖНО: не присваивать полям таблицы CONTAINERS ничего. Ранее здесь
+        -- ВАЖНО: ничего не присваивать полям таблицы CONTAINERS. Ранее здесь
         -- было item.combo = item.section, из-за чего первый элемент таблицы
-        -- портился и последующие поиски комбо ломались
-        -- (в логе: "af_eye_bq_field_container не распознан как комбо").
+        -- портился и последующие поиски комбо ломались.
         local candidate = item.section
         if candidate == sec then return candidate end
     end
     return nil
 end
 
--- Суффикс комбо по секции контейнера.
-local function combo_marker_of(container_section)
+-- Суффикс комбо по секции контейнера (см. таблицу CONTAINERS).
+local function combo_suffix_of(container_section)
     for _, item in ipairs(CONTAINERS) do
         if item.section == container_section then return item.combo end
     end
     return nil
 end
 
--- Секция комбо по секции артефакта и секции контейнера.
+-- Секция комбо по секции артефакта и секции контейнера:
+--   <артефакт> .. "_" .. <суффикс контейнера>.
 -- Если комбо-секции нет (генератор её ещё не создал), вернём nil.
 local function combo_section_of(artifact_section, container_section)
     if not artifact_section or not container_section then return nil end
-    local marker = combo_marker_of(container_section)
-    if not marker then return nil end
-    local candidate = artifact_section .. "_" .. marker
+    local suffix = combo_suffix_of(container_section)
+    if not suffix then return nil end
+    local candidate = artifact_section .. "_" .. suffix
     if system_ini():section_exist(candidate) then
         return candidate
     end

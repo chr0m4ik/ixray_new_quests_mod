@@ -275,6 +275,20 @@ for (const spec of TESTED_ARTEFACTS) {
             }
         }
 
+        // belt у комбо ОБЯЗАН быть true. Тонкость наследования в X-Ray:
+        // последний родитель важнее, а bq_container_base задаёт belt = false
+        // (он идёт вторым родителем) - без явного belt = true в комбо предмет
+        // нельзя положить на пояс, и он не даёт никаких эффектов.
+        if (r.get('belt') !== 'true') {
+            err(`[${combo}] belt = '${r.get('belt')}', нужно 'true': ` +
+                `bq_container_base идёт последним родителем и перебивает belt от артефакта`);
+        }
+        // пустой контейнер, наоборот, на пояс надевать нельзя
+        if (r.get('can_trade') !== 'false') {
+            err(`[${combo}] can_trade = '${r.get('can_trade')}', нужно 'false' ` +
+                `(комбо не должно попадать в торговлю)`);
+        }
+
         // локализация
         for (const k of ['inv_name', 'description', 'use1_text']) {
             const v = r.get(k);
@@ -296,6 +310,45 @@ for (const c of CONTAINERS) {
 if (!locIds.has('bq_take_artifact')) err(`строка 'bq_take_artifact' не найдена в rus`);
 if (!locIds.has('bq_container_name')) err(`строка 'bq_container_name' не найдена в rus`);
 if (locIds.has('bq_take_artifact')) ok(`строка кнопки 'bq_take_artifact' есть`);
+
+// ---------------------------------------------------------------------------
+// 4. Сверка скрипта с конфигом: суффиксы комбо из bq_containers.script должны
+//    давать ровно те имена секций, что есть в конфиге. Именно это
+//    рассогласование (в скрипте 'field_container', в конфиге
+//    'bq_field_container') ломало вложение в полевой контейнер и доставание
+//    из него: имя, которое строил скрипт, не существовало.
+// ---------------------------------------------------------------------------
+console.log('== 4. Соответствие скрипт <-> конфиг ==');
+const scriptPath = path.join(__dirname, '..', 'scripts', 'bq_containers.script');
+const scriptSrc = fs.readFileSync(scriptPath, 'utf8');
+const scriptContainers = [];
+for (const m of scriptSrc.matchAll(/\{\s*section\s*=\s*"([^"]+)"\s*,\s*combo\s*=\s*"([^"]+)"\s*\}/g)) {
+    scriptContainers.push({ section: m[1], combo: m[2] });
+}
+if (!scriptContainers.length) err('в скрипте не найдена таблица CONTAINERS (section/combo)');
+for (const sc of scriptContainers) {
+    if (!merged.has(sc.section)) {
+        err(`скрипт ссылается на секцию '${sc.section}', которой нет в конфиге`);
+        continue;
+    }
+    if (!CONTAINERS.some((c) => c.section === sc.section)) {
+        err(`контейнер '${sc.section}' есть в скрипте, но не в списке проверки`);
+        continue;
+    }
+    for (const spec of TESTED_ARTEFACTS) {
+        const combo = spec.combos[sc.section];
+        if (!combo) continue;
+        const expected = `${spec.artefact}_${sc.combo}`;
+        if (combo !== expected) {
+            err(`скрипт для '${sc.section}' строит имя '${expected}', а в проверке '${combo}'`);
+        }
+        if (!merged.has(expected)) {
+            err(`секция '${expected}' (имя по данным скрипта) отсутствует в конфиге - ` +
+                `вложение и доставание для '${sc.section}' работать не будут`);
+        }
+    }
+    ok(`'${sc.section}' -> суффикс комбо '${sc.combo}'`);
+}
 
 if (errors === 0) {
     console.log('\nOK: конфиг контейнеров согласован, обязательные ключи на месте.');
