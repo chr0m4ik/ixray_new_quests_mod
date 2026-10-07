@@ -1,0 +1,87 @@
+; ===========================================================================
+; DLTX addon for Sych's trade file (zat_b30_owl_stalker_trader).
+; Adds the artefact containers to his assortment.
+;
+; HOW THIS FILE IS LOADED
+;   The engine opens its trade file by the path
+;   configs\misc\trade\trade_zat_b30_stalker_trader.ltx, and while reading that
+;   root file it automatically looks for "mod_<rootfile>_*.ltx" in the same
+;   folder and picks up THIS file (Xr_ini.cpp:1138). So the file is loaded by
+;   itself - no "#include" needed (including the base file would read it twice
+;   and die with "Duplicate section 'trader'").
+;
+; WHY THE SECTION IS MARKED "!"
+;   "[trade_generic_buy]" would declare a section that already exists -> the
+;   engine dies with "Duplicate section ... wasn't marked as an override".
+;   "![trade_generic_buy]" means "extend the existing section": our keys are
+;   merged into it (Xr_ini.cpp:1067-1091).
+;
+; HOW EACH ENTRY MUST BE WRITTEN (the tricky part)
+;   - A NEW key is a plain assignment:      bq_field_container = 1, 0.6
+;     It creates the key in the section. A stale value from another addon would
+;     be replaced, which is what we want for prices.
+;   - The ">" prefix does NOT create a key: it APPENDS values to a key that
+;     ALREADY exists in the section (Xr_ini.cpp:314-321 - if the key is not
+;     found the whole entry is silently skipped). Our containers are absent from
+;     the base trade lists, so ">bq_field_container" did nothing at all: the
+;     trader paid full price and never had stock.
+;   - ">" is only used below for "bq_container_base" which DOES exist in the
+;     trade lists of the other addon: there we genuinely want to add to the
+;     existing list rather than replace it.
+;
+; WHAT SYCH TRADES
+;   Empty containers only. Combos (an artefact inside a container) have
+;   can_trade = false, so they are neither offered nor bought.
+;
+; PRICES
+;   The player BUYS an empty container for its full cost:
+;     field 15000, universal 25000, scientific 40000.
+;   The player SELLS it back at 60% (9000 / 15000 / 24000) - the same rate Sych
+;   buys artefacts at, so reselling is never profitable.
+;
+; STOCK
+;   "count, probability": each of the 1-2 units of a kind appears with its own
+;   chance. Requested by the customer: field 50%, universal 20%, scientific 5%.
+; ===========================================================================
+
+; What Sych pays the player.
+;
+; PRICE FORMULA (trade2.cpp:270-286):
+;   price = cost * condition_factor * action_factor * get_buy_discount(trader_id)
+;
+; When the PLAYER SELLS to the trader, the engine uses the "buy" branch, i.e.
+; the FIRST factor of this line (1), and get_buy_discount() multiplies it by the
+; trader's discount section ("buy" value of [discount_1/2/3]). The second factor
+; (0.6) is what the trader pays when HE buys from the player only through the
+; buy branch as well - which is why a value of 0.6 alone gave 12/20/32 instead
+; of the intended 9/15/24: 15000 * 1 * 0.8 = 12000.
+;
+; The discount depends on the player's standing ("+zat_b7_actor_really_helped_
+; bandits +zat_b30_barmen_under_sultan" -> [discount_3], buy = 0.8), so to land
+; on 60% of the cost with THAT discount we need 0.6 / 0.8 = 0.75:
+;   15000 * 0.75 * 0.8 = 9000,  25000 * 0.75 * 0.8 = 15000,
+;   40000 * 0.75 * 0.8 = 24000.
+; With a different discount ([discount_2] buy = 1 or [discount_1] buy = 1) the
+; payout will be 0.75 * cost = 11250 / 18750 / 30000 instead. The discount is the
+; engine's own relation system, we do not change it here.
+![trade_generic_buy]
+bq_field_container = 0.75, 0.75
+bq_uni_container   = 0.75, 0.75
+bq_sci_container   = 0.75, 0.75
+
+; What Sych is willing to sell. The value is REQUIRED: an entry without a value
+; is treated as "disabled" (CTradeParameters::process,
+; trade_parameters_inline.h:125-128: empty value -> _action.disable), which is
+; exactly how the base file marks artefacts it refuses to sell (they are listed
+; as bare names with a ";NO TRADE" comment). Items the trader really sells are
+; written with a value, e.g. "bandage = 1, 2.2" in [sell_tier_2].
+![trade_generic_sell]
+bq_field_container = 1, 1
+bq_uni_container   = 1, 1
+bq_sci_container   = 1, 1
+
+; Stock: count, probability (1-2 units per kind)
+![supplies_generic]
+bq_field_container = 2, 0.5
+bq_uni_container   = 2, 0.2
+bq_sci_container   = 2, 0.05

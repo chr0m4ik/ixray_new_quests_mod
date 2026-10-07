@@ -1,14 +1,15 @@
 ; Мод-оверрайд game_global.ltx.
 ; Движок для корневого файла X.ltx сам подгружает mod_X_*.ltx из той же
-; папки (см. ixray-1.6-stcop, src/xrCore/Xr_ini.cpp), поэтому отдельный
-; #include не нужен, а оригинал gamedata\configs\game_global.ltx не правится.
+; папки (Xr_ini.cpp:1138), поэтому отдельный #include не нужен,
+; а оригинал gamedata\configs\game_global.ltx не правится.
 ;
 ; Включаем Lua-колбэк перетаскивания предмета на предмет.
 ; В оригинале строка OnItemDropped закомментирована, из-за чего движок
-; вообще не вызывает этот колбэк.
+; вообще не вызывает этот колбэк (LoadCallbackGlobals, xrGame.cpp:19).
 ;
 ; ВАЖНО: секцию обязательно помечать "!" (оверрайд). Без этого движок
-; падает с "Duplicate section 'callbacks' wasn't marked as an override".
+; падает с "Duplicate section 'callbacks' wasn't marked as an override"
+; (Xr_ini.cpp:1071).
 
 ![callbacks]
-OnItemDropped = bq_field_container.on_item_dropped
+OnItemDropped = bq_containers.on_item_dropped

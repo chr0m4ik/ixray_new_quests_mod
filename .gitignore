@@ -1,4 +1,4 @@
-﻿# Временный вспомогательный скрипт копирования
+# Временный вспомогательный скрипт копирования
 copy_files.py
 
 # Файлы для нейросеток
@@ -8,10 +8,31 @@ lastest.md
 MEMO.md
 .dsh/
 
-# Инструмент для работы с dds текстурами
-tools/
+# Инструменты. Версионируем то, что воспроизводимо и нужно для работы над
+# модом (проверки, разбор конфигов, сборка атласа, разбор DDS). Локальной
+# остаётся разовая утилита extract_icon.js (работа с чужим атласом Anomaly).
+tools/*
+!tools/check_*.js
+!tools/dds.js
+!tools/ini_resolver.js
+!tools/atlas_cells.js
+!tools/point_combos_to_atlas.js
+!tools/dump_resolved.js
+!tools/dump_section.js
+!tools/add_artifact_combos.js
+!tools/recompute_combos.js
+!tools/check_trade.js
+!tools/dds_encode.js
+!tools/build_combo_icons.js
+!tools/png.js
+!tools/test_dds_encode.js
+!tools/downscale.js
+!tools/compare_artifact_quality.js
+!tools/compare_artifact_sizes.js
+!tools/fix_rus_localization.js
+!tools/check_artifact_bleed.js
 
-# Атлас иконок из аномали
+# Атлас иконок из аномали (33 МБ, используется только как источник картинок)
 textures/ui/ui_anomaly_icons.dds
 
 # Описание патча движка (локальный файл, не публикуем)

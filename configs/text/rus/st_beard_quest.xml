@@ -2,10 +2,10 @@
 <string_table>
 
     <!-- =============================================
-         Названия
+         Names
     ============================================= -->
 
-    <!-- Персонажи -->
+    <!-- Characters -->
     <string id="bq_hmury_name">
         <text>Хмурый</text>
     </string>
@@ -22,7 +22,7 @@
         <text>Майор</text>
     </string>
 
-    <!-- Квест Бороды: документы -->
+    <!-- Beard's quest: documents -->
     <string id="bq_item_docs_name">
         <text>Документы из тайника</text>
     </string>
@@ -39,7 +39,7 @@
         <text>Продать документы Сычу</text>
     </string>
 
-    <!-- Кейсы Неизвестного -->
+    <!-- Unknown's cases -->
     <string id="bq_suitcase_name">
         <text>Запертый кейс</text>
     </string>
@@ -65,7 +65,7 @@
         <text>КПК Майора</text>
     </string>
 
-    <!-- Задания Неизвестного -->
+    <!-- Unknown's tasks -->
     <string id="bq_stash_hunt_name">
         <text>Найти все тайники Майора</text>
     </string>
@@ -92,10 +92,10 @@
     </string>
 
     <!-- =============================================
-         Описания
+         Descriptions
     ============================================= -->
 
-    <!-- Персонажи -->
+    <!-- Characters -->
     <string id="bq_filya_bio">
         <text>Мёртвый сталкер. Бегунок группы, новичок в Зоне. Должен был передать Тёмному новый детектор артефактов, но не успел.</text>
     </string>
@@ -106,7 +106,7 @@
         <text>Глава группы, которой поручили подготовить рейд Заказчика. Именно он обустроил тайники.</text>
     </string>
 
-    <!-- Квест Бороды: документы -->
+    <!-- Beard's quest: documents -->
     <string id="bq_item_docs_descr">
         <text>Документы, которые Борода попросил забрать из тайника на Затоне. Сыч тоже может ими заинтересоваться.</text>
     </string>
@@ -123,7 +123,7 @@
         <text>Лоцман подсказал, что Сыч интересуется документами. Сыч заплатит 5000 рублей, но Борода останется недоволен.</text>
     </string>
 
-    <!-- Кейсы Неизвестного -->
+    <!-- Unknown's cases -->
     <string id="bq_suitcase_descr">
         <text>Небольшой, запертый кейс, оставленный в тайнике. Внутри явно что-то тяжёлое. Похоже, без специалиста его не открыть.</text>
     </string>
@@ -146,7 +146,7 @@
         <text>Посыльному: скажи, своему боссу, что мы встречаемся как обычно, на заправке.</text>
     </string>
 
-    <!-- Задания Неизвестного -->
+    <!-- Unknown's tasks -->
     <string id="bq_stash_hunt_descr">
         <text>В предсмертной записке Фили упомянуты некие тайники. Думаю, стоит найти их все.</text>
     </string>
@@ -172,10 +172,9 @@
         <text>Майор писал, что встречаемся на заправке. Пора узнать, что там произошло.</text>
     </string>
 
-    <!-- КПК Майора описание -->
+    <!-- PDA of Major -->
     <string id="bq_pda_5_descr">
-        <text>
-[28.07.2012] Майор: Здорово, Тёмный. Первый тайник я забил. Артефакты подложишь сам, как договаривались. Только не надо, как в прошлый раз. Филя, где новый детектор? Не забудь.\n
+        <text>[28.07.2012] Майор: Здорово, Тёмный. Первый тайник я забил. Артефакты подложишь сам, как договаривались. Только не надо, как в прошлый раз. Филя, где новый детектор? Не забудь.\n
 [28.07.2012] Филя: Принесу. Только заберу его со станции. К вечеру буду.\n
 [28.07.2012] Тёмный: Да не уйду я в пьянку. Заказчик платит хорошо, всё в срок будет. Кстати, когда всё должно быть готово?\n
 [28.07.2012] Майор: Сказал, к 30-му уложиться. У всех всё есть?\n
@@ -191,15 +190,14 @@
 [1.08.2012] Майор: Ну вот вы как обычно, конечно... Ладно, я хотя бы успел всё раздобыть и положить. Твою мать... Из-за вас опять чуть планы не поплыли. В общем, метку посыльным забил на заправку. Я в 3 тайнике написал, если вы всё же пройдётесь по ним. Сегодня вечером встречаемся.\n
 [1.08.2012] Майор: Ну и где ты, бляха муха? Ещё и посыльные эти... Нервные какие-то...\n
 [1.08.2012] Майор: Ладно. Проведу встречу один. Если прочитаете — приходите.\n
-[1.08.2012] Майор: Ттвою ммать... Н-не приходите... Это подстава...
-        </text>
+[1.08.2012] Майор: Ттвою ммать... Н-не приходите... Это подстава...</text>
     </string>
 
     <!-- =============================================
-         Диалоги
+         Dialogues
     ============================================= -->
 
-    <!-- Диалог с Бородой: получение задания -->
+    <!-- Dialogue with Beard: accepting the task -->
     <string id="bq_dlg_ask">
         <text>Борода, есть поручение с документами?</text>
     </string>
@@ -210,7 +208,7 @@
         <text>Договорились. Принесу документы.</text>
     </string>
 
-    <!-- Диалог с Бородой: сдача документов -->
+    <!-- Dialogue with Beard: delivering the documents -->
     <string id="bq_dlg_deliver_start">
         <text>Борода, я нашёл твои документы.</text>
     </string>
@@ -218,7 +216,7 @@
         <text>Спасибо, выручил. Вот обещанные две тысячи, пистолет, патроны и медикаменты.</text>
     </string>
 
-    <!-- Диалог с Лоцманом: намёк на Сыча -->
+    <!-- Dialogue with Pilot: hint about Owl -->
     <string id="bq_dlg_guide_ask">
         <text>Лоцман, кому могут понадобиться такие документы?</text>
     </string>
@@ -229,7 +227,7 @@
         <text>Понял. Подумаю, кому их отдать.</text>
     </string>
 
-    <!-- Диалог с Сычом: продажа документов -->
+    <!-- Dialogue with Owl: selling the documents -->
     <string id="bq_dlg_sich_start">
         <text>Сыч, говорят, тебя интересуют документы.</text>
     </string>
@@ -243,7 +241,7 @@
         <text>Нет, я обещал вернуть их Бороде.</text>
     </string>
 
-    <!-- Диалог с Хмурым -->
+    <!-- Dialogue with Gloomy -->
     <string id="bq_hmury_dlg_offer_1">
         <text>Постой, сталкер. Я знаю, что у тебя за бумаги. Отдай их мне — получишь две тысячи и уйдёшь спокойно.</text>
     </string>
@@ -272,7 +270,7 @@
         <text>Ты меня за дурака держишь? Тогда заберём силой!</text>
     </string>
 
-    <!-- Диалог с Карданом: вскрытие кейсов -->
+    <!-- Dialogue with Cardan: opening the cases -->
     <string id="bq_mech_dlg_start">
         <text>Привет, я нашёл такой кейс, не сможешь его вскрыть?</text>
     </string>
@@ -311,15 +309,18 @@
     </string>
     <string id="bq_mech_dlg_no_money">
         <text>У меня пока нет таких денег.</text>
-    </string>    <!-- =============================================
-         Контейнеры для артефактов
+    </string>
+
+    <!-- =============================================
+         Artefact containers
     ============================================= -->
 
-    <string id="bq_field_container_name">
+    <!-- Empty containers -->
+    <string id="bq_container_name">
         <text>Полевой контейнер для артефактов</text>
     </string>
-    <string id="bq_field_container_descr">
-        <text>Контейнер, собранный своими руками. Может содержать в себе артефакт и поглощать часть его радиации</text>
+    <string id="bq_container_descr">
+        <text>Контейнер, собранный своими руками. Может содержать в себе артефакт и поглощать часть его радиации: 4 единицы. Вес пустого контейнера — 2 кг.</text>
     </string>
     <string id="bq_uni_container_name">
         <text>Универсальный контейнер для артефактов</text>
@@ -334,107 +335,85 @@
         <text>Лучший контейнер. Поглощает почти всю радиацию артефакта</text>
     </string>
 
+    <!-- Button on a filled container -->
     <string id="bq_take_artifact">
         <text>достать артефакт</text>
     </string>
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
-    <string id="eye_uni_name">
-        <text>Универсальный контейнер (Глаз)</text>
-    </string>
-    <string id="eye_uni_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Глаз</text>
-    </string>
-    <string id="eye_sci_name">
-        <text>Научный контейнер (Глаз)</text>
-    </string>
-    <string id="eye_sci_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Глаз</text>
-    </string>
-    <string id="cristall_field_name">
-        <text>Полевой контейнер (Кристалл)</text>
-    </string>
-    <string id="cristall_field_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Кристалл</text>
-    </string>
-    <string id="cristall_uni_name">
-        <text>Универсальный контейнер (Кристалл)</text>
-    </string>
-    <string id="cristall_uni_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Кристалл</text>
-    </string>
-    <string id="cristall_sci_name">
-        <text>Научный контейнер (Кристалл)</text>
-    </string>
-    <string id="cristall_sci_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Кристалл</text>
-    </string>
-    <string id="fireball_field_name">
-        <text>Полевой контейнер (Огненный шар)</text>
-    </string>
-    <string id="fireball_field_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Огненный шар</text>
-    </string>
-    <string id="fireball_uni_name">
-        <text>Универсальный контейнер (Огненный шар)</text>
-    </string>
-    <string id="fireball_uni_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Огненный шар</text>
-    </string>
-    <string id="fireball_sci_name">
-        <text>Научный контейнер (Огненный шар)</text>
-    </string>
-    <string id="fireball_sci_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Огненный шар</text>
-    </string>
-    <string id="compass_field_name">
-        <text>Полевой контейнер (Компас)</text>
-    </string>
-    <string id="compass_field_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Компас</text>
-    </string>
-    <string id="compass_uni_name">
-        <text>Универсальный контейнер (Компас)</text>
-    </string>
-    <string id="compass_uni_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Компас</text>
-    </string>
-    <string id="compass_sci_name">
-        <text>Научный контейнер (Компас)</text>
-    </string>
-    <string id="compass_sci_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Компас</text>
-    </string>
-    <string id="eye_field_name">
+    <!-- Combo items: Eye -->
+    <string id="bq_eye_field_name">
         <text>Полевой контейнер (Глаз)</text>
     </string>
-    <string id="eye_field_descr">
-        <text>Контейнер с артефактом. Содержит в себе: Глаз</text>
+    <string id="bq_eye_field_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Глаз. Контейнер поглощает 4 единицы радиации артефакта.</text>
     </string>
-        <string id="bq_combo_base_name">
-            <text>Контейнер с артефактом (шаблон)</text>
-        </string>
+    <string id="bq_eye_uni_name">
+        <text>Универсальный контейнер (Глаз)</text>
+    </string>
+    <string id="bq_eye_uni_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Глаз. Контейнер поглощает 8 единиц радиации артефакта.</text>
+    </string>
+    <string id="bq_eye_sci_name">
+        <text>Научный контейнер (Глаз)</text>
+    </string>
+    <string id="bq_eye_sci_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Глаз. Контейнер поглощает 14 единиц радиации артефакта.</text>
+    </string>
 
+    <!-- Combo items: Crystal (protection test) -->
+    <string id="bq_cristall_field_name">
+        <text>Полевой контейнер (Кристалл)</text>
+    </string>
+    <string id="bq_cristall_field_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Кристалл. Контейнер поглощает 4 единицы радиации артефакта.</text>
+    </string>
+    <string id="bq_cristall_uni_name">
+        <text>Универсальный контейнер (Кристалл)</text>
+    </string>
+    <string id="bq_cristall_uni_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Кристалл. Контейнер поглощает 8 единиц радиации артефакта.</text>
+    </string>
+    <string id="bq_cristall_sci_name">
+        <text>Научный контейнер (Кристалл)</text>
+    </string>
+    <string id="bq_cristall_sci_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Кристалл. Контейнер поглощает 14 единиц радиации артефакта.</text>
+    </string>
+
+    <string id="bq_compass_field_name">
+        <text>Полевой контейнер (Компас)</text>
+    </string>
+    <string id="bq_compass_field_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Компас. Контейнер поглощает 4 единицы радиации артефакта.</text>
+    </string>
+    <string id="bq_compass_uni_name">
+        <text>Универсальный контейнер (Компас)</text>
+    </string>
+    <string id="bq_compass_uni_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Компас. Контейнер поглощает 8 единиц радиации артефакта.</text>
+    </string>
+    <string id="bq_compass_sci_name">
+        <text>Научный контейнер (Компас)</text>
+    </string>
+    <string id="bq_compass_sci_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Компас. Контейнер поглощает 14 единиц радиации артефакта.</text>
+    </string>
+    <string id="bq_ice_field_name">
+        <text>Полевой контейнер (Снежинка)</text>
+    </string>
+    <string id="bq_ice_field_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Снежинка. Контейнер поглощает 4 единицы радиации артефакта.</text>
+    </string>
+    <string id="bq_ice_uni_name">
+        <text>Универсальный контейнер (Снежинка)</text>
+    </string>
+    <string id="bq_ice_uni_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Снежинка. Контейнер поглощает 8 единиц радиации артефакта.</text>
+    </string>
+    <string id="bq_ice_sci_name">
+        <text>Научный контейнер (Снежинка)</text>
+    </string>
+    <string id="bq_ice_sci_descr">
+        <text>Контейнер с артефактом. Содержит в себе: Снежинка. Контейнер поглощает 14 единиц радиации артефакта.</text>
+    </string>
 </string_table>

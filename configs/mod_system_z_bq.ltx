@@ -13,8 +13,13 @@
 
 #include "creatures\bq_spawn_sections_zaton.ltx"
 
-; Container combo sections (template + combos)
-#include "misc\artefacts_bq_containers.ltx"
+; Наши секции артефактов и контейнеров (bq_container_base, bq_*_container,
+; комбо-предметы). Подключать именно так, а НЕ через mod_artefacts_*.ltx:
+; автоподхват "mod_<имя>_*.ltx" работает только когда движок открывает файл
+; как КОРНЕВОЙ (Xr_ini.cpp:1138, ветка bIsRootFile), а misc\artefacts.ltx
+; корневым не открывается - он включён через #include в system.ltx:16.
+; Поэтому mod_artefacts_z_bq.ltx движок не находил и наши секции не грузились.
+#include "misc\mod_artefacts_z_bq.ltx"
 
 [bq_stash_box]:inventory_box
 visual = dynamics\box\box_1a

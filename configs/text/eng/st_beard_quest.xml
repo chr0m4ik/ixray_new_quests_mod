@@ -311,130 +311,111 @@
     </string>
     <string id="bq_mech_dlg_no_money">
         <text>I don't have that kind of money right now.</text>
-    </string>    <!-- =============================================
+    </string>
+
+    <!-- =============================================
          Artefact containers
     ============================================= -->
 
-    <string id="bq_field_container_name">
+    <!-- Empty containers -->
+    <string id="bq_container_name">
         <text>Field artefact container</text>
     </string>
-    <string id="bq_field_container_descr">
-        <text>Hand-made container. It can hold an artefact and absorb part of its radiation</text>
+    <string id="bq_container_descr">
+        <text>A protective container for carrying artefacts. It absorbs part of the artefact radiation: 4 units. Empty container weight - 2 kg.</text>
     </string>
     <string id="bq_uni_container_name">
         <text>Universal artefact container</text>
     </string>
     <string id="bq_uni_container_descr">
-        <text>Improved container. Absorbs more radiation than the field one</text>
+        <text>An improved protective container. It absorbs 8 units of the artefact radiation. Empty container weight - 2 kg.</text>
     </string>
     <string id="bq_sci_container_name">
         <text>Scientific artefact container</text>
     </string>
     <string id="bq_sci_container_descr">
-        <text>Top-grade container. Absorbs almost all radiation of an artefact</text>
+        <text>A scientific shielded container. It absorbs 14 units of the artefact radiation. Empty container weight - 2 kg.</text>
     </string>
 
+    <!-- Button on a filled container -->
     <string id="bq_take_artifact">
-        <text>take out artefact</text>
+        <text>take out the artefact</text>
     </string>
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
-    <string id="eye_uni_name">
-        <text>Universal container (Eye)</text>
+    <!-- Combo items: Eye -->
+    <string id="bq_eye_field_name">
+        <text>Eye in a field container</text>
     </string>
-    <string id="eye_uni_descr">
-        <text>Container with an artefact. Contains: Eye</text>
+    <string id="bq_eye_field_descr">
+        <text>The "Eye" artefact inside a field container. The container absorbs 4 units of the artefact radiation.</text>
     </string>
-    <string id="eye_sci_name">
-        <text>Scientific container (Eye)</text>
+    <string id="bq_eye_uni_name">
+        <text>Eye in a universal container</text>
     </string>
-    <string id="eye_sci_descr">
-        <text>Container with an artefact. Contains: Eye</text>
+    <string id="bq_eye_uni_descr">
+        <text>The "Eye" artefact inside a universal container. The container absorbs 8 units of the artefact radiation.</text>
     </string>
-    <string id="cristall_field_name">
-        <text>Field container (Crystal)</text>
+    <string id="bq_eye_sci_name">
+        <text>Eye in a scientific container</text>
     </string>
-    <string id="cristall_field_descr">
-        <text>Container with an artefact. Contains: Crystal</text>
+    <string id="bq_eye_sci_descr">
+        <text>The "Eye" artefact inside a scientific container. The container absorbs 14 units of the artefact radiation.</text>
     </string>
-    <string id="cristall_uni_name">
-        <text>Universal container (Crystal)</text>
-    </string>
-    <string id="cristall_uni_descr">
-        <text>Container with an artefact. Contains: Crystal</text>
-    </string>
-    <string id="cristall_sci_name">
-        <text>Scientific container (Crystal)</text>
-    </string>
-    <string id="cristall_sci_descr">
-        <text>Container with an artefact. Contains: Crystal</text>
-    </string>
-    <string id="fireball_field_name">
-        <text>Field container (Fireball)</text>
-    </string>
-    <string id="fireball_field_descr">
-        <text>Container with an artefact. Contains: Fireball</text>
-    </string>
-    <string id="fireball_uni_name">
-        <text>Universal container (Fireball)</text>
-    </string>
-    <string id="fireball_uni_descr">
-        <text>Container with an artefact. Contains: Fireball</text>
-    </string>
-    <string id="fireball_sci_name">
-        <text>Scientific container (Fireball)</text>
-    </string>
-    <string id="fireball_sci_descr">
-        <text>Container with an artefact. Contains: Fireball</text>
-    </string>
-    <string id="compass_field_name">
-        <text>Field container (Compass)</text>
-    </string>
-    <string id="compass_field_descr">
-        <text>Container with an artefact. Contains: Compass</text>
-    </string>
-    <string id="compass_uni_name">
-        <text>Universal container (Compass)</text>
-    </string>
-    <string id="compass_uni_descr">
-        <text>Container with an artefact. Contains: Compass</text>
-    </string>
-    <string id="compass_sci_name">
-        <text>Scientific container (Compass)</text>
-    </string>
-    <string id="compass_sci_descr">
-        <text>Container with an artefact. Contains: Compass</text>
-    </string>
-    <string id="eye_field_name">
-        <text>Field container (Eye)</text>
-    </string>
-    <string id="eye_field_descr">
-        <text>Container with an artefact. Contains: Eye</text>
-    </string>
-        <string id="bq_combo_base_name">
-            <text>Artefact container (template)</text>
-        </string>
 
+    <!-- Combo items: Crystal (protection test) -->
+    <string id="bq_cristall_field_name">
+        <text>Crystal in a field container</text>
+    </string>
+    <string id="bq_cristall_field_descr">
+        <text>The "Crystal" artefact inside a field container. The container absorbs 4 units of the artefact radiation.</text>
+    </string>
+    <string id="bq_cristall_uni_name">
+        <text>Crystal in a universal container</text>
+    </string>
+    <string id="bq_cristall_uni_descr">
+        <text>The "Crystal" artefact inside a universal container. The container absorbs 8 units of the artefact radiation.</text>
+    </string>
+    <string id="bq_cristall_sci_name">
+        <text>Crystal in a scientific container</text>
+    </string>
+    <string id="bq_cristall_sci_descr">
+        <text>The "Crystal" artefact inside a scientific container. The container absorbs 14 units of the artefact radiation.</text>
+    </string>
+
+    <string id="bq_compass_field_name">
+        <text>Компас in a field container</text>
+    </string>
+    <string id="bq_compass_field_descr">
+        <text>The "Компас" artefact inside a field container. The container absorbs 4 units of the artefact radiation.</text>
+    </string>
+    <string id="bq_compass_uni_name">
+        <text>Компас in a universal container</text>
+    </string>
+    <string id="bq_compass_uni_descr">
+        <text>The "Компас" artefact inside a universal container. The container absorbs 8 units of the artefact radiation.</text>
+    </string>
+    <string id="bq_compass_sci_name">
+        <text>Компас in a scientific container</text>
+    </string>
+    <string id="bq_compass_sci_descr">
+        <text>The "Компас" artefact inside a scientific container. The container absorbs 14 units of the artefact radiation.</text>
+    </string>
+    <string id="bq_ice_field_name">
+        <text>Снежинка in a field container</text>
+    </string>
+    <string id="bq_ice_field_descr">
+        <text>The "Снежинка" artefact inside a field container. The container absorbs 4 units of the artefact radiation.</text>
+    </string>
+    <string id="bq_ice_uni_name">
+        <text>Снежинка in a universal container</text>
+    </string>
+    <string id="bq_ice_uni_descr">
+        <text>The "Снежинка" artefact inside a universal container. The container absorbs 8 units of the artefact radiation.</text>
+    </string>
+    <string id="bq_ice_sci_name">
+        <text>Снежинка in a scientific container</text>
+    </string>
+    <string id="bq_ice_sci_descr">
+        <text>The "Снежинка" artefact inside a scientific container. The container absorbs 14 units of the artefact radiation.</text>
+    </string>
 </string_table>
