@@ -1,0 +1,53 @@
+; ===========================================================================
+; Trade file for Sych (zat_b30_owl_stalker_trader) - artefact containers.
+;
+; WHY THIS FILE EXISTS AT ALL
+;   The engine opens the trade file by this exact path, and the addon
+;   ixray-stcop-wp-3.7-cop-r1.0 ships its own version (1476 lines). Our addon is
+;   mounted last ("zzz-" prefix), so this file wins and INCLUDES the winner's
+;   version first (see the include at the bottom). Nothing from the other addon
+;   is lost.
+;
+; HOW THE ADDITIONS WORK
+;   An entry line starting with ">" does not declare a section: the engine
+;   treats it as "append to the list of the section named after >" and splits
+;   the value by commas (Xr_ini.cpp:445, 371). So this file does not have to
+;   repeat the whole 1476-line trade table - only our entries.
+;   NOTE: do NOT write "[>section]" - the engine would read that as a section
+;   named ">section". The ">" goes BEFORE the bracket (same family of mistakes
+;   as "![Name]" vs "[!Name]", see MEMO 20).
+;
+; WHAT SYCH TRADES
+;   Empty containers only. Combos (an artefact inside a container) have
+;   can_trade = false, so they are not offered and cannot be sold.
+;
+; PRICES
+;   The player BUYS an empty container for its full cost (container "cost"):
+;     field 15000, universal 25000, scientific 40000.
+;   The player SELLS it back at 60% (the same rate Sych buys artefacts at),
+;   so buying and reselling is never profitable.
+; ===========================================================================
+
+; Sych buys empty containers from the player: factor applies to the item cost
+>[trade_generic_buy]
+>bq_field_container = 1, 0.6
+>bq_uni_container   = 1, 0.6
+>bq_sci_container   = 1, 0.6
+
+; Sych does not sell empty containers as stock... (see supplies below)
+>[trade_generic_sell]
+>bq_field_container
+>bq_uni_container
+>bq_sci_container
+
+; ...their stock is defined here: count, probability
+>[supplies_generic]
+>bq_field_container = 2, 1.0
+>bq_uni_container   = 1, 0.2
+>bq_sci_container   = 1, 0.05
+
+; ===========================================================================
+; Original (winning) file goes last: our ">" entries above are merged into its
+; sections, because our entries were read while THIS file is the root one.
+; ===========================================================================
+#include "misc\trade\trade_zat_b30_stalker_trader.ltx"
