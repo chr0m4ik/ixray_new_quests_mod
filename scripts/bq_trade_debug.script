@@ -38,6 +38,24 @@ end
 local function dump()
     dbg("==== ДИАГНОСТИКА ТОРГОВЛИ ====")
 
+    -- 0. Что выбрал trade_manager: именно эта секция читается для товара.
+    if trade_manager == nil then
+        dbg("  trade_manager: НЕТ (таблица недоступна)")
+    else
+        local found_any = false
+        for id, tt in pairs(trade_manager) do
+            found_any = true
+            dbg("  trade_manager[" .. tostring(id) .. "]:")
+            dbg("     buy_condition      = " .. tostring(tt.current_buy_condition))
+            dbg("     sell_condition     = " .. tostring(tt.current_sell_condition))
+            dbg("     buy_supplies(строка условий) = " .. tostring(tt.buy_supplies))
+            dbg("     current_buy_supplies = " .. tostring(tt.current_buy_supplies))
+            dbg("     resuply_time       = " .. tostring(tt.resuply_time)
+                .. " (сейчас " .. tostring(time_global()) .. ")")
+        end
+        if not found_any then dbg("  trade_manager пуст (торговцы ещё не инициализированы)") end
+    end
+
     -- 1. наши предметы: что видит движок
     for _, sec in ipairs({ "bq_field_container", "bq_uni_container", "bq_sci_container" }) do
         local ini = system_ini()
