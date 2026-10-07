@@ -26,6 +26,10 @@ tools/*
 !tools/build_combo_icons.js
 !tools/png.js
 !tools/test_dds_encode.js
+!tools/downscale.js
+!tools/compare_artifact_quality.js
+!tools/compare_artifact_sizes.js
+!tools/fix_rus_localization.js
 
 # Атлас иконок из аномали (33 МБ, используется только как источник картинок)
 textures/ui/ui_anomaly_icons.dds

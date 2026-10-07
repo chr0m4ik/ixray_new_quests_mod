@@ -38,8 +38,14 @@ const MOD_ARTEFACTS = path.join(ROOT, 'configs', 'misc', 'mod_artefacts_z_bq.ltx
 
 // --- параметры картинки -----------------------------------------------------
 const CELL = 50;              // клетка иконки в нашем атласе (inv_scale = 1.0)
-const ART = 24;               // размер уменьшенного артефакта (кратен 4 — требование DXT5)
-const ART_OFFSET = 3;         // отступ значка от правого нижнего угла клетки, px
+// Размер уменьшенного артефакта. ВАЖНО: движок рисует этот значок ПИКСЕЛЬ В
+// ПИКСЕЛЬ (источник N px кладётся в прямоугольник N px), поэтому всё, что
+// потеряно при уменьшении, видно на экране напрямую. Проверено сравнением
+// (tools/compare_artifact_sizes.js): 24x24 заметно грубее, 32x32 уже близко к
+// исходнику. Здесь стоит 32; значение не обязано быть кратным 4 — кратность
+// нужна только размерам АТЛАСА (их проверяет кодировщик).
+const ART = 32;
+const ART_OFFSET = 2;         // отступ значка от правого нижнего угла клетки, px
 const ATLAS_W = 256;          // 5 клеток по 50
 // РАСШИРЕНИЕ НА ВСЕ АРТЕФАКТЫ: строка на артефакт, поэтому при ~24 артефактах
 // нужен ATLAS_H = 50 * (24 + 1) = 1250. Возьмите 1280 (степень двойки и кратно
@@ -76,25 +82,12 @@ function crop(dec, x0, y0, w, h) {
     return out;
 }
 
-// Уменьшение усреднением (любое соотношение размеров).
+// Уменьшение картинки. Используем точный фильтр из tools/downscale.js: простое
+// усреднение по блокам давало заметное мыло и ступеньки (проверено сравнением).
+const { downscaleRGBA } = require('./downscale.js');
 function downscale(src, srcSize, dstSize) {
-    const out = new Uint8Array(dstSize * dstSize * 4);
-    for (let y = 0; y < dstSize; y++) {
-        const y0 = Math.floor(y * srcSize / dstSize);
-        const y1 = Math.max(y0 + 1, Math.floor((y + 1) * srcSize / dstSize));
-        for (let x = 0; x < dstSize; x++) {
-            const x0 = Math.floor(x * srcSize / dstSize);
-            const x1 = Math.max(x0 + 1, Math.floor((x + 1) * srcSize / dstSize));
-            for (let c = 0; c < 4; c++) {
-                let s = 0, n = 0;
-                for (let sy = y0; sy < y1; sy++) {
-                    for (let sx = x0; sx < x1; sx++) { s += src[(sy * srcSize + sx) * 4 + c]; n++; }
-                }
-                out[(y * dstSize + x) * 4 + c] = Math.round(s / n);
-            }
-        }
-    }
-    return out;
+    if (srcSize === dstSize) return src;
+    return downscaleRGBA(src, srcSize, dstSize, 3);
 }
 
 // Наложение картинки с альфой в буфер (ширина буфера задаётся отдельно).
