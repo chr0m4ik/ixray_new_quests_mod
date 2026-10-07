@@ -1,0 +1,111 @@
+-- bq_trade_debug.script — ВРЕМЕННАЯ диагностика торговли Сыча.
+--
+-- Зачем: непонятно, почему контейнеры не появляются у Сыча в продаже. Скрипт
+-- раз в пару секунд (пока игрок рядом с торговцем) пишет в bq_trade_debug.log:
+--   1. какие ключи реально есть в секции supplies_generic и в той секции,
+--      которую выбирает buy_supplies (условие торговца);
+--   2. весь инвентарь торговца (секция каждого предмета);
+--   3. значения can_trade/cost наших контейнеров, как их видит движок.
+--
+-- УДАЛИТЬ после отладки.
+
+local LOG = "bq_trade_debug.log"
+local TRADER_STORY_ID = "zat_b30_owl_stalker_trader_id"
+local last_dump = 0
+local dumped = false
+
+local function dbg(msg)
+    local f = io.open(LOG, "a")
+    if f then
+        f:write(os.date("%H:%M:%S") .. "  " .. msg .. "\n")
+        f:close()
+    end
+end
+
+-- Все секции торговца, которые он читает по buy_condition / sell_condition
+local SECTIONS = {
+    "supplies_generic", "supplies_scientific", "supplies_stalker_tier_1",
+    "supplies_stalker_tier_2", "supplies_bandit_tier_1", "supplies_bandit_tier_2",
+    "trade_generic_buy", "trade_generic_sell",
+}
+
+local function find_trader()
+    local ok, se = pcall(function() return alife():story_object(TRADER_STORY_ID) end)
+    if not ok or not se then return nil end
+    return level.object_by_id(se.id)
+end
+
+local function dump()
+    dbg("==== ДИАГНОСТИКА ТОРГОВЛИ ====")
+
+    -- 1. наши предметы: что видит движок
+    for _, sec in ipairs({ "bq_field_container", "bq_uni_container", "bq_sci_container" }) do
+        local ini = system_ini()
+        local exists = ini:section_exist(sec)
+        local can_trade = exists and ini:line_exist(sec, "can_trade") and ini:r_bool(sec, "can_trade") or "?"
+        local cost = exists and ini:line_exist(sec, "cost") and ini:r_u32(sec, "cost") or "?"
+        dbg(string.format("  предмет %s: section_exist=%s can_trade=%s cost=%s",
+            sec, tostring(exists), tostring(can_trade), tostring(cost)))
+    end
+
+    -- 2. секции товара: есть ли там наши ключи
+    local ini = system_ini()
+    for _, sec in ipairs(SECTIONS) do
+        if not ini:section_exist(sec) then
+            dbg("  секция [" .. sec .. "]: НЕТ")
+        else
+            local found = {}
+            local n = 0
+            while true do
+                local key = ini:r_line(sec, n, "", "")
+                if not key or key == "" then break end
+                n = n + 1
+                if string.sub(key, 1, 3) == "bq_" then
+                    found[#found + 1] = key .. "=" .. tostring(ini:r_string(sec, key))
+                end
+            end
+            dbg(string.format("  секция [%s]: всего строк %d, наших %d %s",
+                sec, n, #found, table.concat(found, ", ")))
+        end
+    end
+
+    -- 3. инвентарь торговца
+    local npc = find_trader()
+    if not npc then
+        dbg("  торговец не найден в онлайне")
+        return
+    end
+    dbg("  торговец: " .. tostring(npc:name()) .. " id=" .. tostring(npc:id()))
+    local items = {}
+    npc:iterate_inventory(function(owner, item)
+        items[#items + 1] = item:section()
+    end, npc)
+    dbg("  предметов у торговца: " .. #items)
+    local bq = {}
+    for _, s in ipairs(items) do
+        if string.sub(s, 1, 3) == "bq_" then bq[#bq + 1] = s end
+    end
+    dbg("  из них наших (bq_): " .. #bq .. " " .. table.concat(bq, ", "))
+    table.sort(items)
+    dbg("  все секции: " .. table.concat(items, ", "))
+end
+
+local function on_update()
+    if dumped then return end
+    if not db.actor or not alife() then return end
+    local now = time_global()
+    if now - last_dump < 3000 then return end
+    last_dump = now
+    local ok, err = pcall(dump)
+    if not ok then
+        dbg("ОШИБКА диагностики: " .. tostring(err))
+        dumped = true
+    end
+end
+
+function on_game_start()
+    RegisterScriptCallback("update", on_update)
+    dbg("==== диагностика торговли загружена ====")
+end
+
+on_game_start()

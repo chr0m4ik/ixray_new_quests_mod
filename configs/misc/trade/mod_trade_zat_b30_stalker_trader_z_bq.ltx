@@ -50,11 +50,16 @@ bq_field_container = 1, 0.6
 bq_uni_container   = 1, 0.6
 bq_sci_container   = 1, 0.6
 
-; What Sych is willing to sell (the item itself is listed by name, no value)
+; What Sych is willing to sell. The value is REQUIRED: an entry without a value
+; is treated as "disabled" (CTradeParameters::process,
+; trade_parameters_inline.h:125-128: empty value -> _action.disable), which is
+; exactly how the base file marks artefacts it refuses to sell (they are listed
+; as bare names with a ";NO TRADE" comment). Items the trader really sells are
+; written with a value, e.g. "bandage = 1, 2.2" in [sell_tier_2].
 ![trade_generic_sell]
-bq_field_container
-bq_uni_container
-bq_sci_container
+bq_field_container = 1, 1
+bq_uni_container   = 1, 1
+bq_sci_container   = 1, 1
 
 ; Stock: count, probability (1-2 units per kind)
 ![supplies_generic]

@@ -124,19 +124,28 @@ function baseHasKey(section, key) {
     const s = baseSections.get(section);
     return !!s && s.keys.has(key);
 }
-function effective(section, key, prefix) {
-    // plain-присваивание создаёт/перекрывает ключ; ">" дописывает ТОЛЬКО к
-    // существующему ключу, иначе строка игнорируется
+function baseValue(section, key) {
+    const s = baseSections.get(section);
+    return s ? s.keys.get(key) : undefined;
+}
+function effective(section, key) {
+    // plain-присваивание создаёт/перекрывает ключ (значение заменяется);
+    // ">" дописывает ТОЛЬКО к существующему ключу, иначе строка игнорируется
     const bucket = mod.get(section);
     if (!bucket) return undefined;
     if (bucket.plain.has(key)) return { value: bucket.plain.get(key), how: 'plain' };
     if (bucket.list.has(key)) {
         if (!baseHasKey(section, key)) return { value: undefined, how: 'ignored' };
-        return { value: (baseSections.get(section).keys.get(key) + ',' +
-            bucket.list.get(key).join(',')), how: 'append' };
+        const extra = bucket.list.get(key).join(',');
+        const base = baseValue(section, key);
+        return { value: base === undefined || base === '' ? extra : (base + ',' + extra), how: 'append' };
     }
     return undefined;
 }
+
+// Значение пустое или отсутствует = движок СЧИТАЕТ ПРЕДМЕТ ЗАПРЕЩЁННЫМ
+// (CTradeParameters::process, trade_parameters_inline.h:125-128).
+const isDisabled = (v) => v === undefined || String(v).trim() === '';
 
 // -------------------------------------------------- 4. выкуп и наличие
 for (const [sec, spec] of Object.entries(CONTAINERS)) {
@@ -173,8 +182,16 @@ for (const [sec, spec] of Object.entries(CONTAINERS)) {
     }
 
     const sell = effective('trade_generic_sell', sec);
-    if (!sell) err(`[trade_generic_sell] ${sec}: записи нет - торговец не продаст контейнер`);
-    else ok(`${sec}: есть в списке продажи`);
+    if (!sell) {
+        err(`[trade_generic_sell] ${sec}: записи нет - торговец не продаст контейнер`);
+    } else if (isDisabled(sell.value)) {
+        err(`[trade_generic_sell] ${sec}: значение пустое, а пустое значение движок ` +
+            `трактует как ЗАПРЕТ (CTradeParameters::process, trade_parameters_inline.h:125). ` +
+            `Именно так помечены артефакты ";NO TRADE" в базовом файле. Нужно значение, ` +
+            `например "= 1, 1"`);
+    } else {
+        ok(`${sec}: в продаже (значение ${sell.value})`);
+    }
 }
 
 // -------------------------------------------------- 5. комбо и can_trade
