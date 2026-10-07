@@ -1,12 +1,21 @@
 ; ============================================================================
-; Artefact containers - DLTX mod file for configs\misc\artefacts.ltx
+; Artefact containers - sections for configs\misc\artefacts.ltx
 ;
-; The engine auto-loads "mod_<rootfile>_*.ltx" next to the root file it opens
-; (Xr_ini.cpp:1138). The root file configs\misc\artefacts.ltx is included by
-; configs\system.ltx:16, i.e. it lives in the SAME CInifile as the vanilla
-; artefacts, so section names merge and parents resolve across both files
-; (Xr_ini.cpp:271-283). That is why this mod does NOT ship a full copy of
-; artefacts.ltx: only our own sections live here.
+; HOW THIS FILE IS LOADED (checked against the engine sources):
+;   It is attached with "#include "misc\mod_artefacts_z_bq.ltx"" from
+;   configs\mod_system_z_bq.ltx. The name keeps the mod_ prefix only by habit;
+;   auto-discovery does NOT work here. The engine auto-loads
+;   "mod_<rootfile>_*.ltx" only where it OPENS a file as the root one
+;   (Xr_ini.cpp:1138, inside the bIsRootFile branch). misc\artefacts.ltx is
+;   never opened as a root file - it is #include'd by configs\system.ltx:16 -
+;   so a mod_artefacts_*.ltx is never found. That is why the sections are
+;   pulled in explicitly instead.
+;
+; WHY NO FULL COPY OF artefacts.ltx: the root file system.ltx includes both
+;   defines.ltx and misc\artefacts.ltx, so all their sections live in the same
+;   CInifile and parents resolve across files (Xr_ini.cpp:271-283). Duplicate
+;   checks happen inside a single file only (Xr_ini.cpp:1067-1077), so adding
+;   our own sections is safe and does not require copying the vanilla file.
 ;
 ; Sections:
 ;   bq_container_base            - common part of an empty container
