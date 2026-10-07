@@ -20,12 +20,10 @@ const path = require('path');
 const { loadAll, makeResolver, readLtx } = require('./ini_resolver.js');
 
 const GAME = 'Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_Original_gamedata\\gamedata\\configs';
-const ADDONS = 'Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_IXRAY\\ixr_addons';
 const ROOT = path.join(__dirname, '..');
 const TRADE_REL = 'configs/misc/trade/mod_trade_zat_b30_stalker_trader_z_bq.ltx';
 const TRADE_FILE = path.join(ROOT, TRADE_REL);
-const BASE_TRADE = path.join(ADDONS, 'ixray-stcop-wp-3.7-cop-r1.0', 'configs', 'misc', 'trade',
-    'trade_zat_b30_stalker_trader.ltx');
+const BASE_TRADE = path.join(GAME, 'misc', 'trade', 'trade_zat_b30_stalker_trader.ltx');
 const MOD_ARTEFACTS = path.join(ROOT, 'configs', 'misc', 'mod_artefacts_z_bq.ltx');
 
 let errors = 0;

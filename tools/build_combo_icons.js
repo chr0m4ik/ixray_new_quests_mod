@@ -29,11 +29,13 @@ const { encodeDXT5 } = require('./dds_encode.js');
 
 const ROOT = path.join(__dirname, '..');
 const CONTAINER_ATLAS = path.join(ROOT, 'textures', 'ui', 'ui_bq_field_container.dds');
-const HQ_MOD = path.join('Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_IXRAY\\ixr_addons',
-    'ixray-hq-icons-v2.0');
+const GAME = 'Z:\\Games\\Stalker_Call_of_Pripyat_Mod';
+const ADDONS = path.join(GAME, 'StalkerCoP_IXRAY', 'ixr_addons');
+const HQ_MOD = path.join(ADDONS, 'ixray-hq-icons-v2.0');
 const HQ_CONFIG = path.join(HQ_MOD, 'configs', 'mod_system_hqicons.ltx');
-const VANILLA_ARTEFACTS = path.join('Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_Original_gamedata',
-    'gamedata', 'configs', 'misc', 'artefacts.ltx');
+const VANILLA = path.join(GAME, 'StalkerCoP_Original_gamedata', 'gamedata');
+const VANILLA_TEXTURE = path.join(VANILLA, 'textures', 'ui', 'ui_icon_equipment.dds');
+const VANILLA_ARTEFACTS = path.join(VANILLA, 'configs', 'misc', 'artefacts.ltx');
 const MOD_ARTEFACTS = path.join(ROOT, 'configs', 'misc', 'mod_artefacts_z_bq.ltx');
 
 // --- параметры картинки -----------------------------------------------------
@@ -137,16 +139,28 @@ function sectionKeys(lines, section) {
 }
 
 // ------------------------------------------------------- иконки артефактов ---
-// Если HQ-мод есть — берём иконки оттуда (они крупнее и не сжаты), иначе из
-// штатного атласа. Возвращает { atlas, cell, source }.
+// Источник иконок артефактов. Приоритет:
+//   1. мод HQ Icons, если он установлен: иконки крупнее (клетка 100 px) и
+//      атлас НЕ сжат (A8R8G8B8) — уменьшение не накапливает ошибку сжатия;
+//   2. штатный атлас игры (клетка 50 px, DXT5) — запасной вариант.
+//
+// Это зависимость ТОЛЬКО инструмента: сам аддон везёт уже готовые иконки, и в
+// игре никакой другой мод не нужен. Координаты артефактов в обоих атласах
+// совпадают (проверено), отличается лишь размер клетки — он берётся из ключа
+// inv_scale той секции, откуда читаем.
 function loadArtifactSource() {
     const hqTex = path.join(HQ_MOD, 'textures', 'ui', 'ui_icon_equipment_hd.dds');
-    const vanTex = path.join('Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_Original_gamedata',
-        'gamedata', 'textures', 'ui', 'ui_icon_equipment.dds');
     if (fs.existsSync(hqTex) && fs.existsSync(HQ_CONFIG)) {
-        return { file: hqTex, config: HQ_CONFIG, source: 'HQ-атлас (без сжатия)' };
+        return { file: hqTex, config: HQ_CONFIG, source: 'мод HQ Icons (атлас без сжатия)' };
     }
-    return { file: vanTex, config: VANILLA_ARTEFACTS, source: 'штатный атлас' };
+    if (fs.existsSync(VANILLA_TEXTURE) && fs.existsSync(VANILLA_ARTEFACTS)) {
+        return { file: VANILLA_TEXTURE, config: VANILLA_ARTEFACTS, source: 'штатный атлас игры' };
+    }
+    console.error('FAIL: не найден ни мод HQ Icons, ни штатный атлас иконок игры.');
+    console.error(`  искал: ${hqTex}`);
+    console.error(`  искал: ${VANILLA_TEXTURE}`);
+    console.error('  Укажите путь к атласу или установите мод HQ Icons.');
+    process.exit(1);
 }
 
 // Координаты иконки артефакта: клетка = 50 * inv_scale.
