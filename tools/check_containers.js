@@ -112,11 +112,16 @@ const CONTAINERS = [
     { section: 'bq_sci_container', combo: 'af_eye_bq_sci_container', absorb: 0.014 },
 ];
 
-// Артефакты, для которых есть комбо. Каждая запись: артефакт + имена комбо по
-// контейнерам. Держать в согласии с mod_artefacts_z_bq.ltx.
+// Артефакты, для которых есть комбо. `radiation` - абсолютное значение
+// radiation_restore_speed артефакта в оригинальном artefacts.ltx (проверять
+// по файлу, не по памяти!), `bleeding` - его bleeding_restore_speed.
+// Комбо обязано НЕ переопределять ничего, кроме радиации, - остальные статы
+// (включая замедление кровотечения) наследуются от артефакта.
 const TESTED_ARTEFACTS = [
     {
         artefact: 'af_eye',
+        radiation: 0.002,
+        bleeding: 0.004,
         combos: {
             bq_field_container: 'af_eye_bq_field_container',
             bq_uni_container:   'af_eye_bq_uni_container',
@@ -125,12 +130,26 @@ const TESTED_ARTEFACTS = [
     },
     {
         artefact: 'af_cristall',
+        radiation: 0.001,
+        bleeding: 0,
         combos: {
             bq_field_container: 'af_cristall_bq_field_container',
             bq_uni_container:   'af_cristall_bq_uni_container',
             bq_sci_container:   'af_cristall_bq_sci_container',
         },
     },
+];
+
+// Формула, подтверждённая заказчиком в игре: контейнер поглощает НЕ БОЛЬШЕ,
+// чем артефакт излучает, поэтому результат никогда не отрицательный.
+const comboRadiation = (artRad, absorb) => Math.max(0, artRad - absorb);
+
+// Статы, которые комбо НЕ должно переопределять: они должны приходить от
+// артефакта как есть (радиация сюда не входит - она пересчитывается).
+const INHERITED_FROM_ARTEFACT = [
+    'health_restore_speed', 'satiety_restore_speed', 'power_restore_speed',
+    'bleeding_restore_speed', 'additional_inventory_weight',
+    'hit_absorbation_sect',
 ];
 
 // Шаблонные секции: не самостоятельные предметы, у них намеренно нет
@@ -157,10 +176,33 @@ for (const name of ours.keys()) {
         if (!r.has('inv_grid_x') || !r.has('inv_grid_y')) {
             err(`[${name}] нет inv_grid_x/inv_grid_y — движок упадёт при работе с UI`);
         }
+        // по этому ключу движок решает, показывать ли окно характеристик
+        // артефакта (CUIArtefactParams::Check, ui_af_params.cpp:195)
+        if (r.get('af_actor_properties') !== 'on') {
+            err(`[${name}] af_actor_properties = '${r.get('af_actor_properties')}', нужно 'on' ` +
+                `(иначе не будет окна характеристик)`);
+        }
     }
     if (isItemSection(r) && !TEMPLATES.has(name)) {
         const missing = REQUIRED.filter((k) => !r.has(k));
         if (missing.length) err(`[${name}] нет обязательных ключей: ${missing.join(', ')}`);
+        // настоящий предмет обязан быть виден в спавнере: оба размера > 0,
+        // иначе SpawnManager считает секцию фиктивной (SpawnManager.cpp:160-161)
+        const gw = parseInt(r.get('inv_grid_width'), 10);
+        const gh = parseInt(r.get('inv_grid_height'), 10);
+        if (!(gw > 0) || !(gh > 0)) {
+            err(`[${name}] inv_grid_width/height = ${gw}/${gh} — предмет исчезнет из спавнера`);
+        }
+    }
+    if (TEMPLATES.has(name)) {
+        // шаблон НЕ должен быть виден в спавнере: раньше bq_container_base
+        // появлялся в списке, и его спавн падал
+        const gw = parseInt(r.get('inv_grid_width'), 10);
+        const gh = parseInt(r.get('inv_grid_height'), 10);
+        if (gw > 0 || gh > 0) {
+            err(`[${name}] шаблон виден в спавнере (inv_grid_width/height = ${gw}/${gh}) — ` +
+                `должны быть 0, иначе игрок сможет его заспавнить`);
+        }
     }
     const parents = ours.get(name).parents;
     for (const p of parents) if (!merged.has(p)) err(`[${name}] родитель [${p}] не найден`);
@@ -184,7 +226,17 @@ for (const spec of TESTED_ARTEFACTS) {
     const artRad = parseFloat(artRes.get('radiation_restore_speed'));
     const artAbs = artRes.get('hit_absorbation_sect');
     const artBurn = parseFloat(resolve(artAbs).get('burn_immunity') || '0');
-    console.log(`  артефакт ${art}: radiation=${artRad}, absorbation=${artAbs} (burn ${artBurn})`);
+    const artBleed = parseFloat(artRes.get('bleeding_restore_speed'));
+    // сверка ожидаемых чисел с оригиналом: если артефакт изменят, проверка
+    // заставит обновить таблицу, а не молча считать по устаревшим числам
+    if (Math.abs(artRad - spec.radiation) > 1e-9) {
+        err(`${art}: radiation в конфиге ${artRad}, в проверке указано ${spec.radiation}`);
+    }
+    if (Math.abs(artBleed - spec.bleeding) > 1e-9) {
+        err(`${art}: bleeding_restore_speed в конфиге ${artBleed}, в проверке указано ${spec.bleeding}`);
+    }
+    console.log(`  артефакт ${art}: radiation=${artRad}, bleeding=${artBleed}, ` +
+                `absorbation=${artAbs} (burn ${artBurn})`);
     for (const c of CONTAINERS) {
         const combo = spec.combos[c.section];
         if (!combo) { err(`для ${art} не задано имя комбо для ${c.section}`); continue; }
@@ -203,17 +255,25 @@ for (const spec of TESTED_ARTEFACTS) {
             err(`[${combo}] hit_absorbation_sect='${r.get('hit_absorbation_sect')}', ожидалось '${artAbs}'`);
         } else ok(`[${combo}] защита от артефакта (${artAbs})`);
 
-        // радиация: правило "артефакт минус поглощение", проверенное заказчиком
-        // в игре (MEMO 13.2). Для полевого контейнера разница (-0.002 при
-        // af_eye = 0.002) в интерфейсе отображается как 0, поэтому допускаем
-        // и точное значение формулы, и 0 в пределах поглощения контейнера.
+        // радиация: combo = artefact + min(-absorb, artefact), то есть
+        // контейнер поглощает не больше, чем артефакт излучает (MEMO 13.2).
         const exact = +(artRad - c.absorb).toFixed(6);
+        const want = comboRadiation(artRad, c.absorb);
         const got = parseFloat(r.get('radiation_restore_speed'));
-        const near = Math.abs(exact - got) < 0.0000005;
-        const roundedToZero = got === 0 && exact < 0 && Math.abs(exact) <= c.absorb + 1e-9;
-        if (!near && !roundedToZero) {
-            err(`[${combo}] radiation_restore_speed=${got}, ожидалось ${exact} (${artRad} - ${c.absorb}) или 0`);
-        } else ok(`[${combo}] radiation=${got} = ${artRad} - ${c.absorb}${roundedToZero ? ' (в UI округляется до 0)' : ''}`);
+        if (Math.abs(want - got) > 0.0000005) {
+            err(`[${combo}] radiation_restore_speed=${got}, ожидалось ${want} ` +
+                `(${artRad} + min(${-c.absorb}, ${artRad})` +
+                (exact < 0 ? `; без ограничения получилось бы ${exact}` : '') + ')');
+        } else {
+            ok(`[${combo}] radiation=${got} (артефакт ${artRad}, поглощение ${c.absorb})`);
+        }
+
+        // остальные статы должны приходить от артефакта, а не переписываться
+        for (const key of INHERITED_FROM_ARTEFACT) {
+            if (m.keys.has(key)) {
+                err(`[${combo}] переопределяет '${key}' — должен наследовать от артефакта`);
+            }
+        }
 
         // локализация
         for (const k of ['inv_name', 'description', 'use1_text']) {

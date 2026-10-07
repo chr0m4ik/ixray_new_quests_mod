@@ -58,6 +58,12 @@
 ; (SpawnManager.cpp:137, pSettings->r_clsid) и при доставании артефакта,
 ; когда скрипт создавал пустой контейнер (alife():create).
 class                       = ARTEFACT
+; af_actor_properties = on - именно по этому ключу движок решает, показывать ли
+; окно характеристик артефакта (CUIArtefactParams::Check, ui_af_params.cpp:195)
+; и обрабатывать ли статы предмета. В af_base он есть, но задаём явно: от него
+; зависит и тултип, и эффект на поясе.
+af_actor_properties         = on
+actor_properties            = on
 $spawn                      = "artefacts\bq_container"
 inv_name                    = bq_container_name
 inv_name_short              = bq_container_name
@@ -75,13 +81,16 @@ satiety_restore_speed       = 0
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
 additional_inventory_weight = 0
-inv_grid_width              = 1
-inv_grid_height             = 1
+; inv_grid_width/height = 0 скрывает ШАБЛОН из debug-спавнера: он считает
+; секцию фиктивной, если оба ключа есть и оба <= 0
+; (SpawnManager.cpp:160-161: isFakeItem => isInvItem = false). Раньше здесь
+; стояло 1, и bq_container_base появлялся в спавнере как обычный предмет, а
+; спавн его падал. Настоящие контейнеры задают 1 сами.
+inv_grid_width              = 0
+inv_grid_height             = 0
 ; inv_grid_x/y ОБЯЗАТЕЛЬНЫ и на шаблоне: движок читает их строго, а не
-; "если есть" (inventory_item.cpp:190, UICellCustomItems.cpp:539). Пустые
-; контейнеры задают свои значения ниже, но секция шаблона тоже попадает в UI
-; (список debug-спавнера) - без этих ключей игра падает:
-;   CInifile::r_string: Can't find variable inv_grid_x in [bq_container_base]
+; "если есть" (inventory_item.cpp:190, UICellCustomItems.cpp:539). Без них
+; игра падала с "Can't find variable inv_grid_x in [bq_container_base]".
 inv_grid_x                  = 0
 inv_grid_y                  = 0
 
@@ -92,6 +101,8 @@ inv_grid_y                  = 0
 visual                      = dynamics\artefacts\af_eye.ogf
 radiation_restore_speed     = -0.004
 hit_absorbation_sect        = bq_field_container_absorbation
+inv_grid_width              = 1
+inv_grid_height             = 1
 inv_grid_x                  = 12
 inv_grid_y                  = 4
 
@@ -117,6 +128,8 @@ inv_name_short              = bq_uni_container_name
 cost                        = 25000
 radiation_restore_speed     = -0.008
 hit_absorbation_sect        = bq_uni_container_absorbation
+inv_grid_width              = 1
+inv_grid_height             = 1
 inv_grid_x                  = 14
 inv_grid_y                  = 4
 
@@ -142,6 +155,8 @@ inv_name_short              = bq_sci_container_name
 cost                        = 40000
 radiation_restore_speed     = -0.014
 hit_absorbation_sect        = bq_sci_container_absorbation
+inv_grid_width              = 1
+inv_grid_height             = 1
 inv_grid_x                  = 13
 inv_grid_y                  = 4
 
@@ -158,14 +173,22 @@ fire_wound_immunity         = 0
 
 ; ---------------------------------------------------------------------------
 ; PROTOTYPE: combos for one artefact only - af_eye (Eye).
-; radiation_restore_speed = artefact radiation - container absorption,
-; with the ORIGINAL af_eye values (radiation 0.002, bleeding 0.004):
-;   field 0.002 - 0.004 = -0.002 -> clamped to 0 (container absorbs more
-;                                    than the artefact emits);
-;   uni   0.002 - 0.008 = -0.006;
-;   sci   0.002 - 0.014 = -0.012.
-; Protection is NOT rewritten here: hit_absorbation_sect and the immunity
-; table come from af_eye (see the vanilla af_eye_absorbation).
+;
+; RADIATION RULE (verified by the customer in game, see MEMO 13.2):
+;     combo radiation = artefact radiation + min(container absorption, artefact radiation)
+; The container absorbs NO MORE than the artefact emits, so the result can only
+; be the artefact's own radiation or zero - never a negative value.
+; For af_eye (vanilla radiation 0.002 = +2 in UI):
+;     field  +2 + min(-4, +2) = 0
+;     uni    +2 + min(-8, +2) = 0
+;     sci    +2 + min(-14, +2) = 0
+; Earlier the values here were computed as "artefact - absorption" without that
+; clamp, which produced a wrong -6 for the universal container.
+;
+; Other stats are NOT touched: protection (hit_absorbation_sect + immunity
+; table) and the restore speeds come from af_eye. The Eye has an all-zero
+; immunity table, but it does have bleeding_restore_speed = 0.004 - that is its
+; "slows bleeding" effect, and the combos inherit it.
 ; ---------------------------------------------------------------------------
 [af_eye_bq_field_container]:af_eye, bq_container_base
 description                 = bq_eye_field_descr
@@ -174,6 +197,8 @@ inv_name_short              = bq_eye_field_name
 belt                        = true
 can_trade                   = false
 icons_texture               = ui\ui_icon_equipment
+inv_grid_width              = 1
+inv_grid_height             = 1
 inv_grid_x                  = 12
 inv_grid_y                  = 4
 radiation_restore_speed     = 0
@@ -187,9 +212,11 @@ inv_name_short              = bq_eye_uni_name
 belt                        = true
 can_trade                   = false
 icons_texture               = ui\ui_icon_equipment
+inv_grid_width              = 1
+inv_grid_height             = 1
 inv_grid_x                  = 14
 inv_grid_y                  = 4
-radiation_restore_speed     = -0.006
+radiation_restore_speed     = 0
 use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
 
@@ -200,9 +227,11 @@ inv_name_short              = bq_eye_sci_name
 belt                        = true
 can_trade                   = false
 icons_texture               = ui\ui_icon_equipment
+inv_grid_width              = 1
+inv_grid_height             = 1
 inv_grid_x                  = 13
 inv_grid_y                  = 4
-radiation_restore_speed     = -0.012
+radiation_restore_speed     = 0
 use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
 
@@ -211,12 +240,8 @@ use1_functor                = bq_containers.take_artifact
 ; immunity table (af_eye_absorbation), so it cannot show whether the artefact's
 ; protection is really carried over. The Crystal has burn_immunity, which is
 ; visible in the tooltip and on the belt.
-; Original af_cristall: radiation 0.001, af_cristall_absorbation burn 0.02.
-; radiation_restore_speed = artefact - container absorption:
-;   field 0.001 - 0.004 -> 0 in UI;  uni 0.001 - 0.008 -> 0;
-;   sci   0.001 - 0.014 -> 0.
-; So all three combos show 0 radiation, which is expected: the containers
-; absorb more than the Crystal emits.
+; Original af_cristall: radiation 0.001 (+1 in UI), af_cristall_absorbation
+; burn 0.02. Radiation rule: +1 + min(-4, +1) = 0 for every container.
 ; ---------------------------------------------------------------------------
 [af_cristall_bq_field_container]:af_cristall, bq_container_base
 description                 = bq_cristall_field_descr
@@ -225,6 +250,8 @@ inv_name_short              = bq_cristall_field_name
 belt                        = true
 can_trade                   = false
 icons_texture               = ui\ui_icon_equipment
+inv_grid_width              = 1
+inv_grid_height             = 1
 inv_grid_x                  = 14
 inv_grid_y                  = 4
 radiation_restore_speed     = 0
@@ -238,6 +265,8 @@ inv_name_short              = bq_cristall_uni_name
 belt                        = true
 can_trade                   = false
 icons_texture               = ui\ui_icon_equipment
+inv_grid_width              = 1
+inv_grid_height             = 1
 inv_grid_x                  = 14
 inv_grid_y                  = 4
 radiation_restore_speed     = 0
@@ -251,6 +280,8 @@ inv_name_short              = bq_cristall_sci_name
 belt                        = true
 can_trade                   = false
 icons_texture               = ui\ui_icon_equipment
+inv_grid_width              = 1
+inv_grid_height             = 1
 inv_grid_x                  = 14
 inv_grid_y                  = 4
 radiation_restore_speed     = 0
