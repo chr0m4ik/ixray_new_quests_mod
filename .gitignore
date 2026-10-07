@@ -22,6 +22,10 @@ tools/*
 !tools/add_artifact_combos.js
 !tools/recompute_combos.js
 !tools/check_trade.js
+!tools/dds_encode.js
+!tools/build_combo_icons.js
+!tools/png.js
+!tools/test_dds_encode.js
 
 # Атлас иконок из аномали (33 МБ, используется только как источник картинок)
 textures/ui/ui_anomaly_icons.dds

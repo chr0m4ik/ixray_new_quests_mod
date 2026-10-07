@@ -451,6 +451,28 @@ if (!fs.existsSync(ATLAS_PATH)) {
         const { opaque } = dds.countOpaqueInCell(decoded, i, 0, CELL);
         if (opaque === 0) err(`верхний ряд атласа: ячейка (${i},0) пустая, а это контейнер ${CONTAINERS[i].section}`);
     }
+
+    // КЛЮЧЕВАЯ проверка: заполненный контейнер ОБЯЗАН ссылаться не на ту же
+    // ячейку, что пустой, иначе игрок не отличит их визуально. Именно эта
+    // ошибка была в первой версии: все 12 комбо указывали на inv_grid_y = 0,
+    // то есть на иконки пустых контейнеров.
+    for (const spec of TESTED_ARTEFACTS) {
+        for (const c of CONTAINERS) {
+            const combo = resolve(spec.combos[c.section]);
+            const empty = resolve(c.section);
+            if (!combo.size || !empty.size) continue;
+            const cgx = parseInt(combo.get('inv_grid_x'), 10);
+            const cgy = parseInt(combo.get('inv_grid_y'), 10);
+            const egx = parseInt(empty.get('inv_grid_x'), 10);
+            const egy = parseInt(empty.get('inv_grid_y'), 10);
+            if (cgx === egx && cgy === egy) {
+                err(`[${spec.combos[c.section]}] ячейка (${cgx},${cgy}) совпадает с пустым ` +
+                    `контейнером [${c.section}] — заполненный будет выглядеть как пустой ` +
+                    `(запустите tools/build_combo_icons.js)`);
+            }
+        }
+    }
+    ok('заполненные контейнеры ссылаются на свои ячейки, не на иконки пустых');
 }
 
 // ---------------------------------------------------------------------------

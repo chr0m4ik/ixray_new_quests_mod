@@ -13,10 +13,14 @@ function readHeader(buf) {
     const height = buf.readUInt32LE(12);
     const width = buf.readUInt32LE(16);
     const mipMaps = buf.readUInt32LE(28);
-    const fourCC = buf.toString('ascii', 84, 88);
+    // FourCC читаем как 4 байта и оставляем только печатные символы: у несжатых
+    // текстур (A8R8G8B8) там нули, а обрезка строки по первому нулю даёт пустоту,
+    // из-за чего формат не опознавался.
+    const fourCC = buf.toString('latin1', 84, 88).replace(/[^\x20-\x7E]/g, '');
     const expected = fourCC === 'DXT5' ? 128 + (width / 4) * (height / 4) * 16
         : fourCC === 'DXT1' ? 128 + (width / 4) * (height / 4) * 8
-            : null;
+            : fourCC === '' ? 128 + width * height * 4
+                : null;
     return { width, height, fourCC, mipMaps, expected, actual: buf.length };
 }
 
@@ -54,6 +58,85 @@ function decodeDXT5(buf) {
     return { width: W, height: H, rgba };
 }
 
+// Декодирует DXT1/BC1 в RGBA.
+//
+// Нужен, потому что атлас HD-иконок (ixray-hq-icons-v2.0) лежит именно в DXT1.
+// У DXT1 альфа не отдельная, а однобитная: если c0 <= c1, то индекс 3 означает
+// полностью прозрачный пиксель. Для иконок это важно — иначе вырезка фона
+// превратится в чёрный квадрат.
+function decodeDXT1(buf) {
+    const hdr = readHeader(buf);
+    if (hdr.fourCC !== 'DXT1') throw new Error('ожидался DXT1, а тут "' + hdr.fourCC + '"');
+    const W = hdr.width, H = hdr.height;
+    const rgba = new Uint8Array(W * H * 4);
+    let off = 128;
+    const c565 = (c) => [((c >> 11) & 31) * 255 / 31, ((c >> 5) & 63) * 255 / 63, (c & 31) * 255 / 31];
+    for (let by = 0; by < Math.ceil(H / 4); by++) {
+        for (let bx = 0; bx < Math.ceil(W / 4); bx++) {
+            const c0 = buf.readUInt16LE(off), c1 = buf.readUInt16LE(off + 2), cb = buf.readUInt32LE(off + 4);
+            const e0 = c565(c0), e1 = c565(c1);
+            let cpal, apal;
+            if (c0 > c1) {
+                cpal = [e0, e1,
+                    [(2 * e0[0] + e1[0]) / 3, (2 * e0[1] + e1[1]) / 3, (2 * e0[2] + e1[2]) / 3],
+                    [(e0[0] + 2 * e1[0]) / 3, (e0[1] + 2 * e1[1]) / 3, (e0[2] + 2 * e1[2]) / 3]];
+                apal = [255, 255, 255, 255];
+            } else {
+                cpal = [e0, e1,
+                    [(e0[0] + e1[0]) / 2, (e0[1] + e1[1]) / 2, (e0[2] + e1[2]) / 2],
+                    [0, 0, 0]];
+                apal = [255, 255, 255, 0];      // индекс 3 — прозрачный
+            }
+            for (let i = 0; i < 16; i++) {
+                const x = bx * 4 + (i % 4), y = by * 4 + Math.floor(i / 4);
+                if (x >= W || y >= H) continue;
+                const idx = (cb >> (2 * i)) & 3;
+                const c = cpal[idx];
+                const o = (y * W + x) * 4;
+                rgba[o] = c[0] | 0; rgba[o + 1] = c[1] | 0; rgba[o + 2] = c[2] | 0; rgba[o + 3] = apal[idx];
+            }
+            off += 8;
+        }
+    }
+    return { width: W, height: H, rgba };
+}
+
+// Декодирует несжатый DDS (A8R8G8B8, он же BGRA с альфой).
+//
+// Нужен, потому что атлас HD-иконок в этой сборке НЕ сжат: dwFourCC пустой,
+// dwRGBBitCount = 32, маски R=0x00FF0000, G=0x0000FF00, B=0x000000FF,
+// A=0xFF000000 (проверено на ui_icon_equipment_hd.dds, 2048x4096). Это значит,
+// что иконки артефактов можно брать без потерь от сжатия.
+function decodeA8R8G8B8(buf) {
+    const hdr = readHeader(buf);
+    if (hdr.fourCC !== '' && hdr.fourCC !== '    ') {
+        throw new Error('это не несжатый формат (FourCC "' + hdr.fourCC + '")');
+    }
+    const W = hdr.width, H = hdr.height;
+    const bpp = buf.readUInt32LE(88);
+    if (bpp !== 32) throw new Error('ожидалось 32 бита на пиксель, а тут ' + bpp);
+    const rgba = new Uint8Array(W * H * 4);
+    let off = 128;
+    for (let i = 0; i < W * H; i++) {
+        // в файле порядок BGRA
+        rgba[i * 4] = buf[off + 2];
+        rgba[i * 4 + 1] = buf[off + 1];
+        rgba[i * 4 + 2] = buf[off];
+        rgba[i * 4 + 3] = buf[off + 3];
+        off += 4;
+    }
+    return { width: W, height: H, rgba };
+}
+
+// Декодирует DDS в RGBA, сам определяя формат.
+function decodeAuto(buf) {
+    const hdr = readHeader(buf);
+    if (hdr.fourCC === 'DXT5') return decodeDXT5(buf);
+    if (hdr.fourCC === 'DXT1') return decodeDXT1(buf);
+    if (hdr.fourCC === '' || hdr.fourCC === '    ') return decodeA8R8G8B8(buf);
+    throw new Error('поддерживаются DXT1, DXT5 и A8R8G8B8, а тут "' + hdr.fourCC + '"');
+}
+
 // Сколько пикселей в ячейке (x,y) размером cell x cell реально непрозрачны.
 function countOpaqueInCell(decoded, gx, gy, cell) {
     let opaque = 0, total = 0;
@@ -78,4 +161,4 @@ function findTexture(logicalName, roots) {
     return null;
 }
 
-module.exports = { readHeader, decodeDXT5, countOpaqueInCell, findTexture };
+module.exports = { readHeader, decodeDXT5, decodeDXT1, decodeA8R8G8B8, decodeAuto, countOpaqueInCell, findTexture };
