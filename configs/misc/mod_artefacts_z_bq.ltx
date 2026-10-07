@@ -1,0 +1,182 @@
+; ============================================================================
+; Artefact containers - DLTX mod file for configs\misc\artefacts.ltx
+;
+; The engine auto-loads "mod_<rootfile>_*.ltx" next to the root file it opens
+; (Xr_ini.cpp:1138). The root file configs\misc\artefacts.ltx is included by
+; configs\system.ltx:16, i.e. it lives in the SAME CInifile as the vanilla
+; artefacts, so section names merge and parents resolve across both files
+; (Xr_ini.cpp:271-283). That is why this mod does NOT ship a full copy of
+; artefacts.ltx: only our own sections live here.
+;
+; Sections:
+;   bq_container_base            - common part of an empty container
+;   bq_field_container           - field container, absorbs 4 radiation
+;   bq_uni_container             - universal container, absorbs 8
+;   bq_sci_container             - scientific container, absorbs 14
+;   <artefact>_<container>       - combo item (artefact inside a container)
+;
+; Combo section template: [<artefact>_bq_field_container]:<artefact>, bq_container_base
+;   First parent  - the artefact: brings protection (hit_absorbation_sect) and
+;                   all its stats.
+;   Second parent - our container: brings the class, the visual and the icon
+;                   atlas. It must be listed LAST because in a multiple
+;                   inheritance the last parent wins (CInifile::EvaluateSection).
+;
+; CRITICAL: a combo MUST set inv_grid_x / inv_grid_y / icons_texture itself.
+;   CInventoryItem::Load reads inv_grid_x/y from the section of the object
+;   itself (inventory_item.cpp:190-193). If a combo inherited them from the
+;   artefact (af_eye = 12,4) the icon was cut from the wrong atlas place and
+;   was drawn as 2x2.
+;
+; PROVISIONAL ICONS: empty containers currently reuse the vanilla
+;   ui\ui_icon_equipment atlas, so the combos use the same cells as their
+;   container. A dedicated container atlas and the contents layer icon come in
+;   a later step.
+; ============================================================================
+
+; ---------------------------------------------------------------------------
+; Common part of an empty container. Every key that the engine reads strictly
+; (Artefact.cpp:94-103, inventory_item.cpp:111-193) is listed here explicitly,
+; because the vanilla af_base does NOT provide all of them.
+; ---------------------------------------------------------------------------
+[bq_container_base]:af_base
+$spawn                      = "artefacts\bq_container"
+inv_name                    = bq_container_name
+inv_name_short              = bq_container_name
+description                 = bq_container_descr
+inv_weight                  = 2.0
+cost                        = 15000
+belt                        = false
+can_trade                   = true
+af_rank                     = 0
+lights_enabled              = false
+jump_height                 = 0
+health_restore_speed        = 0
+radiation_restore_speed     = 0
+satiety_restore_speed       = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+additional_inventory_weight = 0
+inv_grid_width              = 1
+inv_grid_height             = 1
+
+; ---------------------------------------------------------------------------
+; Field container: absorbs 4 radiation (0.004 in config units, x1000 in UI).
+; ---------------------------------------------------------------------------
+[bq_field_container]:bq_container_base
+visual                      = dynamics\artefacts\af_eye.ogf
+radiation_restore_speed     = -0.004
+hit_absorbation_sect        = bq_field_container_absorbation
+inv_grid_x                  = 12
+inv_grid_y                  = 4
+
+[bq_field_container_absorbation]
+burn_immunity               = 0
+strike_immunity             = 0
+shock_immunity              = 0
+wound_immunity              = 0
+radiation_immunity          = 0
+telepatic_immunity          = 0
+chemical_burn_immunity      = 0
+explosion_immunity          = 0
+fire_wound_immunity         = 0
+
+; ---------------------------------------------------------------------------
+; Universal container: absorbs 8 radiation (0.008).
+; ---------------------------------------------------------------------------
+[bq_uni_container]:bq_container_base
+visual                      = dynamics\artefacts\af_eye.ogf
+description                 = bq_uni_container_descr
+inv_name                    = bq_uni_container_name
+inv_name_short              = bq_uni_container_name
+cost                        = 25000
+radiation_restore_speed     = -0.008
+hit_absorbation_sect        = bq_uni_container_absorbation
+inv_grid_x                  = 14
+inv_grid_y                  = 4
+
+[bq_uni_container_absorbation]
+burn_immunity               = 0
+strike_immunity             = 0
+shock_immunity              = 0
+wound_immunity              = 0
+radiation_immunity          = 0
+telepatic_immunity          = 0
+chemical_burn_immunity      = 0
+explosion_immunity          = 0
+fire_wound_immunity         = 0
+
+; ---------------------------------------------------------------------------
+; Scientific container: absorbs 14 radiation (0.014).
+; ---------------------------------------------------------------------------
+[bq_sci_container]:bq_container_base
+visual                      = dynamics\artefacts\af_eye.ogf
+description                 = bq_sci_container_descr
+inv_name                    = bq_sci_container_name
+inv_name_short              = bq_sci_container_name
+cost                        = 40000
+radiation_restore_speed     = -0.014
+hit_absorbation_sect        = bq_sci_container_absorbation
+inv_grid_x                  = 13
+inv_grid_y                  = 4
+
+[bq_sci_container_absorbation]
+burn_immunity               = 0
+strike_immunity             = 0
+shock_immunity              = 0
+wound_immunity              = 0
+radiation_immunity          = 0
+telepatic_immunity          = 0
+chemical_burn_immunity      = 0
+explosion_immunity          = 0
+fire_wound_immunity         = 0
+
+; ---------------------------------------------------------------------------
+; PROTOTYPE: combos for one artefact only - af_eye (Eye).
+; radiation_restore_speed = artefact radiation - container absorption,
+; with the ORIGINAL af_eye values (radiation 0.002, bleeding 0.004):
+;   field 0.002 - 0.004 = -0.002 -> clamped to 0 (container absorbs more
+;                                    than the artefact emits);
+;   uni   0.002 - 0.008 = -0.006;
+;   sci   0.002 - 0.014 = -0.012.
+; Protection is NOT rewritten here: hit_absorbation_sect and the immunity
+; table come from af_eye (see the vanilla af_eye_absorbation).
+; ---------------------------------------------------------------------------
+[af_eye_bq_field_container]:af_eye, bq_container_base
+description                 = bq_eye_field_descr
+inv_name                    = bq_eye_field_name
+inv_name_short              = bq_eye_field_name
+belt                        = true
+can_trade                   = false
+icons_texture               = ui\ui_icon_equipment
+inv_grid_x                  = 12
+inv_grid_y                  = 4
+radiation_restore_speed     = 0
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+[af_eye_bq_uni_container]:af_eye, bq_container_base
+description                 = bq_eye_uni_descr
+inv_name                    = bq_eye_uni_name
+inv_name_short              = bq_eye_uni_name
+belt                        = true
+can_trade                   = false
+icons_texture               = ui\ui_icon_equipment
+inv_grid_x                  = 14
+inv_grid_y                  = 4
+radiation_restore_speed     = -0.006
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+[af_eye_bq_sci_container]:af_eye, bq_container_base
+description                 = bq_eye_sci_descr
+inv_name                    = bq_eye_sci_name
+inv_name_short              = bq_eye_sci_name
+belt                        = true
+can_trade                   = false
+icons_texture               = ui\ui_icon_equipment
+inv_grid_x                  = 13
+inv_grid_y                  = 4
+radiation_restore_speed     = -0.012
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact

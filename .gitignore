@@ -1,0 +1,20 @@
+# Временный вспомогательный скрипт копирования
+copy_files.py
+
+# Файлы для нейросеток
+AGENTS.md
+CLAUDE.md
+lastest.md
+MEMO.md
+.dsh/
+
+# Инструменты: локальные (extract_icon.js) не публикуем,
+# скрипты проверок (tools/check_*.js) версионируем — они воспроизводимы.
+tools/*
+!tools/check_*.js
+
+# Атлас иконок из аномали
+textures/ui/ui_anomaly_icons.dds
+
+# Описание патча движка (локальный файл, не публикуем)
+ENGINE_PATCH_icon_layer.cpp.txt

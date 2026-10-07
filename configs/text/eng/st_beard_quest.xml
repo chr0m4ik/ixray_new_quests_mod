@@ -313,4 +313,53 @@
         <text>I don't have that kind of money right now.</text>
     </string>
 
+    <!-- =============================================
+         Artefact containers
+    ============================================= -->
+
+    <!-- Empty containers -->
+    <string id="bq_container_name">
+        <text>Field artefact container</text>
+    </string>
+    <string id="bq_container_descr">
+        <text>A protective container for carrying artefacts. It absorbs part of the artefact radiation: 4 units. Empty container weight - 2 kg.</text>
+    </string>
+    <string id="bq_uni_container_name">
+        <text>Universal artefact container</text>
+    </string>
+    <string id="bq_uni_container_descr">
+        <text>An improved protective container. It absorbs 8 units of the artefact radiation. Empty container weight - 2 kg.</text>
+    </string>
+    <string id="bq_sci_container_name">
+        <text>Scientific artefact container</text>
+    </string>
+    <string id="bq_sci_container_descr">
+        <text>A scientific shielded container. It absorbs 14 units of the artefact radiation. Empty container weight - 2 kg.</text>
+    </string>
+
+    <!-- Button on a filled container -->
+    <string id="bq_take_artifact">
+        <text>take out the artefact</text>
+    </string>
+
+    <!-- Combo items: Eye -->
+    <string id="bq_eye_field_name">
+        <text>Eye in a field container</text>
+    </string>
+    <string id="bq_eye_field_descr">
+        <text>The "Eye" artefact inside a field container. The container absorbs 4 units of the artefact radiation.</text>
+    </string>
+    <string id="bq_eye_uni_name">
+        <text>Eye in a universal container</text>
+    </string>
+    <string id="bq_eye_uni_descr">
+        <text>The "Eye" artefact inside a universal container. The container absorbs 8 units of the artefact radiation.</text>
+    </string>
+    <string id="bq_eye_sci_name">
+        <text>Eye in a scientific container</text>
+    </string>
+    <string id="bq_eye_sci_descr">
+        <text>The "Eye" artefact inside a scientific container. The container absorbs 14 units of the artefact radiation.</text>
+    </string>
+
 </string_table>
