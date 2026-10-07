@@ -19,6 +19,7 @@ tools/*
 !tools/point_combos_to_atlas.js
 !tools/dump_resolved.js
 !tools/dump_section.js
+!tools/add_artifact_combos.js
 
 # Атлас иконок из аномали (33 МБ, используется только как источник картинок)
 textures/ui/ui_anomaly_icons.dds

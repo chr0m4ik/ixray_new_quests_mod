@@ -127,6 +127,29 @@ const TESTED_ARTEFACTS = [
             bq_sci_container:   'af_cristall_bq_sci_container',
         },
     },
+    {
+        // Внимание: в оригинале у Компаса class = SCRPTART. Комбо получает
+        // class = ARTEFACT от bq_container_base, а script_binding наследует
+        // от af_base (bind_artefact.bind), поэтому работать должно.
+        artefact: 'af_compass',
+        radiation: 0.004,
+        bleeding: 0,
+        combos: {
+            bq_field_container: 'af_compass_bq_field_container',
+            bq_uni_container:   'af_compass_bq_uni_container',
+            bq_sci_container:   'af_compass_bq_sci_container',
+        },
+    },
+    {
+        artefact: 'af_ice',
+        radiation: 0.003,
+        bleeding: 0,
+        combos: {
+            bq_field_container: 'af_ice_bq_field_container',
+            bq_uni_container:   'af_ice_bq_uni_container',
+            bq_sci_container:   'af_ice_bq_sci_container',
+        },
+    },
 ];
 
 // Формула, подтверждённая заказчиком в игре: контейнер поглощает НЕ БОЛЬШЕ,

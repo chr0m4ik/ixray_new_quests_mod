@@ -2,384 +2,420 @@
 <string_table>
 
     <!-- =============================================
-         Названия
+         Names
     ============================================= -->
 
-    <!-- Персонажи -->
+    <!-- Characters -->
     <string id="bq_hmury_name">
-        <text>Хмурый</text>
+        <text>Gloomy</text>
     </string>
     <string id="bq_guard_1_name">
-        <text>Седой</text>
+        <text>Grey</text>
     </string>
     <string id="bq_guard_2_name">
-        <text>Клык</text>
+        <text>Fang</text>
     </string>
     <string id="bq_filya_name">
-        <text>Филя</text>
+        <text>Filya</text>
     </string>
     <string id="bq_major_name">
-        <text>Майор</text>
+        <text>Major</text>
     </string>
 
-    <!-- Квест Бороды: документы -->
+    <!-- Beard's quest: documents -->
     <string id="bq_item_docs_name">
-        <text>Документы из тайника</text>
+        <text>Documents from the stash</text>
     </string>
     <string id="bq_task_name">
-        <text>Поручение Бороды: найти документы</text>
+        <text>Beard's errand: find the documents</text>
     </string>
     <string id="bq_deliver_name">
-        <text>Вернуть документы Бороде</text>
+        <text>Return the documents to Beard</text>
     </string>
     <string id="bq_buyer_name">
-        <text>Узнать, кому нужны документы</text>
+        <text>Find another buyer for the documents</text>
     </string>
     <string id="bq_sell_to_sich_name">
-        <text>Продать документы Сычу</text>
+        <text>Sell the documents to Owl</text>
     </string>
 
-    <!-- Кейсы Неизвестного -->
+    <!-- Unknown's cases -->
     <string id="bq_suitcase_name">
-        <text>Запертый кейс</text>
+        <text>Locked case</text>
     </string>
     <string id="bq_suitcase_2_name">
-        <text>Запертый кейс</text>
+        <text>Locked case</text>
     </string>
     <string id="bq_suitcase_3_name">
-        <text>Запертый кейс</text>
+        <text>Locked case</text>
     </string>
     <string id="bq_pda_1_name">
-        <text>КПК сталкера Фили с недопечатанным сообщением</text>
+        <text>Filya's PDA with an unfinished message</text>
     </string>
     <string id="bq_pda_2_name">
-        <text>КПК из первого тайника</text>
+        <text>PDA from the first stash</text>
     </string>
     <string id="bq_pda_3_name">
-        <text>КПК из второго тайника</text>
+        <text>PDA from the second stash</text>
     </string>
     <string id="bq_pda_4_name">
-        <text>КПК из третьего тайника</text>
+        <text>PDA from the third stash</text>
     </string>
     <string id="bq_pda_5_name">
-        <text>КПК Майора</text>
+        <text>Major's PDA</text>
     </string>
 
-    <!-- Задания Неизвестного -->
+    <!-- Unknown's tasks -->
     <string id="bq_stash_hunt_name">
-        <text>Найти все тайники Майора</text>
+        <text>Find all of Major's stashes</text>
     </string>
     <string id="bq_stash_step_1_name">
-        <text>Найти первый тайник</text>
+        <text>Find the first stash</text>
     </string>
     <string id="bq_stash_step_2_name">
-        <text>Вскрыть первый кейс</text>
+        <text>Open the first case</text>
     </string>
     <string id="bq_stash_step_3_name">
-        <text>Найти второй тайник</text>
+        <text>Find the second stash</text>
     </string>
     <string id="bq_stash_step_4_name">
-        <text>Вскрыть второй кейс</text>
+        <text>Open the second case</text>
     </string>
     <string id="bq_stash_step_5_name">
-        <text>Найти третий тайник</text>
+        <text>Find the third stash</text>
     </string>
     <string id="bq_stash_step_6_name">
-        <text>Вскрыть третий кейс</text>
+        <text>Open the third case</text>
     </string>
     <string id="bq_stash_step_7_name">
-        <text>Прийти на заправку</text>
+        <text>Come to the gas station</text>
     </string>
 
     <!-- =============================================
-         Описания
+         Descriptions
     ============================================= -->
 
-    <!-- Персонажи -->
+    <!-- Characters -->
     <string id="bq_filya_bio">
-        <text>Мёртвый сталкер. Бегунок группы, новичок в Зоне. Должен был передать Тёмному новый детектор артефактов, но не успел.</text>
+        <text>A dead stalker. The group's runner, a novice in the Zone. He was supposed to bring Dark a new artifact detector but didn't make it.</text>
     </string>
     <string id="bq_npc_bio">
-        <text>Сталкер с Затона, спутник Хмурого.</text>
+        <text>A Zaton stalker, a companion of Gloomy.</text>
     </string>
     <string id="bq_major_bio">
-        <text>Глава группы, которой поручили подготовить рейд Заказчика. Именно он обустроил тайники.</text>
+        <text>The leader of the group tasked with preparing the Customer's raid. He set up the stashes.</text>
     </string>
 
-    <!-- Квест Бороды: документы -->
+    <!-- Beard's quest: documents -->
     <string id="bq_item_docs_descr">
-        <text>Документы, которые Борода попросил забрать из тайника на Затоне. Сыч тоже может ими заинтересоваться.</text>
+        <text>Documents Beard asked you to recover from a stash on Zaton. Owl may also be interested.</text>
     </string>
     <string id="bq_task_descr">
-        <text>Борода попросил забрать документы из тайника на Затоне. Найдите отмеченный ящик и возьмите документы.</text>
+        <text>Beard asked you to recover documents from a stash on Zaton. Find the marked box and take the documents.</text>
     </string>
     <string id="bq_deliver_descr">
-        <text>Документы найдены. Отнесите их Бороде на «Скадовск»: он обещал 2000 рублей и снаряжение.</text>
+        <text>The documents are found. Take them to Beard at the Skadovsk: he promised 2000 rubles and equipment.</text>
     </string>
     <string id="bq_buyer_descr">
-        <text>С документами можно вернуться к Бороде или поискать другого покупателя. Поговорите с Лоцманом на «Скадовске».</text>
+        <text>You can return the documents to Beard or look for another buyer. Talk to Pilot at the Skadovsk.</text>
     </string>
     <string id="bq_sell_to_sich_descr">
-        <text>Лоцман подсказал, что Сыч интересуется документами. Сыч заплатит 5000 рублей, но Борода останется недоволен.</text>
+        <text>Pilot suggested that Owl might be interested. Owl will pay 5000 rubles, but Beard will be disappointed.</text>
     </string>
 
-    <!-- Кейсы Неизвестного -->
+    <!-- Unknown's cases -->
     <string id="bq_suitcase_descr">
-        <text>Небольшой, запертый кейс, оставленный в тайнике. Внутри явно что-то тяжёлое. Похоже, без специалиста его не открыть.</text>
+        <text>A small locked case left in a stash. Something heavy is clearly inside. Looks like it can't be opened without a specialist.</text>
     </string>
     <string id="bq_suitcase_2_descr">
-        <text>Второй кейс, упомянутый в записке из первого тайника. Первый явно не разочаровал, так что думаю, этот тоже будет полезен.</text>
+        <text>The second case mentioned in the note from the first stash. The first one clearly didn't disappoint, so this one should be useful too.</text>
     </string>
     <string id="bq_suitcase_3_descr">
-        <text>Третий кейс, упомянутый в записке из второго тайника. Нужно его вскрыть и узнать, нет ли чего ещё.</text>
+        <text>The third case mentioned in the note from the second stash. Need to open it and find out if there's anything else.</text>
     </string>
     <string id="bq_pda_1_descr">
-        <text>Твою мать... Не ожидал, что всё так обернётся... Главное... (кашляет с кровью) Кхх, Кхх... Надеюсь... Тёмный сможет найти его... На хуторе... На хуторе...сука. еще и детектор... не отдал... Надеюсь... кхх... кхх... он все тайики заполнит...</text>
+        <text>Damn it... I didn't expect things to turn out this way... The main thing is... (coughs up blood) Khh, khh... I hope... Dark can find it... At the farmstead... At the farmstead... damn it. And the detector... I didn't hand it over... I hope... khh... khh... he fills in all the stashes...</text>
     </string>
     <string id="bq_pda_2_descr">
-        <text>Посыльному: второй кейс лежит на мосте сверху. Думаю, ты помнишь где это.  не забывается, ха ха...</text>
+        <text>To the courier: the second case is on the bridge above.</text>
     </string>
     <string id="bq_pda_3_descr">
-        <text>Посыльному: третий кейс спрятан у Изумрудного. У сцены припрятал.</text>
+        <text>To the courier: the third case is hidden at the Emerald. I hid it by the stage.</text>
     </string>
     <string id="bq_pda_4_descr">
-        <text>Посыльному: скажи, своему боссу, что мы встречаемся как обычно, на заправке.</text>
+        <text>To the courier: tell your boss we're meeting as usual, at the gas station.</text>
     </string>
 
-    <!-- Задания Неизвестного -->
+    <!-- Unknown's tasks -->
     <string id="bq_stash_hunt_descr">
-        <text>В предсмертной записке Фили упомянуты некие тайники. Думаю, стоит найти их все.</text>
+        <text>Filya's dying message mentioned some stashes. I think it's worth finding them all.</text>
     </string>
     <string id="bq_stash_step_1_descr">
-        <text>В КПК Фили упоминается хутор. Думаю, первый тайник должен быть где-то там.</text>
+        <text>Filya's PDA mentions a farm. I think the first stash should be somewhere there.</text>
     </string>
     <string id="bq_stash_step_2_descr">
-        <text>Возможно, техник сможет его открыть.</text>
+        <text>Maybe the technician can open it.</text>
     </string>
     <string id="bq_stash_step_3_descr">
-        <text>В записке говорится о каком-то мосте. Также упоминается, что он где-то «наверху».</text>
+        <text>The note mentions some bridge. It also says it's somewhere "above".</text>
     </string>
     <string id="bq_stash_step_4_descr">
-        <text>Возможно, техник снова сможет его открыть.</text>
+        <text>Maybe the technician can open it again.</text>
     </string>
     <string id="bq_stash_step_5_descr">
-        <text>В записке упоминается, что тайник спрятан у сцены на Изумрудном.</text>
+        <text>The note mentions that the stash is hidden by the stage at the Emerald.</text>
     </string>
     <string id="bq_stash_step_6_descr">
-        <text>Отнесите третий кейс механику.</text>
+        <text>Take the third case to the mechanic.</text>
     </string>
     <string id="bq_stash_step_7_descr">
-        <text>Майор писал, что встречаемся на заправке. Пора узнать, что там произошло.</text>
+        <text>Major wrote that we meet at the gas station. Time to find out what happened there.</text>
     </string>
 
-    <!-- КПК Майора описание -->
+    <!-- PDA of Major -->
     <string id="bq_pda_5_descr">
         <text>
-[28.07.2012] Майор: Здорово, Тёмный. Первый тайник я забил. Артефакты подложишь сам, как договаривались. Только не надо, как в прошлый раз. Филя, где новый детектор? Не забудь.\n
-[28.07.2012] Филя: Принесу. Только заберу его со станции. К вечеру буду.\n
-[28.07.2012] Тёмный: Да не уйду я в пьянку. Заказчик платит хорошо, всё в срок будет. Кстати, когда всё должно быть готово?\n
-[28.07.2012] Майор: Сказал, к 30-му уложиться. У всех всё есть?\n
-[28.07.2012] Тёмный: Не переживай, всё в лучшем виде.\n
-[29.07.2012] Майор: Ну и что? Я вчера зашёл доложить в первый тайник вещи, а артефакта нет. Ладно, день ещё есть, надеюсь, ты успеешь, Тёмный. Я докинул во все тайники КПК с метками на следующие. Как прочитаешь — отпишись.\n
-[29.07.2012] Майор: Филя, ты отдал Тёмному детектор?\n
-[29.07.2012] Филя: Пока нет. Ищу его. Не отвечает.\n
-[29.07.2012] Майор: Ну и где он? Твою мать... Это не как в прошлые разы, заказчик серьёзный. Сука, теперь у нас точно проблемы будут. Ладно, попробую договориться.\n
-[30.07.2012] Майор: Твою мать!!! Тёмный, ты где? Заказчик в гневе! Сказал, что даст нам ещё один день, но не более! Сука, опять что ли самому идти? Ответь скорее.\n
-[30.07.2012] Филя: Майор... я на лесничестве... мы договорились с Тёмным встретиться, но... что-то не так... хреновое ощущение у меня...\n
-[30.07.2012] Майор: Филя, у тебя все хорошо? Тёмный не улчтел что ли? А чего он не отвечает тогда?\n
-[31.07.2012] Майор: Филя? Тёмный? Вы где?\n
-[1.08.2012] Майор: Ну вот вы как обычно, конечно... Ладно, я хотя бы успел всё раздобыть и положить. Твою мать... Из-за вас опять чуть планы не поплыли. В общем, метку посыльным забил на заправку. Я в 3 тайнике написал, если вы всё же пройдётесь по ним. Сегодня вечером встречаемся.\n
-[1.08.2012] Майор: Ну и где ты, бляха муха? Ещё и посыльные эти... Нервные какие-то...\n
-[1.08.2012] Майор: Ладно. Проведу встречу один. Если прочитаете — приходите.\n
-[1.08.2012] Майор: Ттвою ммать... Н-не приходите... Это подстава...
+[28.07.2012] Major: Hey, Dark. I've set up the first stash. You drop in the artifacts yourself, as we agreed. Just not like last time. Filya, where's the new detector? Don't forget.\n
+[28.07.2012] Filya: I'll bring it. I just need to pick it up from the station. I'll be there by evening.\n
+[28.07.2012] Dark: I won't go on a bender. The Customer pays well, everything will be on time. By the way, when does everything need to be ready?\n
+[28.07.2012] Major: He said to finish by the 30th. Does everyone have everything?\n
+[28.07.2012] Dark: Don't worry, it'll all be top-notch.\n
+[29.07.2012] Major: Well? I dropped by the first stash yesterday to leave the stuff, and I don't see the artifact. Fine, there's still a day, hope you make it, Dark. I've tossed a PDA with markers for the next stashes into each one. Write back when you read this.\n
+[29.07.2012] Major: Filya, did you give Dark the detector?\n
+[29.07.2012] Filya: Not yet. I'm looking for him. He's not answering.\n
+[29.07.2012] Major: So where is he? God damn it... This isn't like the previous times, the Customer is serious. Fuck, now we're definitely in trouble. Fine, I'll try to negotiate.\n
+[30.07.2012] Major: God damn it!!! Dark, where are you? The Customer is furious! Said he'd give us one more day, no more! Fuck, do I really have to go myself again? Answer, quick.\n
+[30.07.2012] Filya: Major... I'm at the forestry... we agreed to meet with Dark, but... something's wrong... I've got a bad feeling...\n
+[30.07.2012] Major: Filya, are you all right? Did Dark take off or something? Then why isn't he answering?\n
+[31.07.2012] Major: Filya? Dark? Where are you?\n
+[1.08.2012] Major: Well, you're your usual selves, of course... Fine, at least I managed to get everything and stash it. God damn it... Because of you the plans nearly went sideways again. Anyway, I've marked the gas station for the messengers. I wrote it in the third stash, in case you actually go through them. We meet tonight.\n
+[1.08.2012] Major: So where are you, damn it? And these messengers... They're nervous...\n
+[1.08.2012] Major: Fine. I'll hold the meeting alone. If you read this, come.\n
+[1.08.2012] Major: God d... d-don't come... It's a setup...
         </text>
     </string>
 
     <!-- =============================================
-         Диалоги
+         Dialogues
     ============================================= -->
 
-    <!-- Диалог с Бородой: получение задания -->
+    <!-- Dialogue with Beard: accepting the task -->
     <string id="bq_dlg_ask">
-        <text>Борода, есть поручение с документами?</text>
+        <text>Beard, do you have a job involving documents?</text>
     </string>
     <string id="bq_dlg_offer">
-        <text>Есть одно дело. На Затоне спрятали ящик с документами. Найди его и принеси бумаги мне. Заплачу две тысячи и добавлю немного снаряжения. Отметку скину в твой КПК.</text>
+        <text>There is one thing. A box with documents was hidden on Zaton. Find it and bring the papers to me. I'll pay two thousand and add some equipment. I'll send a mark to your PDA.</text>
     </string>
     <string id="bq_dlg_agree">
-        <text>Договорились. Принесу документы.</text>
+        <text>Deal. I'll bring the documents.</text>
     </string>
 
-    <!-- Диалог с Бородой: сдача документов -->
+    <!-- Dialogue with Beard: delivering the documents -->
     <string id="bq_dlg_deliver_start">
-        <text>Борода, я нашёл твои документы.</text>
+        <text>Beard, I found your documents.</text>
     </string>
     <string id="bq_dlg_deliver_confirm">
-        <text>Спасибо, выручил. Вот обещанные две тысячи, пистолет, патроны и медикаменты.</text>
+        <text>Thanks, you saved me. Here are the promised two thousand, a pistol, ammo, and medical supplies.</text>
     </string>
 
-    <!-- Диалог с Лоцманом: намёк на Сыча -->
+    <!-- Dialogue with Pilot: hint about Owl -->
     <string id="bq_dlg_guide_ask">
-        <text>Лоцман, кому могут понадобиться такие документы?</text>
+        <text>Pilot, who might want these documents?</text>
     </string>
     <string id="bq_dlg_guide_answer">
-        <text>Покажи их Сычу. Он любит редкие бумаги и наверняка заплатит больше. Только с Бородой потом объясняться тебе.</text>
+        <text>Show them to Owl. He loves rare papers and will probably pay more. But you'll have to explain yourself to Beard afterwards.</text>
     </string>
     <string id="bq_dlg_guide_agree">
-        <text>Понял. Подумаю, кому их отдать.</text>
+        <text>Understood. I'll think about who to give them to.</text>
     </string>
 
-    <!-- Диалог с Сычом: продажа документов -->
+    <!-- Dialogue with Owl: selling the documents -->
     <string id="bq_dlg_sich_start">
-        <text>Сыч, говорят, тебя интересуют документы.</text>
+        <text>Owl, I hear you're interested in documents.</text>
     </string>
     <string id="bq_dlg_sich_choose">
-        <text>Интересуют. За эти дам пять тысяч. Решай: продаёшь или нет?</text>
+        <text>I am. Five thousand for these. Decide: are you selling or not?</text>
     </string>
     <string id="bq_dlg_sich_sell">
-        <text>По рукам. Документы твои.</text>
+        <text>Deal. The documents are yours.</text>
     </string>
     <string id="bq_dlg_sich_not_sell">
-        <text>Нет, я обещал вернуть их Бороде.</text>
+        <text>No, I promised to return them to Beard.</text>
     </string>
 
-    <!-- Диалог с Хмурым -->
+    <!-- Dialogue with Gloomy -->
     <string id="bq_hmury_dlg_offer_1">
-        <text>Постой, сталкер. Я знаю, что у тебя за бумаги. Отдай их мне — получишь две тысячи и уйдёшь спокойно.</text>
+        <text>Hold on, stalker. I know what papers you're carrying. Hand them over — you'll get two thousand and leave in peace.</text>
     </string>
     <string id="bq_hmury_dlg_agree_1">
-        <text>Ладно. Забирай документы, давай деньги.</text>
+        <text>All right. Take the documents, give me the money.</text>
     </string>
     <string id="bq_hmury_dlg_bargain_1">
-        <text>За две тысячи не отдам. Добавь что-нибудь.</text>
+        <text>I won't give them up for two thousand. Add something.</text>
     </string>
     <string id="bq_hmury_dlg_attack_1">
-        <text>Ничего ты не получишь. Отойди!</text>
+        <text>You'll get nothing. Step aside!</text>
     </string>
     <string id="bq_hmury_dlg_offer_2">
-        <text>Хорошо. Две тысячи и костюм «Заря». Это последнее предложение.</text>
+        <text>Fine. Two thousand and a Sunrise suit. That's the final offer.</text>
     </string>
     <string id="bq_hmury_dlg_agree_2">
-        <text>Договорились. Деньги и бронежилет — за документы.</text>
+        <text>Deal. Money and armor for the documents.</text>
     </string>
     <string id="bq_hmury_dlg_attack_2">
-        <text>Нет. Документы остаются у меня.</text>
+        <text>No. The documents stay with me.</text>
     </string>
     <string id="bq_hmury_dlg_bargain_2">
-        <text>Маловато. Давай ещё.</text>
+        <text>Not enough. Give more.</text>
     </string>
     <string id="bq_hmury_dlg_bargain_2_answer">
-        <text>Ты меня за дурака держишь? Тогда заберём силой!</text>
+        <text>You think I'm a fool? Then we'll take them by force!</text>
     </string>
 
-    <!-- Диалог с Карданом: вскрытие кейсов -->
+    <!-- Dialogue with Cardan: opening the cases -->
     <string id="bq_mech_dlg_start">
-        <text>Привет, я нашёл такой кейс, не сможешь его вскрыть?</text>
+        <text>Hi, I found a case like this — can you open it?</text>
     </string>
     <string id="bq_mech_dlg_start_2">
-        <text>Привет, я снова с кейсом. Не поможешь снова?</text>
+        <text>Hi, it's me with a case again. Could you help once more?</text>
     </string>
     <string id="bq_mech_dlg_start_3">
-        <text>Привет, я нашёл ещё и третий кейс. Не поможешь ещё раз?</text>
+        <text>Hi, I found a third case too. Could you help once more?</text>
     </string>
     <string id="bq_mech_dlg_show">
-        <text>Ну-ка, дай посмотрю...</text>
+        <text>Let me have a look...</text>
     </string>
     <string id="bq_mech_dlg_show_2">
-        <text>Давай его сюда...</text>
+        <text>Give it here...</text>
     </string>
     <string id="bq_mech_dlg_show_3">
-        <text>Конечно, давай глянем...</text>
+        <text>Sure, let's take a look...</text>
     </string>
     <string id="bq_mech_dlg_hand_over">
-        <text>(протягивает кейс)</text>
+        <text>(hands over the case)</text>
     </string>
     <string id="bq_mech_dlg_offer">
-        <text>Такс... Думаю, за 2000 я могу его вскрыть.</text>
+        <text>So... I think I can open it for 2000.</text>
     </string>
     <string id="bq_mech_dlg_offer_2">
-        <text>Хмм, он не особо сложнее предыдущего. За 2000 я могу его вскрыть.</text>
+        <text>Hmm, it's not much harder than the previous one. I can open it for 2000.</text>
     </string>
     <string id="bq_mech_dlg_offer_3">
-        <text>Опа, а что это тут у нас... Знаешь, а этот кейс чуть поинтереснее. Но всё же 2000 — хорошая цена для него.</text>
+        <text>Whoa, what do we have here... You know, this case is a bit more interesting. But still, 2000 is a good price for it.</text>
     </string>
     <string id="bq_mech_dlg_agree">
-        <text>Хорошо, по рукам. [-2000 Р]</text>
+        <text>All right, deal. [-2000 RUB]</text>
     </string>
     <string id="bq_mech_dlg_decline">
-        <text>Я пока подумаю.</text>
+        <text>I'll think about it.</text>
     </string>
     <string id="bq_mech_dlg_no_money">
-        <text>У меня пока нет таких денег.</text>
+        <text>I don't have that kind of money right now.</text>
     </string>
 
     <!-- =============================================
-         Контейнеры для артефактов
+         Artefact containers
     ============================================= -->
 
-    <!-- Пустые контейнеры -->
+    <!-- Empty containers -->
     <string id="bq_container_name">
-        <text>Полевой контейнер для артефактов</text>
+        <text>Field artefact container</text>
     </string>
     <string id="bq_container_descr">
-        <text>Защитный контейнер для переноски артефактов. Частично поглощает излучение артефакта: 4 единицы радиации. Вес пустого контейнера — 2 кг.</text>
+        <text>A protective container for carrying artefacts. It absorbs part of the artefact radiation: 4 units. Empty container weight - 2 kg.</text>
     </string>
     <string id="bq_uni_container_name">
-        <text>Универсальный контейнер для артефактов</text>
+        <text>Universal artefact container</text>
     </string>
     <string id="bq_uni_container_descr">
-        <text>Улучшенный защитный контейнер. Поглощает 8 единиц радиации артефакта. Вес пустого контейнера — 2 кг.</text>
+        <text>An improved protective container. It absorbs 8 units of the artefact radiation. Empty container weight - 2 kg.</text>
     </string>
     <string id="bq_sci_container_name">
-        <text>Научный контейнер для артефактов</text>
+        <text>Scientific artefact container</text>
     </string>
     <string id="bq_sci_container_descr">
-        <text>Научный экранированный контейнер. Поглощает 14 единиц радиации артефакта. Вес пустого контейнера — 2 кг.</text>
+        <text>A scientific shielded container. It absorbs 14 units of the artefact radiation. Empty container weight - 2 kg.</text>
     </string>
 
-    <!-- Кнопка на заполненном контейнере -->
+    <!-- Button on a filled container -->
     <string id="bq_take_artifact">
-        <text>достать артефакт</text>
+        <text>take out the artefact</text>
     </string>
 
-    <!-- Комбо-предметы: Глаз -->
+    <!-- Combo items: Eye -->
     <string id="bq_eye_field_name">
-        <text>Глаз в полевом контейнере</text>
+        <text>Eye in a field container</text>
     </string>
     <string id="bq_eye_field_descr">
-        <text>Артефакт «Глаз» в полевом контейнере. Контейнер поглощает 4 единицы радиации артефакта.</text>
+        <text>The "Eye" artefact inside a field container. The container absorbs 4 units of the artefact radiation.</text>
     </string>
     <string id="bq_eye_uni_name">
-        <text>Глаз в универсальном контейнере</text>
+        <text>Eye in a universal container</text>
     </string>
     <string id="bq_eye_uni_descr">
-        <text>Артефакт «Глаз» в универсальном контейнере. Контейнер поглощает 8 единиц радиации артефакта.</text>
+        <text>The "Eye" artefact inside a universal container. The container absorbs 8 units of the artefact radiation.</text>
     </string>
     <string id="bq_eye_sci_name">
-        <text>Глаз в научном контейнере</text>
+        <text>Eye in a scientific container</text>
     </string>
     <string id="bq_eye_sci_descr">
-        <text>Артефакт «Глаз» в научном контейнере. Контейнер поглощает 14 единиц радиации артефакта.</text>
+        <text>The "Eye" artefact inside a scientific container. The container absorbs 14 units of the artefact radiation.</text>
     </string>
 
-    <!-- Комбо-предметы: Кристалл (проверка защиты) -->
+    <!-- Combo items: Crystal (protection test) -->
     <string id="bq_cristall_field_name">
-        <text>Кристалл в полевом контейнере</text>
+        <text>Crystal in a field container</text>
     </string>
     <string id="bq_cristall_field_descr">
-        <text>Артефакт «Кристалл» в полевом контейнере. Контейнер поглощает 4 единицы радиации артефакта.</text>
+        <text>The "Crystal" artefact inside a field container. The container absorbs 4 units of the artefact radiation.</text>
     </string>
     <string id="bq_cristall_uni_name">
-        <text>Кристалл в универсальном контейнере</text>
+        <text>Crystal in a universal container</text>
     </string>
     <string id="bq_cristall_uni_descr">
-        <text>Артефакт «Кристалл» в универсальном контейнере. Контейнер поглощает 8 единиц радиации артефакта.</text>
+        <text>The "Crystal" artefact inside a universal container. The container absorbs 8 units of the artefact radiation.</text>
     </string>
     <string id="bq_cristall_sci_name">
-        <text>Кристалл в научном контейнере</text>
+        <text>Crystal in a scientific container</text>
     </string>
     <string id="bq_cristall_sci_descr">
-        <text>Артефакт «Кристалл» в научном контейнере. Контейнер поглощает 14 единиц радиации артефакта.</text>
+        <text>The "Crystal" artefact inside a scientific container. The container absorbs 14 units of the artefact radiation.</text>
     </string>
 
+    <string id="bq_compass_field_name">
+        <text>Компас в полевом контейнере</text>
+    </string>
+    <string id="bq_compass_field_descr">
+        <text>Артефакт «Компас» в полевом контейнере. Контейнер поглощает 4 единиц радиации артефакта.</text>
+    </string>
+    <string id="bq_compass_uni_name">
+        <text>Компас в универсальном контейнере</text>
+    </string>
+    <string id="bq_compass_uni_descr">
+        <text>Артефакт «Компас» в универсальном контейнере. Контейнер поглощает 8 единиц радиации артефакта.</text>
+    </string>
+    <string id="bq_compass_sci_name">
+        <text>Компас в научном контейнере</text>
+    </string>
+    <string id="bq_compass_sci_descr">
+        <text>Артефакт «Компас» в научном контейнере. Контейнер поглощает 14 единиц радиации артефакта.</text>
+    </string>
+    <string id="bq_ice_field_name">
+        <text>Снежинка в полевом контейнере</text>
+    </string>
+    <string id="bq_ice_field_descr">
+        <text>Артефакт «Снежинка» в полевом контейнере. Контейнер поглощает 4 единиц радиации артефакта.</text>
+    </string>
+    <string id="bq_ice_uni_name">
+        <text>Снежинка в универсальном контейнере</text>
+    </string>
+    <string id="bq_ice_uni_descr">
+        <text>Артефакт «Снежинка» в универсальном контейнере. Контейнер поглощает 8 единиц радиации артефакта.</text>
+    </string>
+    <string id="bq_ice_sci_name">
+        <text>Снежинка в научном контейнере</text>
+    </string>
+    <string id="bq_ice_sci_descr">
+        <text>Артефакт «Снежинка» в научном контейнере. Контейнер поглощает 14 единиц радиации артефакта.</text>
+    </string>
 </string_table>
