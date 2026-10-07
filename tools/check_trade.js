@@ -50,55 +50,40 @@ if (!fs.existsSync(TRADE_FILE)) {
 ok(`файл торговли на месте: ${TRADE_REL}`);
 
 const text = fs.readFileSync(TRADE_FILE).toString('latin1');
+const lines = text.split(/\r?\n/);
 
-// 1. include оригинального файла. ВАЖНО: имя должно быть КОРОТКИМ - движок
-// ищет файл относительно папки текущего файла (Xr_ini.cpp:1224-1227), поэтому
-// путь с папками ("misc\trade\...") даёт "configs\misc\trade\misc\trade\..."
-// и падение "Can't find include file".
-if (!/#include\s+"trade_zat_b30_stalker_trader\.ltx"/.test(text)) {
-    err('файл не подключает оригинальный trade_zat_b30_stalker_trader.ltx ' +
-        '(нужно КОРОТКОЕ имя, без папок)');
+// 1. Файл должен быть DLTX-модом к базовому файлу торговли, и в нём НЕ должно
+//    быть #include этого же базового файла. Причина: движок, читая корневой
+//    trade_zat_b30_stalker_trader.ltx, сам подхватывает
+//    "mod_trade_zat_b30_stalker_trader_*.ltx" из той же папки (Xr_ini.cpp:1138).
+//    Если такой мод ещё и включит базовый файл через #include, база прочитается
+//    второй раз и игра упадёт:
+//      FATAL ERROR, Xr_ini.cpp:1071
+//      Duplicate section 'trader' wasn't marked as an override
+//    (ровно этот вылет и случился).
+const baseName = path.basename(BASE_TRADE, '.ltx');          // trade_zat_b30_stalker_trader
+const ownName = path.basename(TRADE_FILE, '.ltx');           // mod_trade_zat_b30_stalker_trader_z_bq
+if (ownName !== `mod_${baseName}_z_bq`) {
+    err(`имя файла "${ownName}.ltx" не подходит под маску автоподхвата ` +
+        `"mod_${baseName}_*.ltx" - движок его не найдёт`);
 } else {
-    ok('подключает оригинальный файл торговли коротким именем');
+    ok(`имя подпадает под автоподхват mod_${baseName}_*.ltx`);
 }
-if (/#include\s+"[^"]*[\\/][^"]*"/.test(text)) {
-    err('в #include указан путь с папками: include ищется относительно папки ' +
-        'текущего файла, поэтому путь сломается');
+// Проверяем именно строки с директивой, а не весь текст: в комментариях файла
+// слово с этой директивой упоминается (в объяснении, почему её быть не должно).
+const includeLines = lines.filter((l) => /^\s*#\s*include\b/.test(l));
+if (includeLines.length) {
+    err(`в DLTX-моде не должно быть директивы включения базового файла (строка ` +
+        `${includeLines[0].trim()}): движок читает базу сам и подхватывает этот ` +
+        `мод, поэтому включение даёт дубликат секций ("Duplicate section 'trader'")`);
+} else {
+    ok('директивы включения базового файла нет (движок подхватывает мод сам)');
 }
 if (!fs.existsSync(BASE_TRADE)) {
-    err(`не найден базовый файл торговли (${BASE_TRADE}) - include не сработает`);
-}
-
-// Короткое имя "#include "trade_zat_b30_stalker_trader.ltx"" разрешается
-// относительно ПАПКИ НАШЕГО ФАЙЛА (Xr_ini.cpp:1224-1227). Значит движок ищет
-// файл по пути "configs\misc\trade\trade_zat_b30_stalker_trader.ltx" в
-// виртуальной ФС, и этот путь должен быть доступен. Проверяем реально:
-// временно кладём файл по этому пути к себе (по правилам сборки наш аддон
-// монтируется последним и всё равно побеждает по этому пути, содержимое
-// копии совпадает с победившей версией) и убеждаемся, что он виден.
-const OWN_BASE = path.join(path.dirname(TRADE_FILE), 'trade_zat_b30_stalker_trader.ltx');
-{
-    const existed = fs.existsSync(OWN_BASE);
-    const backup = existed ? fs.readFileSync(OWN_BASE) : null;
-    try {
-        fs.copyFileSync(BASE_TRADE, OWN_BASE);
-        if (fs.existsSync(OWN_BASE) && fs.statSync(OWN_BASE).size === fs.statSync(BASE_TRADE).size) {
-            ok(`путь include доступен: ${path.relative(ROOT, OWN_BASE)} ` +
-                `(${fs.statSync(OWN_BASE).size} байт)`);
-        } else {
-            err(`не удалось положить базовый файл по пути include: ${OWN_BASE}`);
-        }
-    } catch (e) {
-        err(`базовый файл не удалось положить по пути include: ${e.message}`);
-    } finally {
-        // вернуть как было, чтобы проверка не оставляла следов
-        if (existed) fs.writeFileSync(OWN_BASE, backup);
-        else fs.rmSync(OWN_BASE, { force: true });
-    }
+    err(`не найден базовый файл торговли (${BASE_TRADE}) - мод не к чему применить`);
 }
 
 // 2. синтаксис добавления записей
-const lines = text.split(/\r?\n/);
 const badHeader = lines.filter((l) => /^\s*\[>/.test(l));
 if (badHeader.length) {
     err(`найдена запись "${badHeader[0].trim()}" - движок поймёт её как секцию с именем ` +

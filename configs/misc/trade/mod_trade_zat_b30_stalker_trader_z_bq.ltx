@@ -1,61 +1,55 @@
 ; ===========================================================================
-; Trade file for Sych (zat_b30_owl_stalker_trader) - artefact containers.
+; DLTX addon for Sych's trade file (zat_b30_owl_stalker_trader).
+; Adds the artefact containers to his assortment.
 ;
-; WHY THIS FILE EXISTS AT ALL
-;   The engine opens the trade file by this exact path, and the addon
-;   ixray-stcop-wp-3.7-cop-r1.0 ships its own version (1476 lines). Our addon is
-;   mounted last ("zzz-" prefix), so this file wins and INCLUDES the winner's
-;   version first (see the include at the bottom). Nothing from the other addon
-;   is lost.
+; WHY THIS FILE HAS NO "!#include" AND NO SECTIONS OF ITS OWN
+;   The engine opens its trade file by the path
+;   configs\misc\trade\trade_zat_b30_stalker_trader.ltx, which is provided by
+;   the addon ixray-stcop-wp-3.7-cop-r1.0. While reading that root file the
+;   engine automatically looks for "mod_<rootfile>_*.ltx" in the same folder and
+;   picks up THIS file (its name matches mod_trade_zat_b30_stalker_trader_*.ltx,
+;   Xr_ini.cpp:1138). So the file is loaded by itself - no include needed.
+;
+;   DO NOT add "#include "trade_zat_b30_stalker_trader.ltx"" here: the engine
+;   would read the base file a SECOND time and die with
+;       FATAL ERROR, Xr_ini.cpp:1071
+;       Duplicate section 'trader' wasn't marked as an override
+;   (that is exactly what happened on the first attempt).
 ;
 ; HOW THE ADDITIONS WORK
-;   An entry line starting with ">" does not declare a section: the engine
-;   treats it as "append to the list of the section named after >" and splits
-;   the value by commas (Xr_ini.cpp:445, 371). So this file does not have to
-;   repeat the whole 1476-line trade table - only our entries.
-;   NOTE: do NOT write "[>section]" - the engine would read that as a section
-;   named ">section". The ">" goes BEFORE the bracket (same family of mistakes
-;   as "![Name]" vs "[!Name]", see MEMO 20).
+;   A line starting with ">" does not declare a section: the engine appends the
+;   value to the list of the section named after ">" and splits it by commas
+;   (Xr_ini.cpp:445 and 371). So we only list our own entries and never repeat
+;   the 1476-line trade table.
+;   NOTE: the header is ">[section]", NOT "[>section]" - the latter would be read
+;   as a section literally named ">section" (same family of mistakes as
+;   "![Name]" vs "[!Name]", see MEMO 20).
 ;
 ; WHAT SYCH TRADES
 ;   Empty containers only. Combos (an artefact inside a container) have
-;   can_trade = false, so they are not offered and cannot be sold.
+;   can_trade = false, so they are neither offered nor bought.
 ;
 ; PRICES
-;   The player BUYS an empty container for its full cost (container "cost"):
+;   The player BUYS an empty container for its full cost:
 ;     field 15000, universal 25000, scientific 40000.
-;   The player SELLS it back at 60% (the same rate Sych buys artefacts at),
-;   so buying and reselling is never profitable.
+;   The player SELLS it back at 60% (9000 / 15000 / 24000) - the same rate Sych
+;   buys artefacts at, so reselling is never profitable.
 ; ===========================================================================
 
-; Sych buys empty containers from the player: factor applies to the item cost
+; What Sych pays the player (item cost * factor)
 >[trade_generic_buy]
 >bq_field_container = 1, 0.6
 >bq_uni_container   = 1, 0.6
 >bq_sci_container   = 1, 0.6
 
-; Sych does not sell empty containers as stock... (see supplies below)
+; What Sych is willing to sell (stock comes from the supplies list below)
 >[trade_generic_sell]
 >bq_field_container
 >bq_uni_container
 >bq_sci_container
 
-; ...their stock is defined here: count, probability
+; Stock: count, probability
 >[supplies_generic]
 >bq_field_container = 2, 1.0
 >bq_uni_container   = 1, 0.2
 >bq_sci_container   = 1, 0.05
-
-; ===========================================================================
-; Original (winning) file goes last: our ">" entries above are merged into its
-; sections, because our entries were read while THIS file is the root one.
-;
-; PATH MATTERS: #include is resolved relative to the FOLDER OF THIS FILE
-; (Xr_ini.cpp:1224-1227 builds the path as <folder of current file> + name).
-; So the name must be bare - "trade_zat_b30_stalker_trader.ltx", NOT
-; "misc\trade\trade_zat_b30_stalker_trader.ltx": with the long form the engine
-; looked for "configs\misc\trade\misc\trade\..." and died with
-;   FATAL ERROR: Can't find include file: misc\trade\trade_zat_b30_stalker_trader.ltx
-; Other addons in the build do the same: weapons.ltx includes "weapons_ammo.ltx".
-; ===========================================================================
-#include "trade_zat_b30_stalker_trader.ltx"
