@@ -30,6 +30,7 @@ tools/*
 !tools/compare_artifact_quality.js
 !tools/compare_artifact_sizes.js
 !tools/fix_rus_localization.js
+!tools/check_artifact_bleed.js
 
 # Атлас иконок из аномали (33 МБ, используется только как источник картинок)
 textures/ui/ui_anomaly_icons.dds

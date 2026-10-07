@@ -84,7 +84,13 @@ function crop(dec, x0, y0, w, h) {
 
 // Уменьшение картинки. Используем точный фильтр из tools/downscale.js: простое
 // усреднение по блокам давало заметное мыло и ступеньки (проверено сравнением).
-const { downscaleRGBA } = require('./downscale.js');
+//
+// ВАЖНО: значок артефакта не «растягиваем на всю клетку», а вписываем по
+// границам содержимого со свободным полем. Иначе у артефактов, чья картинка
+// упирается в край клетки атласа (у «Кристалла» содержимое 66x100 при клетке
+// 100), изображение обрывается ровной линией, и на иконке контейнера это
+// выглядит как прямоугольный рез.
+const { downscaleRGBA, fitArtifactToSquare } = require('./downscale.js');
 function downscale(src, srcSize, dstSize) {
     if (srcSize === dstSize) return src;
     return downscaleRGBA(src, srcSize, dstSize, 3);
@@ -199,8 +205,10 @@ for (const art of ARTIFACTS) {
         process.exit(1);
     }
     const big = crop(artDec, cell.gx * cell.cell, cell.gy * cell.cell, cell.cell, cell.cell);
-    artIcons.push(cell.cell === ART ? big : downscale(big, cell.cell, ART));
-    console.log(`  ${art}: клетка ${cell.cell}px (${cell.gx},${cell.gy}) -> ${ART}x${ART}`);
+    // вписываем по содержимому со свободным полем, а не растягиваем клетку
+    artIcons.push(fitArtifactToSquare(big, cell.cell, cell.cell, ART, 1, 3));
+    console.log(`  ${art}: клетка ${cell.cell}px (${cell.gx},${cell.gy}) -> значок ${ART}x${ART} ` +
+        `(вписан по содержимому)`);
 }
 
 // 3. сборка атласа
