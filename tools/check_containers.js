@@ -25,66 +25,55 @@ const err = (m) => { console.error('FAIL: ' + m); errors++; };
 const ok = (m) => console.log('  ok: ' + m);
 
 // ---------------------------------------------------------------- чтение ltx
-function readLtx(file) {
-    const buf = fs.readFileSync(file);
-    const text = buf.toString('latin1');           // побайтово, cp1251 не портим
-    const sections = new Map();
-    let cur = null;
-    for (const raw of text.split(/\r?\n/)) {
-        const line = raw.replace(/;.*$/, '').trim();
-        if (!line) continue;
-        const m = line.match(/^\[(!?)([^\]]+)\](?:\s*:\s*(.*))?$/);
-        if (m) {
-            const isOverride = m[1] === '!';
-            const name = m[2].trim();
-            const parents = (m[3] || '').split(',').map((s) => s.trim()).filter(Boolean);
-            if (sections.has(name) && !isOverride) {
-                // в одном файле дубль без "!" — движок падает (Xr_ini.cpp:1071)
-                const prev = sections.get(name);
-                if (prev.file === file) err(`дубль секции [${name}] в ${path.basename(file)}`);
-            }
-            cur = { name, parents, keys: new Map(), file, override: isOverride };
-            sections.set(name, cur);
-            continue;
-        }
-        const kv = line.match(/^([A-Za-z0-9_.]+)\s*=\s*(.*)$/);
-        if (kv && cur) {
-            if (cur.keys.has(kv[1])) err(`дубль ключа '${kv[1]}' в [${cur.name}]`);
-            cur.keys.set(kv[1], kv[2].trim());
-        }
-    }
-    return sections;
-}
+// Разбор конфигов - в общем модуле (tools/ini_resolver.js): там учтён синтаксис
+// переопределений "![Имя]" и то, что переопределение ДОПОЛНЯЕТ секцию.
+// Своя копия парсера здесь уже один раз разошлась с настоящим поведением
+// движка и скрыла проблему с inv_scale.
+const { readLtx, readLtxInto, makeResolver } = require('./ini_resolver.js');
 
-// Порядок как в игре: сначала оригинальная gamedata, затем наш файл
-// (он подключается к system.ltx как mod_artefacts_*.ltx).
+// Порядок как в игре: оригинальная gamedata, затем моды сборки, затем наш файл.
+// Моды сборки обязательны: ixray-hq-icons-v2.0 переопределяет секции артефактов
+// и задаёт им inv_scale = 2.0 - без этого файла не видно, откуда у комбо
+// берётся двойной размер иконки (2x2 ячейки вместо одной).
+const ADDONS_DIR = 'Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_IXRAY\\ixr_addons';
+const HQ_ICONS = path.join(ADDONS_DIR, 'ixray-hq-icons-v2.0', 'configs', 'mod_system_hqicons.ltx');
+
 const merged = new Map();
-for (const f of [
+const loadOrder = [
     path.join(GAME, 'defines.ltx'),
     path.join(GAME, 'misc', 'artefacts.ltx'),
-]) {
-    for (const [k, v] of readLtx(f)) merged.set(k, v);
+    HQ_ICONS,
+    OUR_FILE,
+].filter((f) => fs.existsSync(f));
+if (!fs.existsSync(HQ_ICONS)) {
+    console.warn('ВНИМАНИЕ: не найден мод HQ Icons, проверка inv_scale будет неполной');
 }
+for (const f of loadOrder) readLtxInto(f, merged);
+
+// Секции НАШЕГО файла - отдельно: нужны для проверки дублей ключей и для
+// поиска секций, которые задаём именно мы.
 const ours = readLtx(OUR_FILE);
-for (const [k, v] of ours) merged.set(k, v);
 
 // ------------------------------------------------- вычисление наследования
-const resolved = new Map();
-const resolving = new Set();
-function resolve(name) {
-    if (resolved.has(name)) return resolved.get(name);
-    if (resolving.has(name)) { err(`циклическое наследование: ${name}`); return new Map(); }
-    const sec = merged.get(name);
-    if (!sec) { err(`секция [${name}] не существует`); return new Map(); }
-    resolving.add(name);
-    const acc = new Map();
-    for (const p of sec.parents) {                 // порядок: последний родитель важнее
-        for (const [k, v] of resolve(p)) acc.set(k, v);
+const resolve = makeResolver(merged);
+
+// Дубли ключей внутри наших секций: движок берёт ПОСЛЕДНЕЕ значение, поэтому
+// дубль молча теряет одну из правок.
+{
+    const seenBySection = new Map();
+    let curSection = null;
+    for (const raw of fs.readFileSync(OUR_FILE).toString('latin1').split(/\r?\n/)) {
+        const line = raw.replace(/;.*$/, '').trim();
+        const h = line.match(/^(!?)\[([^\]]+)\]/);
+        if (h) { curSection = h[2].trim(); continue; }
+        const kv = line.match(/^([A-Za-z0-9_.$]+)\s*=/);
+        if (kv && curSection) {
+            if (!seenBySection.has(curSection)) seenBySection.set(curSection, new Set());
+            const seen = seenBySection.get(curSection);
+            if (seen.has(kv[1])) err(`дубль ключа '${kv[1]}' в [${curSection}]`);
+            seen.add(kv[1]);
+        }
     }
-    for (const [k, v] of sec.keys) acc.set(k, v);  // свои ключи важнее родителей
-    resolving.delete(name);
-    resolved.set(name, acc);
-    return acc;
 }
 
 // ------------------------------------------------ обязательные ключи движка
@@ -390,6 +379,15 @@ if (!fs.existsSync(ATLAS_PATH)) {
         const gy = parseInt(r.get('inv_grid_y'), 10);
         const gw = parseInt(r.get('inv_grid_width'), 10);
         const gh = parseInt(r.get('inv_grid_height'), 10);
+        // inv_scale обязан быть 1.0: наш атлас - сетка 50x50. Мод HQ Icons
+        // задаёт артефактам inv_scale = 2.0, и комбо наследует его от
+        // артефакта-родителя; тогда область иконки считается как 50*2 = 100 px,
+        // то есть 2x2 ячейки (проверено в игре).
+        const scl = parseFloat(r.get('inv_scale') || '1');
+        if (Math.abs(scl - 1) > 1e-9) {
+            err(`[${e.section}] inv_scale = ${scl}, нужно 1.0: атлас контейнеров это ` +
+                `сетка 50x50, а унаследованный от артефакта inv_scale = 2.0 даёт область 100 px (2x2 ячейки)`);
+        }
         if (tex !== e.texture) {
             err(`[${e.section}] icons_texture = '${tex}', ожидалось '${e.texture}'`);
             continue;

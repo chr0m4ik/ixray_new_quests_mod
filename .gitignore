@@ -9,14 +9,16 @@ MEMO.md
 .dsh/
 
 # Инструменты. Версионируем то, что воспроизводимо и нужно для работы над
-# модом (проверки, сборка атласа, разбор DDS). Локальными остаются
-# разовые утилиты: extract_icon.js (работа с чужим атласом Anomaly) и
-# dump_section.js (диагностика).
+# модом (проверки, разбор конфигов, сборка атласа, разбор DDS). Локальной
+# остаётся разовая утилита extract_icon.js (работа с чужим атласом Anomaly).
 tools/*
 !tools/check_*.js
 !tools/dds.js
+!tools/ini_resolver.js
 !tools/atlas_cells.js
 !tools/point_combos_to_atlas.js
+!tools/dump_resolved.js
+!tools/dump_section.js
 
 # Атлас иконок из аномали (33 МБ, используется только как источник картинок)
 textures/ui/ui_anomaly_icons.dds
