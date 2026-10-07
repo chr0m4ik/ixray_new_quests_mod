@@ -100,6 +100,12 @@ const REQUIRED = [
     'additional_inventory_weight', 'af_rank', 'hit_absorbation_sect',
 ];
 
+// class проверяется отдельно и ОБЯЗАТЕЛЬНО: движок читает его через
+// pSettings->r_clsid (SpawnManager.cpp:137 и создание объекта), а в
+// оригинальном artefacts.ltx ключа class НЕТ ни у af_base, ни у
+// identity_immunities - его задаёт каждый конкретный артефакт.
+// Пропуск этого ключа дал вылет "Can't find variable class in [bq_uni_container]".
+
 const CONTAINERS = [
     { section: 'bq_field_container', combo: 'af_eye_bq_field_container', absorb: 0.004 },
     { section: 'bq_uni_container', combo: 'af_eye_bq_uni_container', absorb: 0.008 },
@@ -116,13 +122,24 @@ console.log('== 1. Наши секции и их родители ==');
 const isItemSection = (r) => ![...r.keys()].some((k) => k.endsWith('_immunity'));
 for (const name of ours.keys()) {
     const r = resolve(name);
+    if (isItemSection(r)) {
+        // class обязателен: без него движок падает в r_clsid
+        if (!r.has('class')) {
+            err(`[${name}] нет ключа 'class' — движок упадёт: Can't find variable class`);
+        } else if (r.get('class') !== 'ARTEFACT') {
+            err(`[${name}] class='${r.get('class')}', ожидалось ARTEFACT` +
+                (r.get('class') === 'SCRPTART' ? ' (SCRPTART в этой сборке не зарегистрирован: object_factory_register.cpp:446)' : ''));
+        }
+    }
     if (isItemSection(r) && !TEMPLATES.has(name)) {
         const missing = REQUIRED.filter((k) => !r.has(k));
         if (missing.length) err(`[${name}] нет обязательных ключей: ${missing.join(', ')}`);
     }
     const parents = ours.get(name).parents;
     for (const p of parents) if (!merged.has(p)) err(`[${name}] родитель [${p}] не найден`);
-    ok(`[${name}] ключей ${r.size}, родителей ${parents.length}${TEMPLATES.has(name) ? ' (шаблон)' : ''}`);
+    ok(`[${name}] ключей ${r.size}, родителей ${parents.length}` +
+       (isItemSection(r) ? `, class=${r.get('class')}` : '') +
+       (TEMPLATES.has(name) ? ' (шаблон)' : ''));
 }
 
 console.log('== 2. Комбо: иконка, защита, радиация ==');

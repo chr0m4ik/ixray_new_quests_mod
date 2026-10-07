@@ -49,6 +49,15 @@
 ; because the vanilla af_base does NOT provide all of them.
 ; ---------------------------------------------------------------------------
 [bq_container_base]:af_base
+; class ОБЯЗАТЕЛЕН именно здесь: в оригинальном artefacts.ltx ключа class
+; НЕТ ни у af_base, ни у identity_immunities (его задаёт каждый конкретный
+; артефакт - af_eye, af_cristall и т.д.). Без этой строки пустые контейнеры
+; оставались без класса, и движок падал:
+;   CInifile::r_string: Can't find variable class in [bq_uni_container]
+; Вылет происходил дважды: при перечислении секций в debug-спавнере
+; (SpawnManager.cpp:137, pSettings->r_clsid) и при доставании артефакта,
+; когда скрипт создавал пустой контейнер (alife():create).
+class                       = ARTEFACT
 $spawn                      = "artefacts\bq_container"
 inv_name                    = bq_container_name
 inv_name_short              = bq_container_name
