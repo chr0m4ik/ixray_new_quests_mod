@@ -1,20 +1,29 @@
-// tools/check_artifact_bleed.js — проверяет, упирается ли иконка артефакта
-// в границы своей клетки в атласе.
+// tools/check_artifact_bleed.js — проверяет, что значок артефакта в итоговой
+// иконке не обрывается по краю.
 //
 // ЗАЧЕМ
-//   Если непрозрачные пиксели доходят до края клетки, то при наложении на
-//   иконку контейнера картинка обрывается ровной линией по границе клетки —
-//   это и выглядит как «границы режутся квадратами».
-//   Лечится тем, что перед уменьшением вписываем картинку в квадрат со
-//   свободным полем, а не растягиваем на всю клетку.
+//   У части артефактов картинка в атласе упирается в край своей клетки
+//   (у «Кристалла» содержимое 66x100 при клетке 100 — отступы сверху и снизу
+//   равны нулю). Если уменьшать всю клетку целиком, изображение обрывается
+//   ровной линией по границе клетки, и на иконке контейнера это выглядит как
+//   прямоугольный рез.
+//
+//   Поэтому значок вписывается по границам содержимого со свободным полем
+//   (tools/downscale.js, fitArtifactToSquare). Этот инструмент проверяет, что
+//   после вписывания у содержимого остался отступ со всех сторон, то есть
+//   обрыва не будет.
+//
+// Запуск: node tools/check_artifact_bleed.js
 'use strict';
 const fs = require('fs');
 const path = require('path');
 const { decodeAuto } = require('./dds.js');
+const { fitArtifactToSquare, contentBBox } = require('./downscale.js');
 
 const GAME = 'Z:/Games/Stalker_Call_of_Pripyat_Mod';
 const HQ = `${GAME}/StalkerCoP_IXRAY/ixr_addons/ixray-hq-icons-v2.0/textures/ui/ui_icon_equipment_hd.dds`;
-const CELL = 100;                     // клетка иконки в HQ-атласе (inv_scale = 2.0)
+const CELL = 100;             // клетка иконки в HQ-атласе (inv_scale = 2.0)
+const ART = 32;               // размер значка в итоговой иконке
 
 // координаты в HQ-атласе: (grid_x, grid_y) при клетке 100 px
 const ARTS = {
@@ -29,37 +38,52 @@ if (!fs.existsSync(HQ)) {
     process.exit(1);
 }
 const dec = decodeAuto(fs.readFileSync(HQ));
-console.log(`HQ-атлас: ${dec.width}x${dec.height}, клетка ${CELL} px\n`);
+console.log(`HQ-атлас: ${dec.width}x${dec.height}, клетка ${CELL} px, значок ${ART}x${ART}\n`);
 
-let bleed = 0;
-for (const [name, [gx, gy]] of Object.entries(ARTS)) {
-    const x0 = gx * CELL, y0 = gy * CELL;
-    let minX = CELL, maxX = -1, minY = CELL, maxY = -1, opaque = 0;
-    for (let y = 0; y < CELL; y++) {
-        for (let x = 0; x < CELL; x++) {
-            const a = dec.rgba[((y0 + y) * dec.width + (x0 + x)) * 4 + 3];
-            if (a > 8) {
-                opaque++;
-                if (x < minX) minX = x;
-                if (x > maxX) maxX = x;
-                if (y < minY) minY = y;
-                if (y > maxY) maxY = y;
-            }
+function crop(src, srcW, x0, y0, w, h) {
+    const out = new Uint8Array(w * h * 4);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const s = ((y0 + y) * srcW + (x0 + x)) * 4;
+            const d = (y * w + x) * 4;
+            out[d] = src[s]; out[d + 1] = src[s + 1]; out[d + 2] = src[s + 2]; out[d + 3] = src[s + 3];
         }
     }
-    if (maxX < 0) { console.log(`${name}: клетка пустая`); continue; }
-    const touch = [];
-    if (minX === 0) touch.push('левый');
-    if (maxX === CELL - 1) touch.push('правый');
-    if (minY === 0) touch.push('верхний');
-    if (maxY === CELL - 1) touch.push('нижний');
-    if (touch.length) bleed++;
-    const w = maxX - minX + 1, h = maxY - minY + 1;
-    console.log(`${name}: содержимое ${w}x${h} px, отступы ` +
-        `слева ${minX}, справа ${CELL - 1 - maxX}, сверху ${minY}, снизу ${CELL - 1 - maxY}` +
-        (touch.length ? `  <-- УПИРАЕТСЯ В КРАЙ: ${touch.join(', ')}` : ''));
+    return out;
 }
 
-console.log(bleed === 0
-    ? '\nOK: иконки артефактов не упираются в края клеток.'
-    : `\nВНИМАНИЕ: ${bleed} иконок упираются в край — при наложении будет виден прямоугольный рез.`);
+let bad = 0;
+for (const [name, [gx, gy]] of Object.entries(ARTS)) {
+    const cellImg = crop(dec.rgba, dec.width, gx * CELL, gy * CELL, CELL, CELL);
+    const bbox = contentBBox(cellImg, CELL, CELL);
+    if (!bbox) { console.log(`${name}: клетка пустая`); continue; }
+
+    const srcTouch = [];
+    if (bbox.x === 0) srcTouch.push('левый');
+    if (bbox.y === 0) srcTouch.push('верхний');
+    if (bbox.x + bbox.w === CELL) srcTouch.push('правый');
+    if (bbox.y + bbox.h === CELL) srcTouch.push('нижний');
+
+    // что получилось после вписывания
+    const fitted = fitArtifactToSquare(cellImg, CELL, CELL, ART, 1, 3);
+    const fb = contentBBox(fitted, ART, ART);
+    if (!fb) { console.log(`${name}: после вписывания значок пустой`); bad++; continue; }
+
+    const margins = {
+        left: fb.x, top: fb.y,
+        right: ART - (fb.x + fb.w), bottom: ART - (fb.y + fb.h),
+    };
+    const zero = Object.entries(margins).filter(([, v]) => v === 0).map(([k]) => k);
+    if (zero.length) bad++;
+
+    console.log(`${name}: в атласе содержимое ${bbox.w}x${bbox.h} px` +
+        (srcTouch.length ? `, упирается в край (${srcTouch.join(', ')})` : '') +
+        `\n    после вписывания: ${fb.w}x${fb.h} px, отступы ` +
+        `слева ${margins.left}, справа ${margins.right}, сверху ${margins.top}, снизу ${margins.bottom}` +
+        (zero.length ? `  <-- ОБРЫВ: ${zero.join(', ')}` : '  ok'));
+}
+
+console.log(bad === 0
+    ? '\nOK: значки артефактов вписаны со свободным полем — обрыва по краю не будет.'
+    : `\nFAIL: у ${bad} значков содержимое доходит до края — будет виден прямоугольный рез.`);
+process.exit(bad === 0 ? 0 : 1);
