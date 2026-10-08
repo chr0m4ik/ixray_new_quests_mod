@@ -142,15 +142,16 @@ end
 -- (MEMO 31.2). Сама функция обработчика - не общий ресурс, её можно объявлять
 -- локально: ссылка на неё попадает в реестр колбэков при регистрации ниже.
 ----------------------------------------------------------------------------
-local function bq_inv_rad_tick()
-    -- ВРЕМЕННАЯ ДИАГНОСТИКА: считается, сколько раз движок вызвал обработчик.
-    -- Убрать после разбора проблемы с контейнерами.
-    _G.bq_diag = _G.bq_diag or { cont_tick = 0, cont_work = 0, rad_tick = 0 }
-    _G.bq_diag.rad_tick = _G.bq_diag.rad_tick + 1
-    if _G.bq_diag.rad_tick == 1 or _G.bq_diag.rad_tick % 300 == 0 then
-        dbg(string.format("ДИАГ: радиация tick=%d cont_tick=%d",
-            _G.bq_diag.rad_tick, _G.bq_diag.cont_tick))
-    end
+-- Основной расчёт. НЕ вызывается напрямую из движковых колбэков конфига
+-- (on_key_press / on_can_move_to_partner): повторный вход в Lua из C++ внутри
+-- уже исполняющегося Lua-колбэка приводит к вылету в
+-- luabind::detail::class_rep::function_dispatcher (проверено вылетом
+-- 08.10.2026, стек CInput::KeyboardUpdate -> pcall -> pcall).
+--
+-- Вызывается только из обработчика update, который движок вызывает рассылкой
+-- SendScriptCallback из bind_stalker.script:384 - там Lua уже исполняется как
+-- обычный колбэк, без вложенного входа из C++.
+local function bq_inv_rad_step(now)
     local ok, err = pcall(function()
         local actor = db.actor
         local st = _G.bq_inv_rad
@@ -158,7 +159,7 @@ local function bq_inv_rad_tick()
         -- Актор появляется не сразу; на первом доступном кадре просто
         -- запоминаем время, ничего не начисляя.
         if not actor then
-            st.last_tick = time_global()
+            st.last_tick = now
             return
         end
 
@@ -167,13 +168,11 @@ local function bq_inv_rad_tick()
         if cached_actor ~= actor then
             cached_actor = actor
             st.sum = nil
-            st.last_tick = time_global()
+            st.last_tick = now
             st.next_recompute = 0
             dbg("актор сменился, состояние сброшено")
             return
         end
-
-        local now = time_global()
 
         -- Раз в RECOMPUTE_MS пересчитываем сумму по рюкзаку.
         if not st.sum or now >= st.next_recompute then
@@ -181,8 +180,6 @@ local function bq_inv_rad_tick()
             st.sum = ruck_sum
             st.next_recompute = now + RECOMPUTE_MS
             if DEBUG then
-                -- Пишем, когда доза изменилась (это и есть момент «зафонило»),
-                -- и раз в HEARTBEAT_MS - чтобы было видно, что механика жива.
                 local changed = (ruck_sum ~= st.last_logged)
                 if changed or now >= (st.next_heartbeat or 0) then
                     st.last_logged = ruck_sum
@@ -206,7 +203,7 @@ local function bq_inv_rad_tick()
         if delta <= 0 then return end
 
         -- Начисляем только при положительной сумме: лишние вызовы Lua -> C++
-        -- каждый кадр не нужны, а отрицательного вклада у нас быть не может.
+        -- не нужны, а отрицательного вклада у нас быть не может.
         if st.sum > 0 then
             actor:change_radiation(st.sum * delta / 1000)
         end
@@ -216,12 +213,34 @@ local function bq_inv_rad_tick()
     end
 end
 
+-- Обработчик реестра "update". Никаких аргументов не получает.
+local function bq_inv_rad_tick()
+    -- ВРЕМЕННАЯ ДИАГНОСТИКА: считаем вызовы и пишем по таймеру (а не по счётчику
+    -- кадров), чтобы по логу было видно, работает ли рассылка update вообще.
+    _G.bq_diag = _G.bq_diag or { cont_tick = 0, cont_work = 0, rad_tick = 0 }
+    _G.bq_diag.rad_tick = _G.bq_diag.rad_tick + 1
+    local now = time_global()
+    if now >= (_G.bq_diag.rad_next_log or 0) then
+        _G.bq_diag.rad_next_log = now + 5000
+        dbg(string.format("ДИАГ: радиация tick=%d cont_tick=%d",
+            _G.bq_diag.rad_tick, _G.bq_diag.cont_tick))
+    end
+    bq_inv_rad_step(now)
+end
+
 -- Сброс накопителя времени при загрузке сейва (аргументы не нужны).
 local function bq_inv_rad_on_load()
     _G.bq_inv_rad.last_tick = time_global()
     _G.bq_inv_rad.sum = nil
     _G.bq_inv_rad.next_recompute = 0
 end
+
+-- ПОЧЕМУ НЕ ПОДПИСЫВАЕМСЯ НА события актора (set_callback on_item_take/drop):
+-- в этой сборке CScriptCallbackEx хранит ОДНУ функцию на слот (script_callback_ex.h,
+-- поле m_functor), поэтому set_callback ПЕРЕЗАПИСЫВАЕТ того, кто подписался
+-- раньше. На actor:set_callback(callback.on_item_take) уже подписан
+-- bind_stalker.script:118 (статистика игры), и наша подписка её бы сломала.
+-- Поэтому работаем только через рассылку "update".
 
 -- Идемпотентная установка подписок. Вызывается из тела модуля и из точек входа
 -- конфига: движок исполняет .script повторно, и если к этому моменту реестр
@@ -297,33 +316,26 @@ _G.bq_inv_rad = _G.bq_inv_rad or {
     last_artefacts = nil,
 }
 
--- Точки входа. Семантика возврата у ключей РАЗНАЯ:
---   OnKeyPress         - true означает "клавиша обработана" и НЕ дойдёт до игры,
---                        поэтому здесь обязательно false;
---   OnCanMoveToPartner - false ЗАПРЕЩАЕТ торговлю, поэтому здесь обязательно true
---                        (UIActorMenuTrade.cpp:339).
+-- Точки входа. Их задача - только заставить движок исполнить этот файл и
+-- (пере)установить подписки. Считать радиацию ЗДЕСЬ НЕЛЬЗЯ: повторный вход в
+-- Lua из C++ внутри уже исполняющегося Lua-колбэка валит игру в
+-- luabind::class_rep::function_dispatcher (проверено вылетом 08.10.2026 при
+-- открытии инвентаря; стек CInput::KeyboardUpdate -> pcall -> pcall).
 --
--- ВАЖНО: точки входа не просто "пробуждают" файл - они САМИ дёргают расчёт.
--- Причина: подписка на "update" в этой сборке ненадёжна (реестр колбэков живёт
--- в локальной таблице dynamic_callbacks.lua и пересоздаётся вместе с
--- Lua-машиной), а эти функции движок вызывает напрямую из C++ по имени из
--- конфига, каждый раз заново их разрешая. Поэтому начисление работает даже если
--- реестр пуст. Обработчик бьёт по времени и сам понимает, что делать: лишний
--- вызов безопасен.
+-- Семантика возврата у ключей РАЗНАЯ:
+--   OnKeyPress         - true означает "клавиша обработана" и НЕ дойдёт до игры,
+--                        поэтому обязательно false;
+--   OnCanMoveToPartner - false ЗАПРЕЩАЕТ торговлю, поэтому обязательно true
+--                        (UIActorMenuTrade.cpp:339).
 function on_key_press(key, action)
     bq_inv_rad_register()
-    bq_inv_rad_tick()
     return false
 end
 
 -- Вторая дорога (ключ OnCanMoveToPartner в моде game_global, см.
--- UIActorMenuTrade.cpp:334-339). Срабатывает при перетаскивании предметов в
--- инвентаре - ровно тогда, когда игрок работает с контейнерами, и заодно
--- закрывает случай "стоим на месте". Аргументы движок передаёт, но нам они не
--- нужны: работа идёт по таймеру.
+-- UIActorMenuTrade.cpp:334-339). Аргументы движок передаёт, но нам они не нужны.
 function on_can_move_to_partner(partner, item, r1, r2, weight, partner_weight, partner_max)
     bq_inv_rad_register()
-    bq_inv_rad_tick()
     return true
 end
 

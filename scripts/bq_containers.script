@@ -234,11 +234,13 @@ local function do_apply()
 end
 
 local function apply_pending()
-    -- ВРЕМЕННАЯ ДИАГНОСТИКА: считается, сколько раз движок вообще вызвал
-    -- обработчик update. Убрать после разбора.
+    -- ВРЕМЕННАЯ ДИАГНОСТИКА: пишем по таймеру, чтобы по логу было видно,
+    -- работает ли рассылка update вообще. Убрать после разбора.
     _G.bq_diag = _G.bq_diag or { cont_tick = 0, cont_work = 0, rad_tick = 0 }
     _G.bq_diag.cont_tick = _G.bq_diag.cont_tick + 1
-    if _G.bq_diag.cont_tick == 1 or _G.bq_diag.cont_tick % 300 == 0 then
+    local now = time_global()
+    if now >= (_G.bq_diag.cont_next_log or 0) then
+        _G.bq_diag.cont_next_log = now + 5000
         dbg("ДИАГ: контейнеры tick=" .. _G.bq_diag.cont_tick
             .. " pending=" .. tostring(pending ~= nil)
             .. " is_talking=" .. tostring(db.actor and db.actor:is_talking()))
@@ -298,10 +300,12 @@ end
 -- 2) Доставание: кнопка на комбо-предмете (use1_functor в его секции).
 --    Функция обязана вернуть false: в IX-Ray use1_functor — это УСЛОВИЕ
 --    (UIActorMenuInventory.cpp:1389), и при true движок попытается "съесть"
---    предмет. Но доставание инициируется из UI (правый клик), поэтому сразу
---    менять инвентарь здесь нельзя - задача уходит в pending, а если
---    обработчик update не работает, её добьют точки входа on_item_focus /
---    register_and_flush (см. ниже).
+--    предмет.
+--
+--    Замена выполняется сразу. Раньше она откладывалась на update, но в этой
+--    сборке подписка на update не срабатывает, и доставание не работало вообще.
+--    Если немедленная замена почему-то не пройдёт, задача останется в pending
+--    и её добьёт apply_pending, когда обработчик update всё-таки вызовется.
 ----------------------------------------------------------------------------
 function take_artifact(combo)
     if not db.actor or not alife() or not combo then return false end
@@ -313,7 +317,7 @@ function take_artifact(combo)
         return false
     end
 
-    pending = {
+    local task = {
         mode      = "take",
         combo_id  = combo:id(),
         artifact  = artifact,
@@ -322,36 +326,27 @@ function take_artifact(combo)
     }
     dbg("доставание принято: '" .. combo_section .. "' -> '"
         .. artifact .. "' + '" .. container .. "'")
+
+    if not try_swap_now(task) then
+        pending = task
+    end
     return false
 end
 
 ----------------------------------------------------------------------------
--- Хук обновления + точки входа, которые движок дёргает сам.
+-- Точки входа, которые движок дёргает сам (объявлены в [callbacks]).
 --
--- Точки входа объявлены в конфиге `[callbacks]` и вызываются движком напрямую
--- из C++, каждый раз заново разрешаясь по имени. Поэтому они работают даже
--- когда подписка на update потеряна: здесь мы переподписываемся и добиваем
--- отложенную задачу.
+-- Их задача - только (пере)установить подписку. ВЫПОЛНЯТЬ ЗАМЕНУ ЗДЕСЬ НЕЛЬЗЯ:
+-- повторный вход в Lua из C++ внутри уже исполняющегося Lua-колбэка валит игру
+-- в luabind::class_rep::function_dispatcher. Именно на этом игра вылетала при
+-- открытии инвентаря (08.10.2026): стек CInput::KeyboardUpdate -> lua_pcall ->
+-- function_dispatcher -> lua_pcall -> function_dispatcher.
 --
--- Все возвращают false: движок воспринимает true как "событие обработано"
--- (для OnCanTake предмет нельзя будет взять).
-----------------------------------------------------------------------------
-local function register_and_flush()
-    RegisterScriptCallback("update", apply_pending)
-    if pending and db.actor and alife() and not db.actor:is_talking() then
-        dbg("добиваем отложенную задачу из точки входа движка")
-        local ok, err = pcall(do_apply)
-        if not ok then
-            pending = nil
-            dbg("ОШИБКА в do_apply: " .. tostring(err))
-        end
-    end
-end
-
 -- Наведение на предмет в инвентаре. Возврат этого ключа движок игнорирует
 -- (UIActorMenu_action.cpp:347-357), поэтому возвращаем true.
+----------------------------------------------------------------------------
 function on_item_focus(item)
-    register_and_flush()
+    RegisterScriptCallback("update", apply_pending)
     return true
 end
 
@@ -359,4 +354,4 @@ end
 -- Первичная установка при исполнении модуля.
 ----------------------------------------------------------------------------
 dbg("==== скрипт контейнеров загружен ====")
-register_and_flush()
+RegisterScriptCallback("update", apply_pending)
