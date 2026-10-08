@@ -319,33 +319,15 @@ _G.bq_inv_rad = _G.bq_inv_rad or {
 -- Точки входа. Их задача - только заставить движок исполнить этот файл и
 -- (пере)установить подписки. Считать радиацию ЗДЕСЬ НЕЛЬЗЯ: повторный вход в
 -- Lua из C++ внутри уже исполняющегося Lua-колбэка валит игру в
--- luabind::detail::class_rep::function_dispatcher (проверено вылетом 08.10.2026
--- при открытии инвентаря; стек CInput::KeyboardUpdate -> pcall -> pcall).
+-- luabind::class_rep::function_dispatcher (проверено вылетом 08.10.2026 при
+-- открытии инвентаря; стек CInput::KeyboardUpdate -> pcall -> pcall).
 --
 -- Семантика возврата у ключей РАЗНАЯ:
 --   OnKeyPress         - true означает "клавиша обработана" и НЕ дойдёт до игры,
 --                        поэтому обязательно false;
 --   OnCanMoveToPartner - false ЗАПРЕЩАЕТ торговлю, поэтому обязательно true
 --                        (UIActorMenuTrade.cpp:339).
-
--- ВРЕМЕННАЯ ДИАГНОСТИКА: считаем вызовы точек входа. Это единственный способ
--- увидеть в логе, доходят ли до нас движковые колбэки, если рассылка update
--- молчит. Убрать после разбора.
-local function bq_inv_rad_note_entry(what)
-    _G.bq_diag = _G.bq_diag or { cont_tick = 0, cont_work = 0, rad_tick = 0 }
-    _G.bq_diag[what] = (_G.bq_diag[what] or 0) + 1
-    local now = time_global()
-    if now >= (_G.bq_diag.entry_next_log or 0) then
-        _G.bq_diag.entry_next_log = now + 5000
-        dbg(string.format(
-            "ДИАГ ВХОДЫ: key=%d partner=%d | радиация tick=%d | контейнеры tick=%d",
-            _G.bq_diag.entry_key or 0, _G.bq_diag.entry_partner or 0,
-            _G.bq_diag.rad_tick or 0, _G.bq_diag.cont_tick or 0))
-    end
-end
-
 function on_key_press(key, action)
-    bq_inv_rad_note_entry("entry_key")
     bq_inv_rad_register()
     return false
 end
@@ -353,7 +335,6 @@ end
 -- Вторая дорога (ключ OnCanMoveToPartner в моде game_global, см.
 -- UIActorMenuTrade.cpp:334-339). Аргументы движок передаёт, но нам они не нужны.
 function on_can_move_to_partner(partner, item, r1, r2, weight, partner_weight, partner_max)
-    bq_inv_rad_note_entry("entry_partner")
     bq_inv_rad_register()
     return true
 end
