@@ -57,12 +57,19 @@ const ATLAS_W = 256;          // 5 клеток по 50
 // 1024 = степень двойки и кратно 4 (требования к DDS). Поднято с 512, когда
 // СИМК получил иконки В ДВЕ КЛЕТКИ ВЫСОТОЙ: пустой занимает строки 6-7, и
 // каждому из пяти комбо нужно ещё по две строки (8-9, 10-11, ... 16-17).
-const ATLAS_H = 1024;
+const ATLAS_H = 2048;
 const MAX_ROWS = ATLAS_H / CELL;
 
-// Артефакты в порядке строк атласа (строка 1 = первый). Порядок менять можно,
-// но тогда поменяются inv_grid_y у комбо — генератор их перепишет сам.
-const ARTIFACTS = ['af_eye', 'af_cristall', 'af_compass', 'af_ice', 'af_fireball'];
+// Артефакты берём из ЕДИНОГО источника правды (tools/artifact_balance.js) - там
+// же статы, тир и радиация. Поле map содержит секции игры (их бывает несколько
+// на один артефакт: Светлячок и Пламя - это одна секция af_fire).
+const BALANCE = require('./artifact_balance.js');
+const ARTIFACTS = [];
+for (const a of BALANCE.ARTIFACTS) for (const sec of a.map) ARTIFACTS.push(sec);
+
+// Имена для подписей в логе: секция -> русское название.
+const RU_BY_SECTION = {};
+for (const a of BALANCE.ARTIFACTS) for (const sec of a.map) RU_BY_SECTION[sec] = a.ru;
 
 // Контейнеры в порядке столбцов (строка 0 атласа и inv_grid_x).
 const CONTAINERS = [
@@ -88,13 +95,25 @@ const CONTAINERS = [
 //    должно совпадать с пустым" для СИМК отключена (см. check_containers.js).
 const SIMK_SOURCE = path.join(ROOT, 'textures', 'ui', 'bq_simk_source.dds');
 const SIMK = {
-    cellX: 0,          // столбец, где стоят все иконки СИМК
-    openY: 6,          // пустой (открытый): строки 6-7
-    closedY: 8,        // закрытый контейнер: строки 8-9
-    comboStartY: 8,    // заполненные: пара строк на артефакт, начиная отсюда
+    cellX: 0,          // столбец пустого СИМК (иконка 1x2)
+    openY: ARTIFACTS.length + 1,   // пустой (открытый): пара строк под ним
     art: 25,           // размер значка артефакта внутри иконки
     artOffset: 1,      // отступ значка от правого нижнего угла нижней клетки
+    perRow: 5,         // сколько комбо СИМК кладём в ряд (иконка 1 клетка шириной)
 };
+// Комбо СИМК начинаются сразу после пустого.
+SIMK.comboStartY = SIMK.openY + 2;
+const SIMK_ROWS = Math.ceil(ARTIFACTS.length / SIMK.perRow) * 2;
+const ROWS_NEEDED = SIMK.comboStartY + SIMK_ROWS;
+if (ROWS_NEEDED > MAX_ROWS) {
+    console.error(`FAIL: нужно ${ROWS_NEEDED} строк (${ROWS_NEEDED * CELL} px), ` +
+        `а ATLAS_H даёт ${MAX_ROWS}. Поднимите ATLAS_H.`);
+    process.exit(1);
+}
+console.log(`Раскладка: обычные комбо строки 1..${ARTIFACTS.length}, ` +
+    `пустой СИМК ${SIMK.openY}-${SIMK.openY + 1}, ` +
+    `комбо СИМК ${SIMK.comboStartY}..${ROWS_NEEDED - 1} (по ${SIMK.perRow} в ряду)`);
+console.log(`Артефактов: ${ARTIFACTS.length}, атлас ${ATLAS_W}x${ATLAS_H}`);
 
 const CHECK_ONLY = process.argv.includes('--check');
 
@@ -271,13 +290,6 @@ console.log(`Исходники СИМК: ${path.basename(SIMK_SOURCE)} (${simkD
 const simkOpen = crop(simkDec, 0, 0, CELL, 2 * CELL);
 const simkClosed = crop(simkDec, CELL, 0, CELL, 2 * CELL);
 
-const simkNeedRows = SIMK.comboStartY + 2 * ARTIFACTS.length;
-if (simkNeedRows > MAX_ROWS) {
-    console.error(`FAIL: комбо СИМК в 2 клетки не влезают в атлас: нужно ${simkNeedRows} ` +
-        `строк, а ATLAS_H/CELL = ${MAX_ROWS}. Поднимите ATLAS_H.`);
-    process.exit(1);
-}
-
 // Значок артефакта для СИМК меньше обычного (25 против 32 px) - заказчик
 // попросил именно 25x25. Собираем из той же исходной клетки атласа.
 const simkArtIcons = [];
@@ -290,11 +302,6 @@ for (const art of ARTIFACTS) {
 
 // 3b. Обычные комбо: строка на артефакт, столбец на контейнер.
 for (let row = 0; row < ARTIFACTS.length; row++) {
-    if (row + 1 >= MAX_ROWS) {
-        console.error(`FAIL: артефактов больше, чем строк в атласе (${MAX_ROWS - 1}); ` +
-            `увеличьте ATLAS_H`);
-        process.exit(1);
-    }
     for (let col = 0; col < CONTAINERS.length; col++) {
         const cellImg = new Uint8Array(containerIcons[col]);   // копия
         blit(cellImg, CELL, artIcons[row], ART, ART, OFFSET, OFFSET);
@@ -302,17 +309,20 @@ for (let row = 0; row < ARTIFACTS.length; row++) {
     }
 }
 
-// 3c. СИМК: пустой (открытый) и по паре строк на каждый заполненный.
+// 3c. СИМК: пустой (открытый) отдельной парой строк, затем комбо по 5 в ряд.
 blit(atlas, ATLAS_W, simkOpen, CELL, 2 * CELL, SIMK.cellX * CELL, SIMK.openY * CELL);
-for (let row = 0; row < ARTIFACTS.length; row++) {
-    const y = SIMK.comboStartY + 2 * row;
+for (let i = 0; i < ARTIFACTS.length; i++) {
+    const col = i % SIMK.perRow;
+    const band = Math.floor(i / SIMK.perRow);
+    const y = SIMK.comboStartY + band * 2;
     const cellImg = new Uint8Array(simkClosed);                // копия закрытого
     // значок артефакта - в правом нижнем углу НИЖНЕЙ клетки иконки
     const layerOff = CELL - SIMK.art - SIMK.artOffset;
-    blit(cellImg, CELL, simkArtIcons[row], SIMK.art, SIMK.art, layerOff, CELL + layerOff);
-    blit(atlas, ATLAS_W, cellImg, CELL, 2 * CELL, SIMK.cellX * CELL, y * CELL);
-    console.log(`  СИМК ${ARTIFACTS[row]}: строки ${y}-${y + 1}, значок ${SIMK.art}x${SIMK.art}`);
+    blit(cellImg, CELL, simkArtIcons[i], SIMK.art, SIMK.art, layerOff, CELL + layerOff);
+    blit(atlas, ATLAS_W, cellImg, CELL, 2 * CELL, col * CELL, y * CELL);
 }
+console.log(`  комбо СИМК: ${ARTIFACTS.length} шт, по ${SIMK.perRow} в ряд, ` +
+    `значок ${SIMK.art}x${SIMK.art}`);
 
 // 4. запись атласа
 const dds = encodeDXT5(atlas, ATLAS_W, ATLAS_H);
@@ -334,16 +344,19 @@ if (!CHECK_ONLY) {
 }
 
 // 5. сетка комбо: x = столбец контейнера, y = строка артефакта (+1).
-//    СИМК - исключение: его комбо лежат в своей строке (SIMK.comboY), по
-//    столбцу на артефакт, а пустой контейнер - в ячейке (SIMK.cellX, SIMK.cellY).
+//    СИМК - исключение: комбо раскладываются по SIMK.perRow в ряд парами строк,
+//    а пустой контейнер занимает пару строк (SIMK.openY) в столбце SIMK.cellX.
+//    Эти же координаты пишет tools/gen_artifacts.js в конфиг, поэтому раскладка
+//    здесь и там обязана совпадать - она и берётся из одних констант.
 const combosGrid = {};
 for (let row = 0; row < ARTIFACTS.length; row++) {
+    const art = ARTIFACTS[row];
     for (let col = 0; col < CONTAINERS.length; col++) {
-        combosGrid[`${ARTIFACTS[row]}_bq_${CONTAINERS[col].short}_container`] =
-            { x: col, y: row + 1 };
+        combosGrid[`${art}_bq_${CONTAINERS[col].short}_container`] = { x: col, y: row + 1 };
     }
-    combosGrid[`${ARTIFACTS[row]}_bq_simk_container`] =
-        { x: SIMK.cellX, y: SIMK.comboStartY + 2 * row };
+    const simkCol = row % SIMK.perRow;
+    const simkBand = Math.floor(row / SIMK.perRow);
+    combosGrid[`${art}_bq_simk_container`] = { x: simkCol, y: SIMK.comboStartY + simkBand * 2 };
 }
 // Пустой СИМК стоит в своей паре строк (openY .. openY+1)
 combosGrid['bq_simk_container'] = { x: SIMK.cellX, y: SIMK.openY };
