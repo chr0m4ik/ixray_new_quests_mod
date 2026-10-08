@@ -591,14 +591,14 @@ inv_grid_y                  = 8
 ; 1icon_layer (наш патч: ui\UICellCustomItems.cpp, InitLayer/UpdateLayer).
 ;   1icon_layer       = секция, ЧЬЮ иконку накладываем;
 ;   1icon_layer_x/_y  = отступ в пикселях от ПРАВОГО/НИЖНЕГО края клетки;
-;   1icon_layer_scale = размер значка относительно клетки 64 px.
+;   1icon_layer_scale = размер значка; 0.5 даёт значок 25x25.
 ; Значок 25x25 с отступом 1 px от правого нижнего угла:
 ;   scale = 25 / 64 = 0.390625
 ;   отступ = 50 - 25 - 1 = 24
 ; Положили значок в НИЖНЮЮ клетку (решение заказчика) - там же, где дно
 ; контейнера, то есть артефакт лежит внутри.
 1icon_layer                 = af_eye
-1icon_layer_scale           = 0.390625
+1icon_layer_scale           = 0.5
 1icon_layer_x               = 24
 1icon_layer_y               = 24
 ; ---- СТАТЫ ОБНУЛЕНЫ (решение заказчика) ----------------------------------
@@ -665,7 +665,7 @@ use1_functor                 = bq_containers.take_artifact
 ; Значок артефакта поверх закрытого контейнера (слой движка).
 ; Разбор ключей - в комментарии у секции af_eye_bq_simk_container.
 1icon_layer                 = af_ice
-1icon_layer_scale           = 0.390625
+1icon_layer_scale           = 0.5
 1icon_layer_x               = 24
 1icon_layer_y               = 24
 
@@ -709,7 +709,7 @@ use1_functor                 = bq_containers.take_artifact
 ; Значок артефакта поверх закрытого контейнера (слой движка).
 ; Разбор ключей - в комментарии у секции af_eye_bq_simk_container.
 1icon_layer                 = af_cristall
-1icon_layer_scale           = 0.390625
+1icon_layer_scale           = 0.5
 1icon_layer_x               = 24
 1icon_layer_y               = 24
 
@@ -753,7 +753,7 @@ use1_functor                 = bq_containers.take_artifact
 ; Значок артефакта поверх закрытого контейнера (слой движка).
 ; Разбор ключей - в комментарии у секции af_eye_bq_simk_container.
 1icon_layer                 = af_compass
-1icon_layer_scale           = 0.390625
+1icon_layer_scale           = 0.5
 1icon_layer_x               = 24
 1icon_layer_y               = 24
 
@@ -797,7 +797,7 @@ use1_functor                 = bq_containers.take_artifact
 ; Значок артефакта поверх закрытого контейнера (слой движка).
 ; Разбор ключей - в комментарии у секции af_eye_bq_simk_container.
 1icon_layer                 = af_fireball
-1icon_layer_scale           = 0.390625
+1icon_layer_scale           = 0.5
 1icon_layer_x               = 24
 1icon_layer_y               = 24
 

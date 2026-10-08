@@ -678,7 +678,10 @@ do
     -- m) У комбо со глазом настроен слой значка артефакта. Слой рисует ДВИЖОК
     --    по ключу 1icon_layer (наш патч ui\UICellCustomItems.cpp,
     --    InitLayer/UpdateLayer); ключи читаются из секции ПРЕДМЕТА, то есть из
-    --    комбо. Значок 25x25 с отступом 1 px: scale = 25/64, отступ = 50-25-1.
+    --    комбо. Значок 25x25 с отступом 1 px.
+    --    scale = 0.5 (НЕ 25/64): по формуле движка sz.y = H * scale / 2, где
+    --    H - высота иконки; при H = 100 (две клетки) 0.5 даёт 25 px.
+    --    отступ = 50 - 25 - 1 = 24.
     local eyeHeader = "[af_eye_bq_simk_container]"
     local eyeH = key_in_section(cfg, eyeHeader, "inv_grid_height")
     local layerSect = key_in_section(cfg, eyeHeader, "1icon_layer")
@@ -686,9 +689,9 @@ do
     local layerX = tonumber(key_in_section(cfg, eyeHeader, "1icon_layer_x") or "-1")
     local layerY = tonumber(key_in_section(cfg, eyeHeader, "1icon_layer_y") or "-1")
     local layerOk = layerSect == "af_eye"
-        and math.abs(layerScale - 25 / 64) < 1e-9
+        and math.abs(layerScale - 0.5) < 1e-9
         and layerX == 24 and layerY == 24
-    say(string.format("10m) слой значка 25x25 у комбо с глазом (height=%s scale=%.6f x=%s y=%s) -> %s",
+    say(string.format("10m) слой значка 25x25 у комбо с глазом (height=%s scale=%.2f x=%s y=%s) -> %s",
         tostring(eyeH), layerScale, tostring(layerX), tostring(layerY),
         (eyeH == "2" and layerOk) and "OK"
             or ("ОШИБКА: 1icon_layer=" .. tostring(layerSect))))
