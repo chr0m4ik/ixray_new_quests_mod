@@ -1,1041 +1,542 @@
-// check_containers.js — проверка конфига контейнеров для аддона.
+// tools/check_containers.js
 //
-// Читает исходные ltx в cp1251 побайтово, строит ИТОГОВОЕ дерево секций
-// (с учётом наследования) и проверяет:
-//   1) каждый родитель существует;
-//   2) все ключи, которые движок читает СТРОГО, присутствуют;
-//   3) у каждого комбо свои inv_grid_x/y и icons_texture;
-//   4) у каждого комбо hit_absorbation_sect указывает на таблицу артефакта
-//      (защита артефакта сохраняется);
-//   5) radiation_restore_speed комбо = радиация артефакта - поглощение;
-//   6) все inv_name/description/use1_text есть в русской локализации;
-//   7) нет дублей секций и ключей в нашем файле.
+// Полная проверка контейнеров и комбо. Ожидания ВЫВОДЯТСЯ ИЗ БАЛАНСА
+// (tools/artifact_balance.js), а не из рукописных таблиц: если поменять баланс,
+// проверка сразу скажет, что разошлось в конфиге, атласе или локализации.
 //
-// Запуск: node tools/check_containers.js
+// Проверяет:
+//   1. структуру файла мода: шаблон, контейнеры, маркеры генерируемых блоков;
+//   2. пустые контейнеры: обязательные ключи, поглощение, ячейка атласа;
+//   3. ВСЕ комбо: существование, координаты, belt, радиацию, защиту, модель;
+//   4. иконки: ячейка в атласе заполнена и не совпадает с соседями;
+//   5. соответствие bq_containers.script <-> конфиг (суффиксы комбо);
+//   6. модели (visual) и их текстуры - файлы существуют;
+//   7. регрессы на вылеты: particles_bone, inv_scale;
+//   8. локализацию: у каждого комбо есть строки имени и описания.
+//
+// Запуск из корня аддона:  node tools/check_containers.js
+
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const dds = require('./dds.js');
+const { readLtx, loadAll, makeResolver } = require('./ini_resolver.js');
+const B = require('./artifact_balance.js');
 
+const ROOT = path.join(__dirname, '..');
 const GAME = 'Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_Original_gamedata\\gamedata\\configs';
-const MOD = path.join(__dirname, '..', 'configs');
-const OUR_FILE = path.join(MOD, 'misc', 'mod_artefacts_z_bq.ltx');
+const HQ_ICONS = path.join(ROOT, '..', 'ixray-hq-icons-v2.0', 'configs', 'mod_system_hqicons.ltx');
+const OWN_FILE = path.join(ROOT, 'configs', 'misc', 'mod_artefacts_z_bq.ltx');
+const ATLAS = path.join(ROOT, 'textures', 'ui', 'ui_bq_field_container.dds');
+const CELL = 50;
 
 let errors = 0;
 const err = (m) => { console.error('FAIL: ' + m); errors++; };
 const ok = (m) => console.log('  ok: ' + m);
 
-// ---------------------------------------------------------------- чтение ltx
-// Разбор конфигов - в общем модуле (tools/ini_resolver.js): там учтён синтаксис
-// переопределений "![Имя]" и то, что переопределение ДОПОЛНЯЕТ секцию.
-// Своя копия парсера здесь уже один раз разошлась с настоящим поведением
-// движка и скрыла проблему с inv_scale.
-const { readLtx, readLtxInto, makeResolver } = require('./ini_resolver.js');
-
-// Порядок как в игре: оригинальная gamedata, затем моды сборки, затем наш файл.
-// Моды сборки обязательны: ixray-hq-icons-v2.0 переопределяет секции артефактов
-// и задаёт им inv_scale = 2.0 - без этого файла не видно, откуда у комбо
-// берётся двойной размер иконки (2x2 ячейки вместо одной).
-const ADDONS_DIR = 'Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_IXRAY\\ixr_addons';
-const HQ_ICONS = path.join(ADDONS_DIR, 'ixray-hq-icons-v2.0', 'configs', 'mod_system_hqicons.ltx');
-
-const merged = new Map();
-const loadOrder = [
-    // system.ltx обязателен: в нём объявлены базовые секции движка, например
-    // [space_restrictor] (system.ltx:621), от которой наследуется наш
-    // внутренний объект-турер радиации.
-    path.join(GAME, 'system.ltx'),
+// Разрешение наследования: ваниль -> HQ Icons -> наш файл.
+const merged = loadAll([
     path.join(GAME, 'defines.ltx'),
     path.join(GAME, 'misc', 'artefacts.ltx'),
     HQ_ICONS,
-    OUR_FILE,
-].filter((f) => fs.existsSync(f));
-if (!fs.existsSync(HQ_ICONS)) {
-    console.warn('ВНИМАНИЕ: не найден мод HQ Icons, проверка inv_scale будет неполной');
-}
-for (const f of loadOrder) readLtxInto(f, merged);
-
-// Секции НАШЕГО файла - отдельно: нужны для проверки дублей ключей и для
-// поиска секций, которые задаём именно мы.
-const ours = readLtx(OUR_FILE);
-
-// ------------------------------------------------- вычисление наследования
+    OWN_FILE,
+]);
 const resolve = makeResolver(merged);
+const own = readLtx(OWN_FILE);
+const ownText = fs.readFileSync(OWN_FILE, 'utf8');
+const ownLines = ownText.split(/\r?\n/);
 
-// Дубли ключей внутри наших секций: движок берёт ПОСЛЕДНЕЕ значение, поэтому
-// дубль молча теряет одну из правок.
+// Наши секции предметов: контейнеры + все комбо.
+const comboName = (sec, container) => `${sec}_${container}`;
+const ALL_SECTIONS = [];
+for (const a of B.ARTIFACTS) {
+    for (const sec of a.map) {
+        for (const c of B.CONTAINERS) ALL_SECTIONS.push(comboName(sec, c));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 1. Структура файла
+// ---------------------------------------------------------------------------
+console.log('== 1. Структура файла мода ==');
 {
-    const seenBySection = new Map();
-    let curSection = null;
-    for (const raw of fs.readFileSync(OUR_FILE).toString('latin1').split(/\r?\n/)) {
-        const line = raw.replace(/;.*$/, '').trim();
-        const h = line.match(/^(!?)\[([^\]]+)\]/);
-        if (h) { curSection = h[2].trim(); continue; }
-        const kv = line.match(/^([A-Za-z0-9_.$]+)\s*=/);
-        if (kv && curSection) {
-            if (!seenBySection.has(curSection)) seenBySection.set(curSection, new Set());
-            const seen = seenBySection.get(curSection);
-            if (seen.has(kv[1])) err(`дубль ключа '${kv[1]}' в [${curSection}]`);
-            seen.add(kv[1]);
-        }
+    const required = ['bq_container_base', 'bq_field_container', 'bq_uni_container',
+        'bq_sci_container', 'bq_simk_container', 'bq_rad_tuner'];
+    for (const sec of required) {
+        if (!own.has(sec)) err(`нет секции [${sec}]`);
     }
-}
+    ok(`секции на месте: ${required.join(', ')}`);
 
-// ------------------------------------------------ обязательные ключи движка
-// Артефакт (Artefact.cpp:64-116) + предмет (inventory_item.cpp:111-193).
-const REQUIRED = [
-    'immunities_sect', 'sprint_allowed', 'control_inertion_factor',
-    'hud', 'animation_slot', 'lights_enabled', 'particles_bone',
-    'attach_angle_offset', 'attach_position_offset', 'attach_bone_name',
-    'slot', 'inv_name', 'inv_name_short', 'inv_weight', 'cost', 'description',
-    'inv_grid_x', 'inv_grid_y', 'inv_grid_width', 'inv_grid_height',
-    'health_restore_speed', 'radiation_restore_speed', 'satiety_restore_speed',
-    'power_restore_speed', 'bleeding_restore_speed',
-    'additional_inventory_weight', 'af_rank', 'hit_absorbation_sect',
-];
-
-// class проверяется отдельно и ОБЯЗАТЕЛЬНО: движок читает его через
-// pSettings->r_clsid (SpawnManager.cpp:137 и создание объекта), а в
-// оригинальном artefacts.ltx ключа class НЕТ ни у af_base, ни у
-// identity_immunities - его задаёт каждый конкретный артефакт.
-// Пропуск этого ключа дал вылет "Can't find variable class in [bq_uni_container]".
-
-const CONTAINERS = [
-    { section: 'bq_field_container', combo: 'af_eye_bq_field_container', absorb: 0.004 },
-    { section: 'bq_uni_container', combo: 'af_eye_bq_uni_container', absorb: 0.008 },
-    { section: 'bq_sci_container', combo: 'af_eye_bq_sci_container', absorb: 0.014 },
-    // СИМК: поглощает ВСЮ радиацию (комбо всегда 0) и НЕ надевается на пояс.
-    // absorb тут не используется - для него работает отдельная проверка ниже.
-    { section: 'bq_simk_container', combo: 'af_eye_bq_simk_container', absorb: 0, total: true, belt: false },
-];
-
-// Артефакты, для которых есть комбо. `radiation` - ИТОГОВОЕ значение
-// radiation_restore_speed артефакта (с учётом наших переопределений статов),
-// `bleeding` - его bleeding_restore_speed в единицах конфига.
-// Радиация по редкости (тир-лист): 1 тир +11 -> 0.011, 2 тир +6 -> 0.006,
-// 3 тир +3 -> 0.003, уникальный +15 -> 0.015.
-// Комбо обязано НЕ переопределять статы артефакта (кроме радиации).
-const TESTED_ARTEFACTS = [
-    {
-        artefact: 'af_ice',
-        radiation: 0.011,
-        bleeding: 0,
-        absorbation: 'af_ice_absorbation',
-        combos: {
-            bq_field_container: 'af_ice_bq_field_container',
-            bq_uni_container:   'af_ice_bq_uni_container',
-            bq_sci_container:   'af_ice_bq_sci_container',
-            bq_simk_container:  'af_ice_bq_simk_container',
-        },
-    },
-    {
-        artefact: 'af_eye',
-        radiation: 0.006,
-        bleeding: 0.005,
-        absorbation: 'af_eye_absorbation',
-        combos: {
-            bq_field_container: 'af_eye_bq_field_container',
-            bq_uni_container:   'af_eye_bq_uni_container',
-            bq_sci_container:   'af_eye_bq_sci_container',
-            bq_simk_container:  'af_eye_bq_simk_container',
-        },
-    },
-    {
-        artefact: 'af_cristall',
-        radiation: 0.003,
-        bleeding: 0,
-        absorbation: 'af_cristall_absorbation',
-        combos: {
-            bq_field_container: 'af_cristall_bq_field_container',
-            bq_uni_container:   'af_cristall_bq_uni_container',
-            bq_sci_container:   'af_cristall_bq_sci_container',
-            bq_simk_container:  'af_cristall_bq_simk_container',
-        },
-    },
-    {
-        // В оригинале у Компаса class = SCRPTART (не ARTEFACT!), и этот класс в
-        // сборке не зарегистрирован. Комбо получает class = ARTEFACT от
-        // bq_container_base, а script_binding наследует от af_base.
-        artefact: 'af_compass',
-        radiation: 0.015,
-        bleeding: 0,
-        absorbation: 'af_compass_absorbation',
-        combos: {
-            bq_field_container: 'af_compass_bq_field_container',
-            bq_uni_container:   'af_compass_bq_uni_container',
-            bq_sci_container:   'af_compass_bq_sci_container',
-            bq_simk_container:  'af_compass_bq_simk_container',
-        },
-    },
-    {
-        // Огненный шар. Радиация 0.002 - как у Глаза в оригинале, поэтому все
-        // три обычных комбо дают 0 (контейнер поглощает больше, чем артефакт
-        // излучает), а СИМК даёт 0 всегда - он поглощает всё.
-        artefact: 'af_fireball',
-        radiation: 0.002,
-        bleeding: 0,
-        absorbation: 'af_fireball_absorbation',
-        combos: {
-            bq_field_container: 'af_fireball_bq_field_container',
-            bq_uni_container:   'af_fireball_bq_uni_container',
-            bq_sci_container:   'af_fireball_bq_sci_container',
-            bq_simk_container:  'af_fireball_bq_simk_container',
-        },
-    },
-];
-
-// Секции НАШЕГО аддона, которые являются предметами и должны иметь полный
-// набор ключей: пустые контейнеры и комбо. Переопределения ванильных
-// артефактов ("![af_eye]" и т.п.) сюда НЕ входят: у них свои наборы ключей,
-// а class может быть SCRPTART (Компас).
-const OUR_ITEM_SECTIONS = [
-    ...CONTAINERS.map((c) => c.section),
-    ...TESTED_ARTEFACTS.flatMap((a) => Object.values(a.combos)),
-];
-
-// ВНУТРЕННИЕ секции аддона: это НЕ предметы, игрок их получить не должен.
-// Проверять у них набор ключей предмета и требовать inv_grid > 0 бессмысленно
-// и вредно: наоборот, они обязаны быть скрыты из спавнера
-// (inv_grid_width/height = 0, SpawnManager.cpp:160-161).
-// [bq_rad_tuner] - невидимый объект-ограничитель (space_restrictor), чей
-// Lua-биндер движок дёргает каждый кадр; на нём держится радиация в рюкзаке
-// (см. NOTES_radiation_research.md).
-const INTERNAL_SECTIONS = new Set(['bq_rad_tuner']);
-// Формула, подтверждённая заказчиком в игре: контейнер поглощает НЕ БОЛЬШЕ,
-// чем артефакт излучает, поэтому результат никогда не отрицательный.
-const comboRadiation = (artRad, absorb) => Math.max(0, artRad - absorb);
-
-// Статы, которые комбо НЕ должно переопределять: они должны приходить от
-// артефакта как есть (радиация сюда не входит - она пересчитывается).
-const INHERITED_FROM_ARTEFACT = [
-    'health_restore_speed', 'satiety_restore_speed', 'power_restore_speed',
-    'bleeding_restore_speed', 'additional_inventory_weight',
-    'hit_absorbation_sect',
-];
-
-// Шаблонные секции: не самостоятельные предметы, у них намеренно нет
-// inv_grid_x/y и hit_absorbation_sect (их задают наследники).
-const TEMPLATES = new Set(['bq_container_base', 'bq_combo_base']);
-
-console.log('== 1. Наши секции и их родители ==');
-// Проверяем ПОЛНЫЙ набор ключей только у своих предметов (контейнеры и комбо)
-// и у шаблона. Переопределения ванильных артефактов проверяются отдельно:
-// у них другой набор ключей, а class у Компаса вообще SCRPTART.
-const isItemSection = (r) => ![...r.keys()].some((k) => k.endsWith('_immunity'));
-for (const name of ours.keys()) {
-    const r = resolve(name);
-    const isOurs = OUR_ITEM_SECTIONS.includes(name) || TEMPLATES.has(name);
-    // Внутренние объекты (турер) не предметы: у них другой набор ключей и они
-    // намеренно скрыты из спавнера. Проверяем только родителя.
-    if (INTERNAL_SECTIONS.has(name)) {
-        const parents = ours.get(name).parents;
-        for (const p of parents) if (!merged.has(p)) err(`[${name}] родитель [${p}] не найден`);
-        const b = r.get('script_binding');
-        if (!b) err(`[${name}] нет script_binding — биндер не заработает`);
-        ok(`[${name}] внутренний объект, script_binding=${b}`);
-        continue;
-    }
-    if (isItemSection(r) && isOurs) {
-        // class обязателен: без него движок падает в r_clsid
-        if (!r.has('class')) {
-            err(`[${name}] нет ключа 'class' — движок упадёт: Can't find variable class`);
-        } else if (r.get('class') !== 'ARTEFACT') {
-            err(`[${name}] class='${r.get('class')}', ожидалось ARTEFACT` +
-                (r.get('class') === 'SCRPTART' ? ' (SCRPTART в этой сборке не зарегистрирован: object_factory_register.cpp:446)' : ''));
-        }
-        // inv_grid_x/y читаются СТРОГО (inventory_item.cpp:190 и др.) и нужны
-        // даже шаблону: он тоже попадает в UI-списки (проверено вылетом
-        // "Can't find variable inv_grid_x in [bq_container_base]").
-        if (!r.has('inv_grid_x') || !r.has('inv_grid_y')) {
-            err(`[${name}] нет inv_grid_x/inv_grid_y — движок упадёт при работе с UI`);
-        }
-        // по этому ключу движок решает, показывать ли окно характеристик
-        // артефакта: CUIArtefactParams::Check (ui_af_params.cpp:193-195) - это
-        // ровно line_exist, значение не читается.
-        //
-        // ИСКЛЮЧЕНИЕ - СИМК: заказчик решил, что у него показываются только
-        // название и описание, без таблицы характеристик. Значит у СИМК и его
-        // комбо ключ обязан быть 'off' (ключ унаследован от bq_container_base,
-        // убрать его нельзя, но проверка смотрит на наличие, а не на значение).
-        const isSimk = name === 'bq_simk_container'
-            || name.endsWith('_bq_simk_container');
-        if (isSimk) {
-            if (r.get('af_actor_properties') !== 'off') {
-                err(`[${name}] af_actor_properties = '${r.get('af_actor_properties')}', ` +
-                    `нужно 'off' - у СИМК статистика артефакта не показывается`);
-            }
-        } else if (r.get('af_actor_properties') !== 'on') {
-            err(`[${name}] af_actor_properties = '${r.get('af_actor_properties')}', нужно 'on' ` +
-                `(иначе не будет окна характеристик)`);
-        }
-    }
-    if (isItemSection(r) && !TEMPLATES.has(name)) {
-        const missing = REQUIRED.filter((k) => !r.has(k));
-        if (missing.length) err(`[${name}] нет обязательных ключей: ${missing.join(', ')}`);
-        // настоящий предмет обязан быть виден в спавнере: оба размера > 0,
-        // иначе SpawnManager считает секцию фиктивной (SpawnManager.cpp:160-161)
-        const gw = parseInt(r.get('inv_grid_width'), 10);
-        const gh = parseInt(r.get('inv_grid_height'), 10);
-        if (!(gw > 0) || !(gh > 0)) {
-            err(`[${name}] inv_grid_width/height = ${gw}/${gh} — предмет исчезнет из спавнера`);
-        }
-    }
-    if (TEMPLATES.has(name)) {
-        // шаблон НЕ должен быть виден в спавнере: раньше bq_container_base
-        // появлялся в списке, и его спавн падал
-        const gw = parseInt(r.get('inv_grid_width'), 10);
-        const gh = parseInt(r.get('inv_grid_height'), 10);
-        if (gw > 0 || gh > 0) {
-            err(`[${name}] шаблон виден в спавнере (inv_grid_width/height = ${gw}/${gh}) — ` +
-                `должны быть 0, иначе игрок сможет его заспавнить`);
-        }
-        // И ГЛАВНОЕ для шаблона: он идёт ПОСЛЕДНИМ родителем комбо, поэтому
-        // любой его ключ важнее статов артефакта. Задавать здесь belt и
-        // *_restore_speed нельзя — это уже приводило к потере всех эффектов
-        // артефакта в комбо (пропадало замедление кровотечения у Глаза).
-        const SHADOWING = [
-            'belt', 'additional_inventory_weight',
-            'health_restore_speed', 'satiety_restore_speed',
-            'power_restore_speed', 'bleeding_restore_speed',
-        ];
-        for (const key of SHADOWING) {
-            if (ours.get(name).keys.has(key)) {
-                err(`[${name}] задаёт '${key}' — он перебьёт статы артефакта в комбо ` +
-                    `(шаблон идёт последним родителем). Задавайте это в наследниках.`);
-            }
-        }
-    }
-    const parents = ours.get(name).parents;
-    for (const p of parents) if (!merged.has(p)) err(`[${name}] родитель [${p}] не найден`);
-    ok(`[${name}] ключей ${r.size}, родителей ${parents.length}` +
-       (isItemSection(r) ? `, class=${r.get('class')}` : '') +
-       (TEMPLATES.has(name) ? ' (шаблон)' : ''));
-}
-
-console.log('== 2. Комбо: иконка, защита, радиация ==');
-const locIds = new Set();
-const rusXml = fs.readFileSync(path.join(MOD, 'text', 'rus', 'st_beard_quest.xml'), 'utf8');
-for (const m of rusXml.matchAll(/<string id="([^"]+)"/g)) {
-    if (locIds.has(m[1])) err(`дубль строки локализации '${m[1]}'`);
-    locIds.add(m[1]);
-}
-
-for (const spec of TESTED_ARTEFACTS) {
-    const art = spec.artefact;
-    const artRes = resolve(art);
-    if (!artRes.size) continue;
-    const artRad = parseFloat(artRes.get('radiation_restore_speed'));
-    const artAbs = artRes.get('hit_absorbation_sect');
-    const artBurn = parseFloat(resolve(artAbs).get('burn_immunity') || '0');
-    const artBleed = parseFloat(artRes.get('bleeding_restore_speed'));
-    // сверка ожидаемых чисел с оригиналом: если артефакт изменят, проверка
-    // заставит обновить таблицу, а не молча считать по устаревшим числам
-    if (Math.abs(artRad - spec.radiation) > 1e-9) {
-        err(`${art}: radiation в конфиге ${artRad}, в проверке указано ${spec.radiation}`);
-    }
-    if (Math.abs(artBleed - spec.bleeding) > 1e-9) {
-        err(`${art}: bleeding_restore_speed в конфиге ${artBleed}, в проверке указано ${spec.bleeding}`);
-    }
-    console.log(`  артефакт ${art}: radiation=${artRad}, bleeding=${artBleed}, ` +
-                `absorbation=${artAbs} (burn ${artBurn})`);
-    for (const c of CONTAINERS) {
-        const combo = spec.combos[c.section];
-        if (!combo) { err(`для ${art} не задано имя комбо для ${c.section}`); continue; }
-        const r = resolve(combo);
-        if (!r.size) { err(`[${combo}] секция не найдена`); continue; }
-        const m = merged.get(combo);
-
-        // иконка: свои координаты, не унаследованные от артефакта
-        const own = (k) => m.keys.has(k);
-        if (!own('inv_grid_x') || !own('inv_grid_y')) err(`[${combo}] inv_grid_x/y не заданы явно`);
-        if (!own('icons_texture')) err(`[${combo}] icons_texture не задан явно`);
-        if (!own('radiation_restore_speed')) err(`[${combo}] radiation_restore_speed не задан явно`);
-
-        // защита: таблица иммунитетов артефакта, заданная в проверке явно
-        // (а не выведенная из того же конфига - иначе проверка бессмысленна).
-        //
-        // ИСКЛЮЧЕНИЕ - СИМК (total): у него СВОЯ нейтральная таблица. Защита
-        // артефакта работает только на поясе, а СИМК на пояс не надевается
-        // (belt = false), поэтому наследовать её незачем.
-        if (c.total) {
-            if (r.get('hit_absorbation_sect') !== 'bq_simk_container_absorbation') {
-                err(`[${combo}] hit_absorbation_sect='${r.get('hit_absorbation_sect')}', ` +
-                    `ожидалось 'bq_simk_container_absorbation' (у СИМК своя нейтральная таблица)`);
-            } else ok(`[${combo}] защита: своя нейтральная таблица СИМК`);
-        } else if (r.get('hit_absorbation_sect') !== spec.absorbation) {
-            err(`[${combo}] hit_absorbation_sect='${r.get('hit_absorbation_sect')}', ` +
-                `ожидалось '${spec.absorbation}'`);
-        } else ok(`[${combo}] защита от артефакта (${spec.absorbation})`);
-
-        // радиация: combo = artefact + min(-absorb, artefact), то есть
-        // контейнер поглощает не больше, чем артефакт излучает (MEMO 13.2).
-        //
-        // ДЛЯ СИМК правило другое: он поглощает ВСЁ, поэтому радиация комбо
-        // равна 0 при любой радиации артефакта. Формулу к нему применять
-        // нельзя - его "поглощение" в конфиге равно 0 (контейнер нейтрален
-        // сам по себе), и формула вернула бы радиацию артефакта.
-        const exact = +(artRad - c.absorb).toFixed(6);
-        const want = c.total ? 0 : comboRadiation(artRad, c.absorb);
-        const got = parseFloat(r.get('radiation_restore_speed'));
-        if (Math.abs(want - got) > 0.0000005) {
-            err(`[${combo}] radiation_restore_speed=${got}, ожидалось ${want} ` +
-                (c.total
-                    ? '(СИМК: поглощает всю радиацию, всегда 0)'
-                    : `(${artRad} + min(${-c.absorb}, ${artRad})` +
-                      (exact < 0 ? `; без ограничения получилось бы ${exact}` : '') + ')'));
-        } else {
-            ok(`[${combo}] radiation=${got} ` +
-                (c.total ? '(СИМК: поглощает всё)' : `(артефакт ${artRad}, поглощение ${c.absorb})`));
-        }
-
-        // СИМК НЕЛЬЗЯ надеть на пояс - это его главное отличие. Движок решает по
-        // ключу belt (CInventory::CanPutInBelt, Inventory.cpp:1295-1303;
-        // флаг читается из секции в inventory_item.cpp:170).
-        if (c.total) {
-            const belt = r.get('belt');
-            if (belt !== 'false') {
-                err(`[${combo}] belt='${belt}', у СИМК должно быть false - ` +
-                    `иначе контейнер можно надеть на пояс, а он переносной`);
-            } else ok(`[${combo}] belt=false (на пояс не надевается)`);
-        }
-
-        // Обычные комбо НАСЛЕДУЮТ статы артефакта, а не переписывают их.
-        //
-        // ИСКЛЮЧЕНИЕ - СИМК: у него все статы ОБНУЛЕНЫ (решение заказчика -
-        // показывать только название и описание). Поэтому обычные правила к
-        // нему не применяются, а вместо них работает отдельная проверка
-        // "все статы равны нулю" ниже.
-        if (c.total) {
-            // Окно характеристик читает восстановление из СЕКЦИИ предмета
-            // (ui_af_params.cpp:256) и пропускает нулевые строки (:257-260);
-            // иммунитеты читаются из hit_absorbation_sect (:231-232) с той же
-            // проверкой на ноль (:233). Значит для пустого окна нужно, чтобы
-            // ВСЁ было нулём - и статы комбо, и таблица защит.
-            const ZEROED = [
-                'health_restore_speed', 'satiety_restore_speed', 'thirst_restore_speed',
-                'power_restore_speed', 'bleeding_restore_speed', 'radiation_restore_speed',
-                'additional_inventory_weight',
-            ];
-            const nonZero = ZEROED.filter((k) => {
-                const v = parseFloat(r.get(k));
-                return isNaN(v) || Math.abs(v) > 1e-9;
-            });
-            if (nonZero.length) {
-                err(`[${combo}] у СИМК должны быть обнулены статы, но не нули: ` +
-                    nonZero.map((k) => `${k}=${r.get(k)}`).join(', '));
-            } else {
-                ok(`[${combo}] все статы обнулены (окно покажет только название и описание)`);
-            }
-            // таблица защит должна быть нейтральной: все иммунитеты 0
-            const absRes = resolve(r.get('hit_absorbation_sect'));
-            const IMM = [
-                'radiation_immunity', 'burn_immunity', 'chemical_burn_immunity',
-                'telepatic_immunity', 'shock_immunity', 'wound_immunity',
-                'fire_wound_immunity', 'explosion_immunity', 'strike_immunity',
-            ];
-            const badImm = IMM.filter((k) => Math.abs(parseFloat(absRes.get(k) || 0)) > 1e-9);
-            if (badImm.length) {
-                err(`[${combo}] таблица защит не нейтральна, ненулевые: ${badImm.join(', ')}`);
-            }
-        } else {
-        for (const key of INHERITED_FROM_ARTEFACT) {
-            if (m.keys.has(key)) {
-                err(`[${combo}] переопределяет '${key}' — должен наследовать от артефакта`);
-            }
-        }
-
-        // И ГЛАВНОЕ: итоговое значение этих статов у комбо должно совпадать с
-        // артефактом. Проверки "комбо не переопределяет ключ" недостаточно:
-        // bq_container_base идёт ВТОРЫМ родителем (он важнее), и его нули
-        // перебивали статы артефакта. Так пропадало замедление кровотечения
-        // (af_eye: bleeding_restore_speed = 0.004).
-        for (const key of INHERITED_FROM_ARTEFACT) {
-            const want = artRes.get(key);
-            const have = r.get(key);
-            if (want !== have) {
-                err(`[${combo}] ${key} = '${have}', а у артефакта '${want}' — ` +
-                    `стат артефакта потерян (bq_container_base важнее как последний родитель)`);
-            }
-        }
-        // отдельно и явно — то, что заказчик проверяет в игре
-        if (Math.abs(parseFloat(r.get('bleeding_restore_speed')) - spec.bleeding) > 1e-9) {
-            err(`[${combo}] bleeding_restore_speed = ${r.get('bleeding_restore_speed')}, ` +
-                `ожидалось ${spec.bleeding} (как у ${art})`);
-        } else {
-            ok(`[${combo}] bleeding_restore_speed = ${r.get('bleeding_restore_speed')} (от ${art})`);
-        }
-        }   // конец ветки "обычное комбо" (у СИМК статы обнулены)
-
-        // belt у комбо ОБЯЗАН быть true. Тонкость наследования в X-Ray:
-        // последний родитель важнее, а bq_container_base задаёт belt = false
-        // (он идёт вторым родителем) - без явного belt = true в комбо предмет
-        // нельзя положить на пояс, и он не даёт никаких эффектов.
-        //
-        // ИСКЛЮЧЕНИЕ - СИМК: ему на пояс НЕЛЬЗЯ, это его смысл (переносной
-        // контейнер). Проверка belt=false для него сделана выше.
-        if (!c.total && r.get('belt') !== 'true') {
-            err(`[${combo}] belt = '${r.get('belt')}', нужно 'true': ` +
-                `bq_container_base идёт последним родителем и перебивает belt от артефакта`);
-        }
-        // пустой контейнер, наоборот, на пояс надевать нельзя
-        if (r.get('can_trade') !== 'false') {
-            err(`[${combo}] can_trade = '${r.get('can_trade')}', нужно 'false' ` +
-                `(комбо не должно попадать в торговлю)`);
-        }
-
-        // локализация
-        for (const k of ['inv_name', 'description', 'use1_text']) {
-            const v = r.get(k);
-            if (!v) err(`[${combo}] нет ключа ${k}`);
-            else if (k !== 'use1_text' && !locIds.has(v)) err(`[${combo}] строка '${v}' (${k}) не найдена в rus`);
-        }
-    }
-}
-
-console.log('== 3. Пустые контейнеры ==');
-for (const c of CONTAINERS) {
-    const r = resolve(c.section);
-    const rad = parseFloat(r.get('radiation_restore_speed'));
-    if (Math.abs(rad + c.absorb) > 1e-9) err(`[${c.section}] radiation=${rad}, ожидалось ${-c.absorb}`);
-    else ok(`[${c.section}] поглощает ${-rad}`);
-    if (!locIds.has(r.get('inv_name'))) err(`[${c.section}] имя '${r.get('inv_name')}' не найдено в rus`);
-    if (!locIds.has(r.get('description'))) err(`[${c.section}] описание '${r.get('description')}' не найдено в rus`);
-}
-if (!locIds.has('bq_take_artifact')) err(`строка 'bq_take_artifact' не найдена в rus`);
-if (!locIds.has('bq_container_name')) err(`строка 'bq_container_name' не найдена в rus`);
-if (locIds.has('bq_take_artifact')) ok(`строка кнопки 'bq_take_artifact' есть`);
-
-// ---------------------------------------------------------------------------
-// 4. Icons against the real atlas file.
-//    Container atlas: textures/ui/ui_bq_field_container.dds, cells 50x50,
-//    top row = empty containers (0,0) field, (1,0) universal, (2,0) scientific.
-//    A combo must point at the cell of ITS container, and the cell must not be
-//    empty - an empty cell means a wrong or missing icon in game.
-// ---------------------------------------------------------------------------
-console.log('== 4. Иконки: атлас и ячейки ==');
-const dds = require('./dds.js');
-const ICONS_DIR = path.join(MOD, '..', 'textures', 'ui');
-const ATLAS_NAME = 'ui\\ui_bq_field_container';
-const ATLAS_PATH = path.join(ICONS_DIR, 'ui_bq_field_container.dds');
-const CELL = 50;
-if (!fs.existsSync(ATLAS_PATH)) {
-    err(`нет файла атласа ${ATLAS_PATH}`);
-} else {
-    const buf = fs.readFileSync(ATLAS_PATH);
-    const hdr = dds.readHeader(buf);
-    console.log(`  атлас ${hdr.width}x${hdr.height}, ${hdr.fourCC}, мипмапы ${hdr.mipMaps}, ${hdr.actual} байт`);
-    if (hdr.fourCC !== 'DXT5') err(`атлас должен быть DXT5 (нужна альфа), а он ${hdr.fourCC}`);
-    if (hdr.expected !== null && hdr.expected !== hdr.actual) {
-        err(`размер атласа не совпадает с заголовком: данных ${hdr.actual}, ожидалось ${hdr.expected}`);
-    }
-    if (hdr.mipMaps > 1) err(`мипмапы включены (${hdr.mipMaps}) - иконки портятся, должно быть 1`);
-    if (hdr.width % 4 || hdr.height % 4) err('стороны атласа должны быть кратны 4 (блок DXT 4x4)');
-
-    const decoded = dds.decodeDXT5(buf);
-    // Проверяем и пустые контейнеры, и комбо.
-    const expectations = [];
-    for (const c of CONTAINERS) {
-        expectations.push({ section: c.section, texture: ATLAS_NAME });
-    }
-    for (const spec of TESTED_ARTEFACTS) {
-        for (const c of CONTAINERS) expectations.push({ section: spec.combos[c.section], texture: ATLAS_NAME });
-    }
-    for (const e of expectations) {
-        const r = resolve(e.section);
-        if (!r.size) continue;
-        const tex = r.get('icons_texture');
-        const gx = parseInt(r.get('inv_grid_x'), 10);
-        const gy = parseInt(r.get('inv_grid_y'), 10);
-        const gw = parseInt(r.get('inv_grid_width'), 10);
-        const gh = parseInt(r.get('inv_grid_height'), 10);
-        // inv_scale обязан быть 1.0: наш атлас - сетка 50x50. Мод HQ Icons
-        // задаёт артефактам inv_scale = 2.0, и комбо наследует его от
-        // артефакта-родителя; тогда область иконки считается как 50*2 = 100 px,
-        // то есть 2x2 ячейки (проверено в игре).
-        const scl = parseFloat(r.get('inv_scale') || '1');
-        if (Math.abs(scl - 1) > 1e-9) {
-            err(`[${e.section}] inv_scale = ${scl}, нужно 1.0: атлас контейнеров это ` +
-                `сетка 50x50, а унаследованный от артефакта inv_scale = 2.0 даёт область 100 px (2x2 ячейки)`);
-        }
-        if (tex !== e.texture) {
-            err(`[${e.section}] icons_texture = '${tex}', ожидалось '${e.texture}'`);
-            continue;
-        }
-        if (gx * CELL + gw * CELL > hdr.width || gy * CELL + gh * CELL > hdr.height) {
-            err(`[${e.section}] ячейка (${gx},${gy}) ${gw}x${gh} выходит за пределы атласа ` +
-                `${hdr.width}x${hdr.height}`);
-            continue;
-        }
-        const { opaque, total } = dds.countOpaqueInCell(decoded, gx, gy, CELL);
-        if (opaque === 0) {
-            err(`[${e.section}] ячейка (${gx},${gy}) в атласе пустая - иконки не будет`);
-        } else if (opaque < total * 0.05) {
-            err(`[${e.section}] в ячейке (${gx},${gy}) почти нет картинки (${opaque}/${total} пикселей)`);
-        } else {
-            ok(`[${e.section}] атлас, ячейка (${gx},${gy}), пикселей ${opaque}/${total}`);
-        }
-    }
-    // Ожидаемая раскладка атласа. Три обычных контейнера занимают непустые
-    // ячейки верхнего ряда (0,0), (1,0), (2,0).
-    //
-    // СИМК в верхний ряд НЕ влезает: атлас 256 px = 5 ячеек по 50, а расширять
-    // его нельзя - от размеров считаются UV-координаты (x / ширина), и сдвиг
-    // сломал бы иконки в существующих сейвах. Поэтому СИМК вынесен вниз, и он
-    // ЗАНИМАЕТ ДВЕ КЛЕТКИ В ВЫСОТУ (так нарисованы текстуры заказчика):
-    //   пустой (открытый):  (0,6) + (0,7)
-    //   комбо af_eye (закрытый + значок артефакта): (0,8) + (0,9)
-    for (let i = 0; i < CONTAINERS.length; i++) {
-        const c = CONTAINERS[i];
-        if (c.total) continue;              // у СИМК своя ячейка, проверяем ниже
-        const { opaque } = dds.countOpaqueInCell(decoded, i, 0, CELL);
-        if (opaque === 0) err(`верхний ряд атласа: ячейка (${i},0) пустая, а это контейнер ${c.section}`);
-    }
-
-    // Ячейки СИМК. И у пустого, и у каждого комбо - ДВЕ клетки в высоту
-    // (так нарисованы текстуры заказчика), поэтому атлас поднят до 1024:
-    //   пустой (открытый):        (0,6) + (0,7)
-    //   комбо аp_eye:             (0,8) + (0,9)
-    //   комбо af_cristall:        (0,10) + (0,11)
-    //   ... и так далее, по паре строк на артефакт.
-    // Порядок строк задаётся ARTIFACTS в build_combo_icons.js.
-    const SIMK_ORDER = ['af_eye', 'af_cristall', 'af_compass', 'af_ice', 'af_fireball'];
-    const SIMK_CELLS = { bq_simk_container: { x: 0, y: 6 } };
-    SIMK_ORDER.forEach((art, i) => {
-        SIMK_CELLS[`${art}_bq_simk_container`] = { x: 0, y: 8 + 2 * i };
-    });
-    for (const [section, want] of Object.entries(SIMK_CELLS)) {
-        const r = resolve(section);
-        if (!r.size) { err(`[${section}] секция СИМК не найдена`); continue; }
-        const gh = parseInt(r.get('inv_grid_height'), 10);
-        const gx = parseInt(r.get('inv_grid_x'), 10);
-        const gy = parseInt(r.get('inv_grid_y'), 10);
-        if (gh !== 2) {
-            err(`[${section}] inv_grid_height=${r.get('inv_grid_height')}, у СИМК должно быть 2 ` +
-                `(иконка занимает две клетки в высоту)`);
-        }
-        if (gx !== want.x || gy !== want.y) {
-            err(`[${section}] ячейка (${gx},${gy}), ожидалось (${want.x},${want.y})`);
-        }
-        // картинка должна быть в ОБЕИХ клетках: и верхней, и нижней
-        const top = dds.countOpaqueInCell(decoded, gx, gy, CELL).opaque;
-        const bot = dds.countOpaqueInCell(decoded, gx, gy + 1, CELL).opaque;
-        if (top === 0 || bot === 0) {
-            err(`[${section}] иконка 1x2 не заполнена: клетка (${gx},${gy}) ${top} px, ` +
-                `(${gx},${gy + 1}) ${bot} px - пустая половина иконки`);
-        } else {
-            ok(`[${section}] иконка 1x2 в (${gx},${gy})+( ${gx},${gy + 1}), ` +
-                `пикселей ${top}+${bot}`);
-        }
-    }
-
-    // КЛЮЧЕВАЯ проверка: заполненный контейнер ОБЯЗАН ссылаться не на ту же
-    // ячейку, что пустой, иначе игрок не отличит их визуально. Именно эта
-    // ошибка была в первой версии: все 12 комбо указывали на inv_grid_y = 0,
-    // то есть на иконки пустых контейнеров.
-    for (const spec of TESTED_ARTEFACTS) {
-        for (const c of CONTAINERS) {
-            // СИМК проверяется отдельно выше: у него пустой и заполненный лежат
-            // в РАЗНЫХ строках (0,6) и (0,8), и это уже проверено явно.
-            if (c.total) continue;
-            const combo = resolve(spec.combos[c.section]);
-            const empty = resolve(c.section);
-            if (!combo.size || !empty.size) continue;
-            const cgx = parseInt(combo.get('inv_grid_x'), 10);
-            const cgy = parseInt(combo.get('inv_grid_y'), 10);
-            const egx = parseInt(empty.get('inv_grid_x'), 10);
-            const egy = parseInt(empty.get('inv_grid_y'), 10);
-            if (cgx === egx && cgy === egy) {
-                err(`[${spec.combos[c.section]}] ячейка (${cgx},${cgy}) совпадает с пустым ` +
-                    `контейнером [${c.section}] — заполненный будет выглядеть как пустой ` +
-                    `(запустите tools/build_combo_icons.js)`);
-            }
-        }
-    }
-    ok('заполненные контейнеры ссылаются на свои ячейки, не на иконки пустых');
-}
-
-// ---------------------------------------------------------------------------
-// 5. Сверка скрипта с конфигом: суффиксы комбо из bq_containers.script должны
-//    давать те же имена секций, что есть в конфиге.
-// ---------------------------------------------------------------------------
-console.log('== 5. Соответствие скрипт <-> конфиг ==');
-
-// ---------------------------------------------------------------------------
-// 4. Сверка скрипта с конфигом: суффиксы комбо из bq_containers.script должны
-//    давать ровно те имена секций, что есть в конфиге. Именно это
-//    рассогласование (в скрипте 'field_container', в конфиге
-//    'bq_field_container') ломало вложение в полевой контейнер и доставание
-//    из него: имя, которое строил скрипт, не существовало.
-// ---------------------------------------------------------------------------
-const scriptPath = path.join(__dirname, '..', 'scripts', 'bq_containers.script');
-const scriptSrc = fs.readFileSync(scriptPath, 'utf8');
-const scriptContainers = [];
-for (const m of scriptSrc.matchAll(/\{\s*section\s*=\s*"([^"]+)"\s*,\s*combo\s*=\s*"([^"]+)"\s*\}/g)) {
-    scriptContainers.push({ section: m[1], combo: m[2] });
-}
-if (!scriptContainers.length) err('в скрипте не найдена таблица CONTAINERS (section/combo)');
-for (const sc of scriptContainers) {
-    if (!merged.has(sc.section)) {
-        err(`скрипт ссылается на секцию '${sc.section}', которой нет в конфиге`);
-        continue;
-    }
-    if (!CONTAINERS.some((c) => c.section === sc.section)) {
-        err(`контейнер '${sc.section}' есть в скрипте, но не в списке проверки`);
-        continue;
-    }
-    for (const spec of TESTED_ARTEFACTS) {
-        const combo = spec.combos[sc.section];
-        if (!combo) continue;
-        const expected = `${spec.artefact}_${sc.combo}`;
-        if (combo !== expected) {
-            err(`скрипт для '${sc.section}' строит имя '${expected}', а в проверке '${combo}'`);
-        }
-        if (!merged.has(expected)) {
-            err(`секция '${expected}' (имя по данным скрипта) отсутствует в конфиге - ` +
-                `вложение и доставание для '${sc.section}' работать не будут`);
-        }
-    }
-    ok(`'${sc.section}' -> суффикс комбо '${sc.combo}'`);
-}
-
-// ---------------------------------------------------------------------------
-// 6. Статы артефактов: наши переопределения должны давать ровно задуманное.
-//
-// Самая коварная ошибка этого этапа: переопределение "![Секция]" ДОПОЛНЯЕТ
-// секцию, а не заменяет её. Если в переопределении не назвать ключ, останется
-// ванильное значение и сложится с нашим (у Снежинки так осталась выносливость
-// 0.003, у Глаза - кровотечение 0.004). Поэтому здесь проверяется ИТОГОВОЕ
-// значение каждого стата, а не наличие ключа.
-// ---------------------------------------------------------------------------
-console.log('== 6. Статы артефактов (по тир-листу) ==');
-// factor: множитель "значение в конфиге -> показ в интерфейсе" (MEMO 13.3)
-const ARTEFACT_STATS = {
-    af_ice: {
-        tier: 1, stats: {
-            radiation_restore_speed: [1000, 11], power_restore_speed: [1000, 6],
-            health_restore_speed: [1 / 0.00015, 0], bleeding_restore_speed: [1000, 0],
-            satiety_restore_speed: [1000, 0], additional_inventory_weight: [1, 0],
-        },
-        immunities: { shock_immunity: [1 / 0.01667, 5], burn_immunity: [1 / 0.00667, 0] },
-    },
-    af_eye: {
-        tier: 2, stats: {
-            radiation_restore_speed: [1000, 6], power_restore_speed: [1000, 2],
-            health_restore_speed: [1 / 0.00015, 0], bleeding_restore_speed: [1000, 5],
-            satiety_restore_speed: [1000, 0], additional_inventory_weight: [1, 0],
-        },
-        immunities: { burn_immunity: [1 / 0.00667, 4], shock_immunity: [1 / 0.01667, 0] },
-    },
-    af_cristall: {
-        tier: 3, stats: {
-            radiation_restore_speed: [1000, 3], power_restore_speed: [1000, 0],
-            health_restore_speed: [1 / 0.00015, 1], bleeding_restore_speed: [1000, 0],
-            satiety_restore_speed: [1000, 0], additional_inventory_weight: [1, 0],
-        },
-        immunities: { burn_immunity: [1 / 0.00667, 4] },
-    },
-    af_compass: {
-        tier: 'unique', stats: {
-            radiation_restore_speed: [1000, 15], power_restore_speed: [1000, 4],
-            health_restore_speed: [1 / 0.00015, 3], bleeding_restore_speed: [1000, 0],
-            satiety_restore_speed: [1000, 0], additional_inventory_weight: [1, 0],
-        },
-        immunities: {
-            burn_immunity: [1 / 0.00667, 4], shock_immunity: [1 / 0.01667, 4],
-            chemical_burn_immunity: [1 / 0.005, 4], telepatic_immunity: [1 / 0.0025, 4],
-        },
-    },
-};
-
-for (const [art, spec] of Object.entries(ARTEFACT_STATS)) {
-    const r = resolve(art);
-    if (!r.size) { err(`[${art}] секция не найдена`); continue; }
-    const shown = [];
-    for (const [key, [factor, want]] of Object.entries(spec.stats)) {
-        if (!r.has(key)) { err(`[${art}] нет ключа ${key} - ванильное значение останется и сложится`); continue; }
-        const got = Math.round(parseFloat(r.get(key)) * factor);
-        if (Math.abs(got - want) > 1) {
-            err(`[${art}] ${key}: в интерфейсе ${got}, ожидалось ${want} ` +
-                `(частый случай: ключ не назван в переопределении, и ванильное значение сложилось)`);
-        } else if (want !== 0) shown.push(`${key.replace(/_restore_speed|_immunity/, '')}=${got}`);
-    }
-    const absSec = r.get('hit_absorbation_sect');
-    if (!absSec) { err(`[${art}] нет hit_absorbation_sect`); continue; }
-    const abs = resolve(absSec);
-    for (const [key, [factor, want]] of Object.entries(spec.immunities)) {
-        if (!abs.has(key)) { err(`[${absSec}] нет ключа ${key} - ванильное значение сложится`); continue; }
-        const got = Math.round(parseFloat(abs.get(key)) * factor);
-        if (Math.abs(got - want) > 1) {
-            err(`[${absSec}] ${key}: в интерфейсе ${got}, ожидалось ${want}`);
-        } else if (want !== 0) shown.push(`${key.replace('_immunity', '')}=${got}`);
-    }
-    ok(`${art} (тир ${spec.tier}): ${shown.join(', ')}`);
-}
-
-// Обратная проверка: если ключ есть в ванили и не назван в нашем
-// переопределении, его значение протечёт в игру. Требуем полноты.
-for (const art of Object.keys(ARTEFACT_STATS)) {
-    const ourKeys = ours.get(art)?.keys;
-    if (!ourKeys) continue;
-    for (const k of ['radiation_restore_speed', 'health_restore_speed', 'power_restore_speed',
-        'bleeding_restore_speed', 'satiety_restore_speed']) {
-        if (!ourKeys.has(k)) {
-            err(`[${art}] переопределение не называет ${k} - останется ванильное значение`);
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 9. Звуки: каждый путь из SOUND_BY_CONTAINER / SOUND_TAKE_BY_CONTAINER должен
-//    существовать файлом в аддоне. Ошибка тут не видна в игре как вылет - просто
-//    не будет звука, и заметить это можно только на слух.
-// ---------------------------------------------------------------------------
-console.log('== 9. Звуки контейнеров ==');
-{
-    const sndSrc = fs.readFileSync(scriptPath, 'utf8');
-    const found = new Set();
-    for (const m of sndSrc.matchAll(/"(interface\\\\[A-Za-z0-9_\\]+)"/g)) {
-        found.add(m[1].replace(/\\\\/g, '\\'));
-    }
-    if (found.size === 0) err('в скрипте не найдено ни одного пути к звуку');
-    for (const rel of found) {
-        const file = path.join(__dirname, '..', 'sounds', rel + '.ogg');
-        if (!fs.existsSync(file)) {
-            err(`нет файла звука: sounds\\${rel}.ogg (скрипт ссылается, но файла нет)`);
-        } else {
-            const size = fs.statSync(file).size;
-            if (size < 1000) {
-                err(`звук sounds\\${rel}.ogg подозрительно мал (${size} байт) - возможно, битый`);
-            } else {
-                ok(`sounds\\${rel}.ogg (${(size / 1024).toFixed(0)} КБ)`);
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 10. Модели (visual): каждый путь должен существовать файлом в meshes аддона.
-//     Ошибка тут не видна как вылет - предмет просто станет невидимым в руках
-//     и в слоте, и заметить это можно только в игре.
-// ---------------------------------------------------------------------------
-console.log('== 10. Модели предметов (visual) ==');
-{
-    const artSrc = fs.readFileSync(OUR_FILE, 'utf8');
-    const lines = artSrc.split(/\r?\n/);
-    let current = null;
-    const seen = new Map();          // visual -> [секции]
-    for (const line of lines) {
-        const bare = line.replace(/;.*$/, '').trim();
-        const h = bare.match(/^!?\[([^\]]+)\]/);
-        if (h) { current = h[1].trim(); continue; }
-        const kv = bare.match(/^visual\s*=\s*(\S+)/);
-        if (!kv || !current) continue;
-        if (!seen.has(kv[1])) seen.set(kv[1], []);
-        seen.get(kv[1]).push(current);
-    }
-    if (seen.size === 0) err('в конфиге не найдено ни одной строки visual');
-    for (const [vis, sections] of seen) {
-        const file = path.join(__dirname, '..', 'meshes', vis.replace(/\\/g, path.sep));
-        if (!fs.existsSync(file)) {
-            err(`нет файла модели: meshes\\${vis} (используется в: ${sections.join(', ')})`);
-        } else {
-            const size = fs.statSync(file).size;
-            if (size < 100) {
-                err(`модель meshes\\${vis} подозрительно мала (${size} байт)`);
-            } else {
-                ok(`meshes\\${vis} (${(size / 1024).toFixed(0)} КБ) — ${sections.length} секц.`);
-            }
-        }
-    }
-
-    // У комбо СИМК модель ОБЯЗАНА быть закрытой: иначе они унаследуют открытую
-    // от bq_container_base, и заполненный контейнер будет выглядеть пустым.
-    for (const spec of TESTED_ARTEFACTS) {
-        const combo = resolve(`${spec.artefact}_bq_simk_container`);
-        if (!combo.size) continue;
-        const vis = combo.get('visual');
-        if (!vis || !vis.includes('closed')) {
-            err(`[${spec.artefact}_bq_simk_container] visual='${vis}', а нужна ЗАКРЫТАЯ ` +
-                `модель СИМК (lead_box_closed) - иначе заполненный выглядит как пустой`);
-        }
-    }
-    const emptyVis = resolve('bq_simk_container').get('visual');
-    if (!emptyVis || !emptyVis.includes('open')) {
-        err(`[bq_simk_container] visual='${emptyVis}', а нужна ОТКРЫТАЯ модель ` +
-            `(lead_box_open) - пустой контейнер показывается открытым`);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 11. Кость частиц. Регресс на вылет "Can't find particle bone [link]".
-//
-// Ванильный af_base задаёт particles_bone = link, и это наследуется комбо от
-// артефакта. CArtefact::Load (Artefact.cpp:64-91) читает кость и ЖЁСТКО требует
-// её в модели (R_ASSERT2). Наши модели контейнеров - статические меши без
-// костей, поэтому игра падала при получении предмета.
-//
-// Спасает ключ particles_bones (МНОЖЕСТВЕННОЕ число): он уводит движок в ветку,
-// где particles_bone не читается вообще. Проверяем, что он есть у шаблона и что
-// ни у одной нашей секции не осталось непустого particles_bone.
-// ---------------------------------------------------------------------------
-console.log('== 11. Кость частиц (регресс на вылет) ==');
-{
-    const artSrc = fs.readFileSync(OUR_FILE, 'utf8');
-    const lines = artSrc.split(/\r?\n/);
-    let current = null;
-    const found = { plural: [], singular: [] };
-    for (const line of lines) {
-        const bare = line.replace(/;.*$/, '').trim();
-        const h = bare.match(/^!?\[([^\]]+)\]/);
-        if (h) { current = h[1].trim(); continue; }
-        if (!current) continue;
-        if (/^particles_bones\s*=/.test(bare)) found.plural.push(current);
-        if (/^particles_bone\s*=\s*\S/.test(bare)) found.singular.push(current);
-    }
-
-    // шаблон обязан задавать множественный ключ, иначе он не дойдёт до комбо
-    if (!found.plural.includes('bq_container_base')) {
-        err('в [bq_container_base] нет ключа particles_bones - комбо снова получат ' +
-            'particles_bone = link от af_base и игра упадёт при получении контейнера');
-    } else {
-        ok('particles_bones задан в [bq_container_base] (уводит движок от particles_bone)');
-    }
-
-    // непустой одиночный ключ у наших секций = потенциальный вылет
-    if (found.singular.length) {
-        err('непустой particles_bone у секций: ' + found.singular.join(', ') +
-            ' - движок будет искать эту кость в модели и упадёт');
-    } else {
-        ok('непустого particles_bone нет ни у одной нашей секции');
-    }
-
-    // модели без костей: если у модели нет блока BoneNames, любая кость частиц
-    // приведёт к вылету. Предупреждаем заранее.
-    const visuals = new Set();
-    for (const line of lines) {
-        const bare = line.replace(/;.*$/, '').trim();
-        const kv = bare.match(/^visual\s*=\s*(\S+)/);
-        if (kv) visuals.add(kv[1]);
-    }
-    for (const vis of visuals) {
-        const file = path.join(__dirname, '..', 'meshes', vis.replace(/\\/g, path.sep));
-        if (!fs.existsSync(file)) continue;
-        const data = fs.readFileSync(file);
-        if (data.indexOf('BoneNames', 0, 'latin1') === -1) {
-            ok(`модель без костей: ${vis.split('\\').pop()} (particles_bones это учитывает)`);
-        }
-    }
-
-    // Модель комбо обязана совпадать с моделью СВОЕГО контейнера. Раньше все
-    // комбо наследовали visual от артефакта-родителя и выглядели как артефакт
-    // Глаз - заказчик это увидел в игре.
-    //
-    // ИСКЛЮЧЕНИЕ - СИМК: у него ПУСТОЙ показывается открытым, а заполненный
-    // закрытым, то есть модели РАЗНЫЕ по замыслу. Проверка для него сделана
-    // выше (пустой открыт, комбо закрыты).
-    for (const spec of TESTED_ARTEFACTS) {
-        for (const c of CONTAINERS) {
-            if (c.total) continue;
-            const comboName = spec.combos[c.section];
-            if (!comboName) continue;
-            const comboVis = resolve(comboName).get('visual');
-            const emptyVis = resolve(c.section).get('visual');
-            if (comboVis !== emptyVis) {
-                err(`[${comboName}] visual='${comboVis}', а у контейнера [${c.section}] ` +
-                    `'${emptyVis}' - заполненный должен выглядеть как контейнер, а не как артефакт`);
-            }
-        }
-    }
-    ok('модели комбо совпадают с моделями своих контейнеров (кроме СИМК)');
-
-    // Текстуры моделей. Меш хранит имена текстур строками с префиксом длины;
-    // если файла нет, движок пишет в лог "! Can't find texture" и предмет
-    // выглядит битым. Именно так и было с контейнерами Anomaly: модели взяли, а
-    // текстуры (aa\aa_af_aac, aa\aa_af_iam, aa\aa_af_aam) остались в .db-архивах.
-    //
-    // Формат записи (разобран по файлу): u32 длина, ВКЛЮЧАЯ нулевой байт и
-    // выравнивание до 4, затем сама строка. Поэтому читаем "длина + строка".
-    //
-    // ВАЖНО про мусор: в мешах лежат ещё пути SDK ("sdk\editors\import\aam") и
-    // имена авторов ("JEDNOSTKA\Administrator"). Их отсекаем по первому сегменту:
-    // настоящая текстура начинается с папки, которая есть в textures.
-    const TEX_ROOTS = [
-        path.join(__dirname, '..', 'textures'),                       // наш аддон
-        path.join(ADDONS_DIR, 'ixray-hq-icons-v2.0', 'textures'),
-        'Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_IXRAY\\gamedata\\textures',
-        'Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_Original_gamedata\\gamedata\\textures',
+    const markers = [
+        'BEGIN ARTIFACT COMBOS', 'END ARTIFACT COMBOS',
+        'BEGIN ARTEFACT STATS', 'END ARTEFACT STATS',
     ];
-    const texFolders = new Set();
-    for (const root of TEX_ROOTS) {
-        if (!fs.existsSync(root)) continue;
-        for (const d of fs.readdirSync(root, { withFileTypes: true })) {
-            if (d.isDirectory()) texFolders.add(d.name.toLowerCase());
+    for (const m of markers) {
+        if (!ownText.includes(m)) {
+            err(`нет маркера "${m}" - генератор tools/gen_artifacts.js не сможет обновить файл`);
         }
     }
-    const texExists = (rel) => {
-        const norm = rel.replace(/\\/g, path.sep);
-        for (const root of TEX_ROOTS) {
-            if (fs.existsSync(path.join(root, norm + '.dds'))) return true;
-            if (fs.existsSync(path.join(root, norm + '.tga'))) return true;
+    ok('маркеры генерируемых блоков на месте');
+
+    // Дубли секций ломают загрузку конфига.
+    const heads = [...ownText.matchAll(/^\s*!?\[([^\]]+)\]/gm)].map((m) => m[1].trim());
+    const dup = heads.filter((v, i) => heads.indexOf(v) !== i);
+    if (dup.length) err(`дубли секций: ${[...new Set(dup)].join(', ')}`);
+    else ok(`секций ${heads.length}, дублей нет`);
+}
+
+// ---------------------------------------------------------------------------
+// 2. Пустые контейнеры
+// ---------------------------------------------------------------------------
+console.log('\n== 2. Пустые контейнеры ==');
+const EMPTY = {
+    bq_field_container: { absorb: 4, cell: [0, 0] },
+    bq_uni_container: { absorb: 8, cell: [1, 0] },
+    bq_sci_container: { absorb: 14, cell: [2, 0] },
+    bq_simk_container: { absorb: 0, cell: [0, B.ARTIFACTS.length + 1] },
+};
+{
+    const REQUIRED = ['class', 'inv_name', 'inv_name_short', 'inv_weight', 'cost', 'description',
+        'inv_grid_x', 'inv_grid_y', 'inv_grid_width', 'inv_grid_height', 'icons_texture',
+        'hit_absorbation_sect', 'can_trade', 'belt'];
+    for (const [sec, spec] of Object.entries(EMPTY)) {
+        const r = resolve(sec);
+        if (!r.size) { err(`[${sec}] секция не найдена`); continue; }
+        const missing = REQUIRED.filter((k) => !r.has(k));
+        if (missing.length) err(`[${sec}] нет ключей: ${missing.join(', ')}`);
+
+        // Поглощение: radiation_restore_speed пустого контейнера = -absorb/1000.
+        // У СИМК 0 - он нейтрален сам, поглощает только через комбо.
+        const rad = parseFloat(r.get('radiation_restore_speed'));
+        const wantAbsorb = -spec.absorb / 1000;
+        if (sec === 'bq_simk_container') {
+            if (rad !== 0) err(`[${sec}] radiation_restore_speed=${rad}, у СИМК должно быть 0`);
+            else ok(`[${sec}] нейтрален (radiation_restore_speed = 0)`);
+        } else if (Math.abs(rad - wantAbsorb) > 1e-9) {
+            err(`[${sec}] radiation_restore_speed=${rad}, ожидалось ${wantAbsorb} ` +
+                `(поглощение ${spec.absorb})`);
+        } else {
+            ok(`[${sec}] поглощает ${spec.absorb} (radiation_restore_speed = ${rad})`);
         }
-        return false;
+
+        // Ячейка атласа
+        const gx = parseInt(r.get('inv_grid_x'), 10);
+        const gy = parseInt(r.get('inv_grid_y'), 10);
+        if (gx !== spec.cell[0] || gy !== spec.cell[1]) {
+            err(`[${sec}] ячейка (${gx},${gy}), ожидалось (${spec.cell[0]},${spec.cell[1]})`);
+        } else ok(`[${sec}] ячейка (${gx},${gy})`);
+
+        // У СИМК иконка в 2 клетки, у остальных в 1.
+        const gh = parseInt(r.get('inv_grid_height'), 10);
+        const wantGh = sec === 'bq_simk_container' ? 2 : 1;
+        if (gh !== wantGh) err(`[${sec}] inv_grid_height=${gh}, ожидалось ${wantGh}`);
+        else ok(`[${sec}] высота иконки ${gh} клетки`);
+
+        // Пустой контейнер на пояс не надевается (иначе он давал бы эффекты).
+        if (r.get('belt') !== 'false') {
+            err(`[${sec}] belt='${r.get('belt')}', пустой контейнер не должен надеваться`);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 3. Все комбо
+// ---------------------------------------------------------------------------
+console.log('\n== 3. Комбо (артефакт в контейнере) ==');
+const ATLAS_ROWS = 5;   // столбцов в атласе
+{
+    let checked = 0;
+    const coords = new Map();      // "x,y" -> секция, для поиска наложений
+    for (const a of B.ARTIFACTS) {
+        for (const sec of a.map) {
+            const rad = a.stats.rad || 0;
+            for (const container of B.CONTAINERS) {
+                const name = comboName(sec, container);
+                const r = resolve(name);
+                if (!r.size) { err(`[${name}] секции комбо нет в конфиге`); continue; }
+                checked++;
+
+                const isSimk = container === 'bq_simk_container';
+                const label = `${a.ru} / ${container.replace('bq_', '').replace('_container', '')}`;
+
+                // Модель контейнера
+                const wantVis = isSimk ? 'lead_box_closed'
+                    : (container === 'bq_field_container' ? 'aac'
+                        : container === 'bq_uni_container' ? 'iam' : 'aam');
+                const vis = r.get('visual') || '';
+                if (!vis.includes(wantVis)) err(`[${name}] visual='${vis}', ожидалась модель ${wantVis}`);
+
+                // belt: у СИМК false (на пояс нельзя), у остальных true
+                const belt = r.get('belt');
+                if (belt !== (isSimk ? 'false' : 'true')) {
+                    err(`[${name}] belt='${belt}', ожидалось '${isSimk ? 'false' : 'true'}'`);
+                }
+
+                // inv_scale обязан быть 1.0: HQ Icons задаёт артефактам 2.0
+                if (r.get('inv_scale') !== '1.0') {
+                    err(`[${name}] inv_scale='${r.get('inv_scale')}', нужно 1.0 ` +
+                        `(иначе иконка вырежется 2x2 клетки)`);
+                }
+
+                // Радиация комбо: max(0, радиация артефакта - поглощение).
+                // В СИМК всегда 0 (поглощает всё).
+                const absorb = B.ABSORB[container] || 0;
+                const wantRad = isSimk ? 0 : Math.max(0, rad - absorb);
+                const gotRad = parseFloat(r.get('radiation_restore_speed'));
+                if (Math.abs(gotRad - wantRad / 1000) > 1e-9) {
+                    err(`[${name}] radiation=${gotRad}, ожидалось ${wantRad / 1000} ` +
+                        `(артефакт ${rad}, поглощение ${absorb})`);
+                }
+
+                // Защита берётся у АРТЕФАКТА (его свойства продолжают работать)
+                const wantAbs = `${sec}_absorbation`;
+                if (r.get('hit_absorbation_sect') !== wantAbs) {
+                    err(`[${name}] hit_absorbation_sect='${r.get('hit_absorbation_sect')}', ` +
+                        `ожидалось '${wantAbs}'`);
+                }
+
+                // Координаты: обычные комбо - столбец контейнера, строка артефакта;
+                // СИМК - по 5 в ряд парами строк.
+                const gx = parseInt(r.get('inv_grid_x'), 10);
+                const gy = parseInt(r.get('inv_grid_y'), 10);
+                const gh = parseInt(r.get('inv_grid_height'), 10);
+                if (gh !== (isSimk ? 2 : 1)) {
+                    err(`[${name}] inv_grid_height=${gh}, ожидалось ${isSimk ? 2 : 1}`);
+                }
+                const key = `${gx},${gy}`;
+                if (coords.has(key)) {
+                    err(`[${name}] ячейка (${key}) уже занята секцией [${coords.get(key)}]`);
+                }
+                coords.set(key, name);
+
+                if (checked <= 8) {
+                    ok(`${label}: радиация ${gotRad}, belt=${belt}, модель ${wantVis}, ` +
+                        `ячейка (${gx},${gy})${isSimk ? '+' + (gy + 1) : ''}`);
+                }
+            }
+        }
+    }
+    ok(`проверено комбо: ${checked} из ${ALL_SECTIONS.length}`);
+    if (checked !== ALL_SECTIONS.length) {
+        err(`комбо в конфиге ${checked}, а по балансу должно быть ${ALL_SECTIONS.length}`);
+    }
+    if (coords.size !== ALL_SECTIONS.length) {
+        err(`уникальных ячеек ${coords.size}, а комбо ${ALL_SECTIONS.length} - есть наложения`);
+    } else {
+        ok(`ячейки не пересекаются (${coords.size} шт)`);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 4. Атлас иконок
+// ---------------------------------------------------------------------------
+console.log('\n== 4. Атлас иконок ==');
+{
+    const buf = fs.readFileSync(ATLAS);
+    const hdr = dds.readHeader(buf);
+    const decoded = dds.decodeAuto(buf);
+    console.log(`  атлас: ${hdr.width}x${hdr.height}, ${hdr.fourCC}, ` +
+        `${(buf.length / 1024).toFixed(0)} КБ`);
+
+    // Размеры атласа обязаны быть степенью двойки и кратны 4 (требования DDS).
+    for (const [dim, v] of [['ширина', hdr.width], ['высота', hdr.height]]) {
+        if (v % 4 !== 0) err(`атлас: ${dim} ${v} не кратна 4`);
+        else if ((v & (v - 1)) !== 0) err(`атлас: ${dim} ${v} не степень двойки`);
+    }
+
+    // Пустые контейнеры: три в верхнем ряду плюс СИМК отдельно.
+    for (const [sec, spec] of Object.entries(EMPTY)) {
+        const [gx, gy] = spec.cell;
+        const gh = sec === 'bq_simk_container' ? 2 : 1;
+        for (let k = 0; k < gh; k++) {
+            const { opaque } = dds.countOpaqueInCell(decoded, gx, gy + k, CELL);
+            if (opaque === 0) err(`[${sec}] ячейка (${gx},${gy + k}) в атласе пустая`);
+        }
+    }
+    ok('иконки пустых контейнеров в атласе есть');
+
+    // Все комбо: ячейка непустая; у СИМК обе клетки пары.
+    let emptyCells = 0, checkedCells = 0;
+    for (const a of B.ARTIFACTS) {
+        for (const sec of a.map) {
+            for (const container of B.CONTAINERS) {
+                const name = comboName(sec, container);
+                const r = resolve(name);
+                if (!r.size) continue;
+                const gx = parseInt(r.get('inv_grid_x'), 10);
+                const gy = parseInt(r.get('inv_grid_y'), 10);
+                const isSimk = container === 'bq_simk_container';
+                const cells = isSimk ? [gy, gy + 1] : [gy];
+                for (const y of cells) {
+                    checkedCells++;
+                    if (y >= hdr.height / CELL) {
+                        err(`[${name}] ячейка (${gx},${y}) за пределами атласа`);
+                        continue;
+                    }
+                    const { opaque } = dds.countOpaqueInCell(decoded, gx, y, CELL);
+                    if (opaque === 0) {
+                        emptyCells++;
+                        err(`[${name}] ячейка (${gx},${y}) пустая - иконки не будет ` +
+                            `(запустите node tools/build_combo_icons.js)`);
+                    }
+                }
+            }
+        }
+    }
+    if (emptyCells === 0) ok(`все ячейки комбо заполнены (проверено ${checkedCells})`);
+
+    // Требуемая высота атласа по раскладке.
+    const needRows = B.ARTIFACTS.length + 1 + 2 + Math.ceil(B.ARTIFACTS.length / ATLAS_ROWS) * 2;
+    if (hdr.height / CELL < needRows) {
+        err(`атлас ${hdr.height}px мал: по раскладке нужно ${needRows * CELL}px`);
+    } else {
+        ok(`высоты хватает: нужно ${needRows} строк, есть ${hdr.height / CELL}`);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 5. Артефакты: статы и защита (по балансу)
+// ---------------------------------------------------------------------------
+console.log('\n== 5. Статы артефактов ==');
+{
+    // ВАЖНО ПРО ЕДИНИЦЫ. Статы "за секунду" в конфиге в 1000 раз меньше, чем
+    // числа, которые видит игрок (интерфейс показывает *1000). НО additional_
+    // inventory_weight - это КИЛОГРАММЫ, у них своя шкала и деления нет.
+    const MAP = {
+        hp: 'health_restore_speed',
+        bleed: 'bleeding_restore_speed',
+        power: 'power_restore_speed',
+        rad: 'radiation_restore_speed',
+        satiety: 'satiety_restore_speed',
     };
-    // Читает из меша имена текстур. Меш хранит их строками вида "aa\aa_af_aac"
-    // (первый сегмент - папка внутри textures). Формат записи разбирать не
-    // нужно: ищем по шаблону, а мусор отсекаем по первому сегменту - в мешах
-    // лежат ещё пути SDK ("sdk\editors\import\aam") и имя автора
-    // ("JEDNOSTKA\Administrator"), но папок sdk/JEDNOSTKA в textures нет.
-    const meshTextures = (buf) => {
-        const out = new Set();
-        const s = buf.toString('latin1');
-        for (const m of s.matchAll(/[A-Za-z0-9_]{2,20}(?:\\[A-Za-z0-9_.\-]{2,40}){1,4}/g)) {
+    const WEIGHT_KEY = 'additional_inventory_weight';
+    const IMM = {
+        radimm: 'radiation_immunity',
+        burn: 'burn_immunity',
+        chem: 'chemical_burn_immunity',
+        psi: 'telepatic_immunity',
+        shock: 'shock_immunity',
+    };
+    // Ключи, которые обязаны быть записаны явно: незаписанные останутся
+    // ванильными и сложатся с нашими.
+    const MUST = ['health_restore_speed', 'bleeding_restore_speed', 'power_restore_speed',
+        'additional_inventory_weight', 'radiation_restore_speed', 'satiety_restore_speed',
+        'thirst_restore_speed', 'cost', 'hit_absorbation_sect'];
+
+    let n = 0;
+    for (const a of B.ARTIFACTS) {
+        for (const sec of a.map) {
+            const r = resolve(sec);
+            if (!r.size) { err(`[${sec}] секции артефакта нет`); continue; }
+            n++;
+
+            const missing = MUST.filter((k) => !r.has(k));
+            if (missing.length) err(`[${sec}] нет ключей: ${missing.join(', ')}`);
+
+            for (const [stat, key] of Object.entries(MAP)) {
+                const want = (a.stats[stat] || 0) / 1000;
+                const got = parseFloat(r.get(key));
+                if (Math.abs(got - want) > 1e-9) {
+                    err(`[${sec}] ${key}=${got}, ожидалось ${want} (${stat} ${a.stats[stat] || 0})`);
+                }
+            }
+            // Вес - в килограммах, без деления.
+            const wantW = a.stats.weight || 0;
+            const gotW = parseFloat(r.get(WEIGHT_KEY) || '0');
+            if (Math.abs(gotW - wantW) > 1e-9) {
+                err(`[${sec}] ${WEIGHT_KEY}=${gotW}, ожидалось ${wantW} кг (weight ${wantW})`);
+            }
+
+            // Защита живёт в отдельной таблице.
+            const abs = resolve(`${sec}_absorbation`);
+            if (!abs.size) { err(`[${sec}] нет таблицы ${sec}_absorbation`); continue; }
+            for (const [stat, key] of Object.entries(IMM)) {
+                const want = (a.stats[stat] || 0) / 1000;
+                const got = parseFloat(abs.get(key) || '0');
+                if (Math.abs(got - want) > 1e-9) {
+                    err(`[${sec}_absorbation] ${key}=${got}, ожидалось ${want} (${stat})`);
+                }
+            }
+            // Незаписанные иммунитеты остались бы ванильными (например у
+            // Кристалла было burn 0.02) и сложились бы с нашими.
+            const IMM_KEYS = ['burn_immunity', 'strike_immunity', 'shock_immunity',
+                'wound_immunity', 'radiation_immunity', 'telepatic_immunity',
+                'chemical_burn_immunity', 'explosion_immunity', 'fire_wound_immunity'];
+            const absMissing = IMM_KEYS.filter((k) => !abs.has(k));
+            if (absMissing.length) err(`[${sec}_absorbation] нет ключей: ${absMissing.join(', ')}`);
+
+            if (n <= 5) {
+                const props = Object.entries(a.stats)
+                    .map(([k, v]) => `${k}=${v}`).join(', ');
+                ok(`${a.ru} (${sec}): ${props}`);
+            }
+        }
+    }
+    ok(`артефактов проверено: ${n}`);
+}
+
+// ---------------------------------------------------------------------------
+// 6. Соответствие скрипта и конфига
+// ---------------------------------------------------------------------------
+console.log('\n== 6. Скрипт bq_containers.script и конфиг ==');
+{
+    const src = fs.readFileSync(path.join(ROOT, 'scripts', 'bq_containers.script'), 'utf8');
+    const found = [...src.matchAll(/\{\s*section\s*=\s*"([^"]+)"\s*,\s*combo\s*=\s*"([^"]+)"\s*\}/g)]
+        .map((m) => ({ section: m[1], combo: m[2] }));
+    if (found.length !== B.CONTAINERS.length) {
+        err(`в скрипте ${found.length} контейнеров, в балансе ${B.CONTAINERS.length}`);
+    }
+    for (const f of found) {
+        if (!B.CONTAINERS.includes(f.section)) err(`скрипт знает лишний контейнер ${f.section}`);
+        // Суффикс комбо должен давать РЕАЛЬНУЮ секцию: именно на этом ломалось
+        // вложение в полевой контейнер.
+        const probe = comboName('af_eye', f.combo);
+        if (!own.has(probe)) {
+            err(`суффикс ${f.combo} из скрипта не даёт секцию (проверено на ${probe})`);
+        }
+    }
+    ok(`скрипт и конфиг согласованы по ${found.length} контейнерам`);
+}
+
+// ---------------------------------------------------------------------------
+// 7. Модели и их текстуры
+// ---------------------------------------------------------------------------
+console.log('\n== 7. Модели и текстуры ==');
+{
+    let cur = null;
+    const visMap = new Map();
+    for (const line of ownLines) {
+        const bare = line.replace(/;.*$/, '').trim();
+        const h = bare.match(/^!?\[([^\]]+)\]/);
+        if (h) { cur = h[1].trim(); continue; }
+        const kv = bare.match(/^visual\s*=\s*(\S+)/);
+        if (kv && cur) {
+            if (!visMap.has(kv[1])) visMap.set(kv[1], []);
+            visMap.get(kv[1]).push(cur);
+        }
+    }
+    for (const [vis, sections] of visMap) {
+        const file = path.join(ROOT, 'meshes', vis.replace(/\\/g, path.sep));
+        if (!fs.existsSync(file)) {
+            err(`нет файла модели meshes\\${vis} (${sections.length} секц.)`);
+            continue;
+        }
+        ok(`meshes\\${vis} (${sections.length} секц.)`);
+
+        // Текстуры модели: имя лежит в меше строкой "папка\имя". Мусорные пути
+        // SDK отсекаем по первому сегменту - он обязан быть папкой в textures.
+        const data = fs.readFileSync(file);
+        const roots = [
+            path.join(ROOT, 'textures'),
+            'Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_IXRAY\\gamedata\\textures',
+            'Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_Original_gamedata\\gamedata\\textures',
+        ];
+        const folders = new Set();
+        for (const root of roots) {
+            if (!fs.existsSync(root)) continue;
+            for (const d of fs.readdirSync(root, { withFileTypes: true })) {
+                if (d.isDirectory()) folders.add(d.name.toLowerCase());
+            }
+        }
+        const found = new Set();
+        for (const m of data.toString('latin1').matchAll(/[A-Za-z0-9_]{2,20}(?:\\[A-Za-z0-9_.\-]{2,40}){1,4}/g)) {
             const t = m[0];
-            const first = t.split('\\')[0].toLowerCase();
-            if (!texFolders.has(first)) continue;               // отсекаем мусор
-            if (!/\.(dds|tga)$/i.test(t) && t.split('\\').length < 2) continue;
-            out.add(t);
+            if (!folders.has(t.split('\\')[0].toLowerCase())) continue;
+            found.add(t);
         }
-        return out;
-    };
-    // Сколько имён-кандидатов отсеяно как мусор. Нужно, чтобы поймать ловушку:
-    // если папки textures\aa нет, то ВСЕ ссылки aa\... отсеиваются, остаются
-    // только item\... от СИМК - и проверка молчит, хотя текстуры пропали.
-    // "Нет данных" не должно выглядеть как "всё хорошо".
-    const meshMissed = (buf) => {
-        let n = 0;
-        const s = buf.toString('latin1');
-        for (const m of s.matchAll(/[A-Za-z0-9_]{2,20}(?:\\[A-Za-z0-9_.\-]{2,40}){1,4}/g)) {
-            const first = m[0].split('\\')[0].toLowerCase();
-            if (!texFolders.has(first)) n++;
-        }
-        return n;
-    };
-    let texChecked = 0;
-    for (const vis of visuals) {
-        const file = path.join(__dirname, '..', 'meshes', vis.replace(/\\/g, path.sep));
-        if (!fs.existsSync(file)) continue;
-        const buf = fs.readFileSync(file);
-        const found = meshTextures(buf);
         if (found.size === 0) {
-            err(`из модели ${vis.split('\\').pop()} не прочитано НИ ОДНОЙ текстуры: ` +
-                `проверять нечего (отсеяно кандидатов ${meshMissed(buf)}). ` +
-                `Скорее всего нет папки textures с нужным именем`);
+            err(`из модели ${vis.split('\\').pop()} не прочитано ни одной текстуры ` +
+                `(нет папки textures с нужным именем?)`);
             continue;
         }
         for (const t of found) {
-            texChecked++;
-            if (!texExists(t)) {
-                err(`нет текстуры для модели ${vis.split('\\').pop()}: ` +
-                    `textures\\${t}.dds (в игре будет "Can't find texture")`);
-            } else {
-                ok(`текстура модели ${vis.split('\\').pop()}: ${t}`);
+            const rel = t.replace(/\\/g, path.sep);
+            const hit = roots.some((r) => fs.existsSync(path.join(r, rel + '.dds')));
+            if (!hit) {
+                err(`нет текстуры для ${vis.split('\\').pop()}: textures\\${t}.dds ` +
+                    `(в игре будет "Can't find texture")`);
+            }
+        }
+        ok(`  текстуры: ${[...found].join(', ')}`);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 8. Регрессы на вылеты
+// ---------------------------------------------------------------------------
+console.log('\n== 8. Регрессы на вылеты ==');
+{
+    // particles_bone = link наследуется от af_base, а модели контейнеров -
+    // статические меши без костей: движок падал с "Can't find particle bone".
+    // Спасает ключ particles_bones (множественное число).
+    let cur = null;
+    const plural = [], singular = [];
+    for (const line of ownLines) {
+        const bare = line.replace(/;.*$/, '').trim();
+        const h = bare.match(/^!?\[([^\]]+)\]/);
+        if (h) { cur = h[1].trim(); continue; }
+        if (!cur) continue;
+        if (/^particles_bones\s*=/.test(bare)) plural.push(cur);
+        if (/^particles_bone\s*=\s*\S/.test(bare)) singular.push(cur);
+    }
+    if (!plural.includes('bq_container_base')) {
+        err('в [bq_container_base] нет particles_bones - комбо получат ' +
+            'particles_bone = link от af_base и игра упадёт при получении контейнера');
+    } else ok('particles_bones задан в [bq_container_base]');
+    if (singular.length) {
+        err(`непустой particles_bone у: ${singular.join(', ')} - движок будет искать ` +
+            `эту кость в модели и упадёт`);
+    } else ok('непустого particles_bone нет');
+
+    // inv_scale: HQ Icons задаёт артефактам 2.0, у комбо обязан быть 1.0,
+    // иначе из атласа вырезается область 100x100 (2x2 клетки).
+    const bad = [];
+    for (const name of ALL_SECTIONS) {
+        const r = resolve(name);
+        if (r.size && r.get('inv_scale') !== '1.0') bad.push(name);
+    }
+    if (bad.length) err(`inv_scale != 1.0 у: ${bad.slice(0, 5).join(', ')}` +
+        (bad.length > 5 ? ` и ещё ${bad.length - 5}` : ''));
+    else ok('у всех комбо inv_scale = 1.0');
+}
+
+// ---------------------------------------------------------------------------
+// 9. Локализация комбо
+// ---------------------------------------------------------------------------
+console.log('\n== 9. Локализация комбо ==');
+{
+    const locales = {};
+    for (const lang of ['rus', 'eng']) {
+        const dir = path.join(ROOT, 'configs', 'text', lang);
+        const ids = new Set();
+        for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.xml'))) {
+            const raw = fs.readFileSync(path.join(dir, f), 'utf8');
+            for (const m of raw.matchAll(/<string id="([^"]+)"/g)) ids.add(m[1]);
+        }
+        locales[lang] = ids;
+    }
+    const missing = [];
+    for (let i = 0; i < ALL_SECTIONS.length; i += 4) {
+        const r = resolve(ALL_SECTIONS[i]);
+        if (!r.size) continue;
+        for (const key of ['inv_name', 'description']) {
+            const id = r.get(key);
+            if (!id) { missing.push(`${ALL_SECTIONS[i]}: нет ключа ${key}`); continue; }
+            for (const lang of ['rus', 'eng']) {
+                if (!locales[lang].has(id)) missing.push(`${lang}: нет строки ${id}`);
             }
         }
     }
-    if (texChecked === 0) err('не удалось прочитать ни одной ссылки на текстуру из моделей');
+    if (missing.length) {
+        err(`проблемы локализации (${missing.length}), первые: ${missing.slice(0, 5).join('; ')}`);
+    } else {
+        ok('у всех комбо есть названия и описания в rus и eng');
+    }
 }
 
+// ---------------------------------------------------------------------------
 if (errors === 0) {
-    console.log('\nOK: конфиг контейнеров согласован, обязательные ключи на месте.');
+    console.log('\nOK: контейнеры, комбо, атлас и локализация согласованы.');
     process.exit(0);
 }
 console.error(`\nFAIL: ${errors} ошибок`);

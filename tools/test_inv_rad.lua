@@ -610,35 +610,8 @@ do
     say(string.format("10g) у пустого СИМК af_actor_properties = off -> %s",
         (v == "off") and "OK" or ("ОШИБКА: получено " .. tostring(v or err2))))
 
-    -- j) ГЛАВНОЕ для окна характеристик: у комбо СИМК должны быть ОБНУЛЕНЫ все
-    --    статы. Ключ af_actor_properties на видимость не влияет (проверено в
-    --    игре), а SetInfo читает восстановление из секции предмета
-    --    (ui_af_params.cpp:256) и пропускает нулевые строки (:257-260).
-    --    Иммунитеты читаются из hit_absorbation_sect (:231-232).
-    local RESTORE = {
-        "health_restore_speed", "satiety_restore_speed", "thirst_restore_speed",
-        "power_restore_speed", "bleeding_restore_speed", "radiation_restore_speed",
-        "additional_inventory_weight",
-    }
-    local comboProblems = {}
-    for _, art in ipairs({ "af_eye", "af_ice", "af_cristall", "af_compass", "af_fireball" }) do
-        local header = "[" .. art .. "_bq_simk_container]"
-        local bad = {}
-        for _, k in ipairs(RESTORE) do
-            local kv = key_in_section(cfg, header, k)
-            if kv ~= "0" then bad[#bad + 1] = k .. "=" .. tostring(kv) end
-        end
-        local abs = key_in_section(cfg, header, "hit_absorbation_sect")
-        if abs ~= "bq_simk_container_absorbation" then
-            bad[#bad + 1] = "защита=" .. tostring(abs)
-        end
-        if #bad > 0 then comboProblems[#comboProblems + 1] = art .. "(" .. table.concat(bad, ",") .. ")" end
-    end
-    say(string.format("10j) у всех комбо СИМК статы обнулены -> %s",
-        (#comboProblems == 0) and "OK" or ("ОШИБКА: " .. table.concat(comboProblems, " "))))
-
-    -- k) таблица защит СИМК нейтральна: все девять иммунитетов нули. Иначе окно
-    --    покажет строки защиты (нулевые строки оно пропускает, :233).
+    -- k) таблица защит ПУСТОГО СИМК нейтральна: все девять иммунитетов нули.
+    --    Это свойство самого контейнера, оно не зависит от баланса артефактов.
     local IMM = {
         "radiation_immunity", "burn_immunity", "chemical_burn_immunity",
         "telepatic_immunity", "shock_immunity", "wound_immunity",
@@ -651,26 +624,6 @@ do
     end
     say(string.format("10k) таблица защит СИМК нейтральна (9 иммунитетов = 0) -> %s",
         (#immBad == 0) and "OK" or ("ОШИБКА: " .. table.concat(immBad, ", "))))
-
-    local bad = {}
-    for _, art in ipairs({ "af_eye", "af_ice", "af_cristall", "af_compass", "af_fireball" }) do
-        local header = "[" .. art .. "_bq_simk_container]"
-        local vv = key_in_section(cfg, header, "af_actor_properties")
-        if vv ~= "off" then bad[#bad + 1] = art .. "=" .. tostring(vv) end
-    end
-    say(string.format("10h) у всех комбо СИМК af_actor_properties = off -> %s",
-        (#bad == 0) and "OK" or ("ОШИБКА: " .. table.concat(bad, ", "))))
-
-    -- i) в описании СИМК фраза про пояс отделена пустой строкой (\n\n), то есть
-    --    вынесена на две строки вниз. Проверяем по факту: находим фразу и
-    --    смотрим два символа ПЕРЕД ней. Без Lua-паттернов - в них "-" не ленивый,
-    --    и на этом я уже ошибся один раз.
-    local rus = read_file(ADDON .. "/configs/text/rus/st_beard_quest.xml") or ""
-    local pos = rus:find("Камера контейнера глушит", 1, true)
-    local before = pos and rus:sub(pos - 2, pos - 1)
-    local twoLines = before == "\n\n"
-    say(string.format("10i) в описании СИМК абзац перед фразой про пояс (\\n\\n) -> %s",
-        twoLines and "OK" or ("ОШИБКА: перед фразой " .. tostring(before and before:gsub("\n", "<LF>")))))
 
     -- l) СИМК занимает ДВЕ клетки в высоту. Так нарисованы текстуры заказчика
     --    (открытый: крышка сверху, корпус снизу), и от этого зависит и раскладка

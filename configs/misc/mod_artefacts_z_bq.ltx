@@ -2144,7 +2144,7 @@ inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 0
 inv_grid_y                  = 23
-radiation_restore_speed     = 14
+radiation_restore_speed     = 0.014
 hit_absorbation_sect        = af_compass_absorbation
 use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
@@ -2163,7 +2163,7 @@ inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 1
 inv_grid_y                  = 23
-radiation_restore_speed     = 10
+radiation_restore_speed     = 0.01
 hit_absorbation_sect        = af_compass_absorbation
 use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
@@ -2182,7 +2182,7 @@ inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 2
 inv_grid_y                  = 23
-radiation_restore_speed     = 4
+radiation_restore_speed     = 0.004
 hit_absorbation_sect        = af_compass_absorbation
 use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
@@ -2224,7 +2224,7 @@ inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 0
 inv_grid_y                  = 24
-radiation_restore_speed     = 14
+radiation_restore_speed     = 0.014
 hit_absorbation_sect        = af_oasis_heart_absorbation
 use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
@@ -2243,7 +2243,7 @@ inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 1
 inv_grid_y                  = 24
-radiation_restore_speed     = 10
+radiation_restore_speed     = 0.01
 hit_absorbation_sect        = af_oasis_heart_absorbation
 use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
@@ -2262,7 +2262,7 @@ inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 2
 inv_grid_y                  = 24
-radiation_restore_speed     = 4
+radiation_restore_speed     = 0.004
 hit_absorbation_sect        = af_oasis_heart_absorbation
 use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
@@ -2310,10 +2310,10 @@ use1_functor                = bq_containers.take_artifact
 ; свойства: здоровье +1.8, раны +3.6, силы +1.4, радиация +4
 ![af_fire]
 cost                        = 18000
-radiation_restore_speed     = 4
-health_restore_speed        = 1.8
-power_restore_speed         = 1.4
-bleeding_restore_speed      = 3.6
+radiation_restore_speed     = 0.004
+health_restore_speed        = 0.0018
+power_restore_speed         = 0.0014
+bleeding_restore_speed      = 0.0036
 satiety_restore_speed       = 0
 thirst_restore_speed        = 0
 additional_inventory_weight = 0
@@ -2335,7 +2335,7 @@ fire_wound_immunity        = 0
 ; защита:   радиозащита 36
 ![af_baloon]
 cost                        = 12000
-radiation_restore_speed     = -10.8
+radiation_restore_speed     = -0.0108
 health_restore_speed        = 0
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
@@ -2349,7 +2349,7 @@ burn_immunity              = 0
 strike_immunity            = 0
 shock_immunity             = 0
 wound_immunity             = 0
-radiation_immunity         = 36
+radiation_immunity         = 0.036
 telepatic_immunity         = 0
 chemical_burn_immunity     = 0
 explosion_immunity         = 0
@@ -2359,8 +2359,8 @@ fire_wound_immunity        = 0
 ; свойства: здоровье +0.6, вес +4 кг, радиация +3
 ![af_gravi]
 cost                        = 12000
-radiation_restore_speed     = 3
-health_restore_speed        = 0.6
+radiation_restore_speed     = 0.003
+health_restore_speed        = 0.0006
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
@@ -2383,8 +2383,8 @@ fire_wound_immunity        = 0
 ; свойства: здоровье +0.6, вес +6 кг, радиация +3
 ![af_gold_fish]
 cost                        = 18000
-radiation_restore_speed     = 3
-health_restore_speed        = 0.6
+radiation_restore_speed     = 0.003
+health_restore_speed        = 0.0006
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
@@ -2408,10 +2408,10 @@ fire_wound_immunity        = 0
 ; защита:   пси 0.03
 ![af_eye]
 cost                        = 12000
-radiation_restore_speed     = 2
-health_restore_speed        = 0.8
+radiation_restore_speed     = 0.002
+health_restore_speed        = 0.0008
 power_restore_speed         = 0
-bleeding_restore_speed      = 4
+bleeding_restore_speed      = 0.004
 satiety_restore_speed       = 0
 thirst_restore_speed        = 0
 additional_inventory_weight = 0
@@ -2423,7 +2423,7 @@ strike_immunity            = 0
 shock_immunity             = 0
 wound_immunity             = 0
 radiation_immunity         = 0
-telepatic_immunity         = 0.03
+telepatic_immunity         = 0.00003
 chemical_burn_immunity     = 0
 explosion_immunity         = 0
 fire_wound_immunity        = 0
@@ -2433,9 +2433,9 @@ fire_wound_immunity        = 0
 ; защита:   электро 0.03
 ![af_ice]
 cost                        = 18000
-radiation_restore_speed     = 2
-health_restore_speed        = 0.8
-power_restore_speed         = 3.6
+radiation_restore_speed     = 0.002
+health_restore_speed        = 0.0008
+power_restore_speed         = 0.0036
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
 thirst_restore_speed        = 0
@@ -2445,7 +2445,7 @@ hit_absorbation_sect        = af_ice_absorbation
 ![af_ice_absorbation]
 burn_immunity              = 0
 strike_immunity            = 0
-shock_immunity             = 0.03
+shock_immunity             = 0.00003
 wound_immunity             = 0
 radiation_immunity         = 0
 telepatic_immunity         = 0
@@ -2457,10 +2457,10 @@ fire_wound_immunity        = 0
 ; свойства: здоровье +2, раны +1.4, вес +1 кг, радиация +3
 ![af_dummy_dummy]
 cost                        = 12000
-radiation_restore_speed     = 3
-health_restore_speed        = 2
+radiation_restore_speed     = 0.003
+health_restore_speed        = 0.002
 power_restore_speed         = 0
-bleeding_restore_speed      = 1.4
+bleeding_restore_speed      = 0.0014
 satiety_restore_speed       = 0
 thirst_restore_speed        = 0
 additional_inventory_weight = 1
@@ -2482,10 +2482,10 @@ fire_wound_immunity        = 0
 ; защита:   радиозащита 4
 ![af_soul]
 cost                        = 6000
-radiation_restore_speed     = 2
-health_restore_speed        = 1.2
+radiation_restore_speed     = 0.002
+health_restore_speed        = 0.0012
 power_restore_speed         = 0
-bleeding_restore_speed      = 1.4
+bleeding_restore_speed      = 0.0014
 satiety_restore_speed       = 0
 thirst_restore_speed        = 0
 additional_inventory_weight = 0
@@ -2496,7 +2496,7 @@ burn_immunity              = 0
 strike_immunity            = 0
 shock_immunity             = 0
 wound_immunity             = 0
-radiation_immunity         = 4
+radiation_immunity         = 0.004
 telepatic_immunity         = 0
 chemical_burn_immunity     = 0
 explosion_immunity         = 0
@@ -2506,9 +2506,9 @@ fire_wound_immunity        = 0
 ; свойства: здоровье +1.6, силы +0.9, вес +1 кг, радиация +2
 ![af_fuzz_kolobok]
 cost                        = 12000
-radiation_restore_speed     = 2
-health_restore_speed        = 1.6
-power_restore_speed         = 0.9
+radiation_restore_speed     = 0.002
+health_restore_speed        = 0.0016
+power_restore_speed         = 0.0009
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
 thirst_restore_speed        = 0
@@ -2530,10 +2530,10 @@ fire_wound_immunity        = 0
 ; свойства: здоровье +0.8, раны +1, радиация -2.2
 ![af_vyvert]
 cost                        = 8000
-radiation_restore_speed     = -2.2
-health_restore_speed        = 0.8
+radiation_restore_speed     = -0.0022
+health_restore_speed        = 0.0008
 power_restore_speed         = 0
-bleeding_restore_speed      = 1
+bleeding_restore_speed      = 0.001
 satiety_restore_speed       = 0
 thirst_restore_speed        = 0
 additional_inventory_weight = 0
@@ -2554,8 +2554,8 @@ fire_wound_immunity        = 0
 ; свойства: здоровье +0.6, вес +2 кг, радиация +1
 ![af_night_star]
 cost                        = 6000
-radiation_restore_speed     = 1
-health_restore_speed        = 0.6
+radiation_restore_speed     = 0.001
+health_restore_speed        = 0.0006
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
@@ -2578,10 +2578,10 @@ fire_wound_immunity        = 0
 ; свойства: здоровье +0.8, раны +2, радиация +1
 ![af_dummy_glassbeads]
 cost                        = 6000
-radiation_restore_speed     = 1
-health_restore_speed        = 0.8
+radiation_restore_speed     = 0.001
+health_restore_speed        = 0.0008
 power_restore_speed         = 0
-bleeding_restore_speed      = 2
+bleeding_restore_speed      = 0.002
 satiety_restore_speed       = 0
 thirst_restore_speed        = 0
 additional_inventory_weight = 0
@@ -2603,8 +2603,8 @@ fire_wound_immunity        = 0
 ; защита:   пси 0.06, радиозащита 4
 ![af_electra_moonlight]
 cost                        = 6000
-radiation_restore_speed     = 2
-health_restore_speed        = 0.6
+radiation_restore_speed     = 0.002
+health_restore_speed        = 0.0006
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
@@ -2617,8 +2617,8 @@ burn_immunity              = 0
 strike_immunity            = 0
 shock_immunity             = 0
 wound_immunity             = 0
-radiation_immunity         = 4
-telepatic_immunity         = 0.06
+radiation_immunity         = 0.004
+telepatic_immunity         = 0.00006
 chemical_burn_immunity     = 0
 explosion_immunity         = 0
 fire_wound_immunity        = 0
@@ -2628,9 +2628,9 @@ fire_wound_immunity        = 0
 ; защита:   электро 0.03
 ![af_dummy_battery]
 cost                        = 6000
-radiation_restore_speed     = 1
-health_restore_speed        = 0.6
-power_restore_speed         = 1.6
+radiation_restore_speed     = 0.001
+health_restore_speed        = 0.0006
+power_restore_speed         = 0.0016
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
 thirst_restore_speed        = 0
@@ -2640,7 +2640,7 @@ hit_absorbation_sect        = af_dummy_battery_absorbation
 ![af_dummy_battery_absorbation]
 burn_immunity              = 0
 strike_immunity            = 0
-shock_immunity             = 0.03
+shock_immunity             = 0.00003
 wound_immunity             = 0
 radiation_immunity         = 0
 telepatic_immunity         = 0
@@ -2653,8 +2653,8 @@ fire_wound_immunity        = 0
 ; защита:   хим 0.02, радиозащита 2
 ![af_blood]
 cost                        = 2000
-radiation_restore_speed     = 1
-health_restore_speed        = 0.5
+radiation_restore_speed     = 0.001
+health_restore_speed        = 0.0005
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
@@ -2667,9 +2667,9 @@ burn_immunity              = 0
 strike_immunity            = 0
 shock_immunity             = 0
 wound_immunity             = 0
-radiation_immunity         = 2
+radiation_immunity         = 0.002
 telepatic_immunity         = 0
-chemical_burn_immunity     = 0.02
+chemical_burn_immunity     = 0.00002
 explosion_immunity         = 0
 fire_wound_immunity        = 0
 
@@ -2678,8 +2678,8 @@ fire_wound_immunity        = 0
 ; защита:   хим 0.04, радиозащита 2
 ![af_mincer_meat]
 cost                        = 4000
-radiation_restore_speed     = 2
-health_restore_speed        = 0.5
+radiation_restore_speed     = 0.002
+health_restore_speed        = 0.0005
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
@@ -2692,9 +2692,9 @@ burn_immunity              = 0
 strike_immunity            = 0
 shock_immunity             = 0
 wound_immunity             = 0
-radiation_immunity         = 2
+radiation_immunity         = 0.002
 telepatic_immunity         = 0
-chemical_burn_immunity     = 0.04
+chemical_burn_immunity     = 0.00004
 explosion_immunity         = 0
 fire_wound_immunity        = 0
 
@@ -2703,8 +2703,8 @@ fire_wound_immunity        = 0
 ; защита:   пси 0.02, радиозащита 2
 ![af_cristall_flower]
 cost                        = 3000
-radiation_restore_speed     = 1
-health_restore_speed        = 0.5
+radiation_restore_speed     = 0.001
+health_restore_speed        = 0.0005
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
@@ -2717,8 +2717,8 @@ burn_immunity              = 0
 strike_immunity            = 0
 shock_immunity             = 0
 wound_immunity             = 0
-radiation_immunity         = 2
-telepatic_immunity         = 0.02
+radiation_immunity         = 0.002
+telepatic_immunity         = 0.00002
 chemical_burn_immunity     = 0
 explosion_immunity         = 0
 fire_wound_immunity        = 0
@@ -2728,7 +2728,7 @@ fire_wound_immunity        = 0
 ; защита:   радиозащита 18
 ![af_medusa]
 cost                        = 4000
-radiation_restore_speed     = -3.6
+radiation_restore_speed     = -0.0036
 health_restore_speed        = 0
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
@@ -2742,7 +2742,7 @@ burn_immunity              = 0
 strike_immunity            = 0
 shock_immunity             = 0
 wound_immunity             = 0
-radiation_immunity         = 18
+radiation_immunity         = 0.018
 telepatic_immunity         = 0
 chemical_burn_immunity     = 0
 explosion_immunity         = 0
@@ -2753,8 +2753,8 @@ fire_wound_immunity        = 0
 ; защита:   термо 0.02, радиозащита 2
 ![af_cristall]
 cost                        = 2000
-radiation_restore_speed     = 1
-health_restore_speed        = 0.5
+radiation_restore_speed     = 0.001
+health_restore_speed        = 0.0005
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
@@ -2763,11 +2763,11 @@ additional_inventory_weight = 0
 hit_absorbation_sect        = af_cristall_absorbation
 
 ![af_cristall_absorbation]
-burn_immunity              = 0.02
+burn_immunity              = 0.00002
 strike_immunity            = 0
 shock_immunity             = 0
 wound_immunity             = 0
-radiation_immunity         = 2
+radiation_immunity         = 0.002
 telepatic_immunity         = 0
 chemical_burn_immunity     = 0
 explosion_immunity         = 0
@@ -2778,8 +2778,8 @@ fire_wound_immunity        = 0
 ; защита:   термо 0.04, радиозащита 2
 ![af_fireball]
 cost                        = 4000
-radiation_restore_speed     = 2
-health_restore_speed        = 0.5
+radiation_restore_speed     = 0.002
+health_restore_speed        = 0.0005
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
@@ -2788,11 +2788,11 @@ additional_inventory_weight = 0
 hit_absorbation_sect        = af_fireball_absorbation
 
 ![af_fireball_absorbation]
-burn_immunity              = 0.04
+burn_immunity              = 0.00004
 strike_immunity            = 0
 shock_immunity             = 0
 wound_immunity             = 0
-radiation_immunity         = 2
+radiation_immunity         = 0.002
 telepatic_immunity         = 0
 chemical_burn_immunity     = 0
 explosion_immunity         = 0
@@ -2803,8 +2803,8 @@ fire_wound_immunity        = 0
 ; защита:   электро 0.02, радиозащита 2
 ![af_electra_sparkler]
 cost                        = 2000
-radiation_restore_speed     = 1
-health_restore_speed        = 0.5
+radiation_restore_speed     = 0.001
+health_restore_speed        = 0.0005
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
@@ -2815,9 +2815,9 @@ hit_absorbation_sect        = af_electra_sparkler_absorbation
 ![af_electra_sparkler_absorbation]
 burn_immunity              = 0
 strike_immunity            = 0
-shock_immunity             = 0.02
+shock_immunity             = 0.00002
 wound_immunity             = 0
-radiation_immunity         = 2
+radiation_immunity         = 0.002
 telepatic_immunity         = 0
 chemical_burn_immunity     = 0
 explosion_immunity         = 0
@@ -2828,8 +2828,8 @@ fire_wound_immunity        = 0
 ; защита:   электро 0.04, радиозащита 2
 ![af_electra_flash]
 cost                        = 4000
-radiation_restore_speed     = 2
-health_restore_speed        = 0.5
+radiation_restore_speed     = 0.002
+health_restore_speed        = 0.0005
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
@@ -2840,9 +2840,9 @@ hit_absorbation_sect        = af_electra_flash_absorbation
 ![af_electra_flash_absorbation]
 burn_immunity              = 0
 strike_immunity            = 0
-shock_immunity             = 0.04
+shock_immunity             = 0.00004
 wound_immunity             = 0
-radiation_immunity         = 2
+radiation_immunity         = 0.002
 telepatic_immunity         = 0
 chemical_burn_immunity     = 0
 explosion_immunity         = 0
@@ -2853,9 +2853,9 @@ fire_wound_immunity        = 0
 ; защита:   термо 0.03, хим 0.03, пси 0.03, электро 0.03
 ![af_compass]
 cost                        = 50000
-radiation_restore_speed     = 18
+radiation_restore_speed     = 0.018
 health_restore_speed        = 0
-power_restore_speed         = 2
+power_restore_speed         = 0.002
 bleeding_restore_speed      = 0
 satiety_restore_speed       = 0
 thirst_restore_speed        = 0
@@ -2863,13 +2863,13 @@ additional_inventory_weight = 0
 hit_absorbation_sect        = af_compass_absorbation
 
 ![af_compass_absorbation]
-burn_immunity              = 0.03
+burn_immunity              = 0.00003
 strike_immunity            = 0
-shock_immunity             = 0.03
+shock_immunity             = 0.00003
 wound_immunity             = 0
 radiation_immunity         = 0
-telepatic_immunity         = 0.03
-chemical_burn_immunity     = 0.03
+telepatic_immunity         = 0.00003
+chemical_burn_immunity     = 0.00003
 explosion_immunity         = 0
 fire_wound_immunity        = 0
 
@@ -2877,11 +2877,11 @@ fire_wound_immunity        = 0
 ; свойства: здоровье +2, раны +2, силы +2, голод +0.1, радиация +18
 ![af_oasis_heart]
 cost                        = 50000
-radiation_restore_speed     = 18
-health_restore_speed        = 2
-power_restore_speed         = 2
-bleeding_restore_speed      = 2
-satiety_restore_speed       = 0.1
+radiation_restore_speed     = 0.018
+health_restore_speed        = 0.002
+power_restore_speed         = 0.002
+bleeding_restore_speed      = 0.002
+satiety_restore_speed       = 0.0001
 thirst_restore_speed        = 0
 additional_inventory_weight = 0
 hit_absorbation_sect        = af_oasis_heart_absorbation
