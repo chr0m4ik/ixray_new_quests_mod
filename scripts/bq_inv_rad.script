@@ -156,17 +156,46 @@ local function compute_sum(actor)
 end
 
 ----------------------------------------------------------------------------
--- Турер: поиск, спавн, удаление
+-- Состояние механизма. Живёт в _G.
+--
+-- ВАЖНО (выяснено 08.10.2026 по логам и подтверждено вылетом):
+-- _G ПЕРЕЖИВАЕТ пересоздание Lua-машины. Движок при инициализации делает
+-- lua_close + luaL_newstate (CScriptStorage::reinit, script_storage.cpp:48-81) и
+-- заново грузит dynamic_callbacks.lua, но таблица _G при этом сохраняется.
+-- Доказательства:
+--   * в bq_inv_rad.log записи накапливались между сессиями (13:47, 14:30, ...);
+--   * таблица, оставшаяся от ПРЕДЫДУЩЕЙ версии скрипта, не имела поля cycles,
+--     и новый код падал на "attempt to perform arithmetic on field 'cycles'".
+--
+-- Отсюда два следствия, которые надо соблюдать всегда:
+--   1. поля в _G нельзя считать созданными - их нужно ЯВНО выставлять при
+--      каждом исполнении модуля (см. normalize_state ниже), иначе старая
+--      таблица переживёт обновление скрипта и поля не будет;
+--   2. локальный реестр подписок из dynamic_callbacks.lua, наоборот, НЕ
+--      переживает пересоздание машины. Именно поэтому RegisterScriptCallback
+--      ("update", ...) до наших обработчиков не доходил: подписка оставалась
+--      в мёртвой таблице. Кадровый вызов через биндер турера этой проблемы
+--      лишён, потому что это C++-механизм планировщика.
 ----------------------------------------------------------------------------
--- Идентификатор текущего турера. Живёт в _G: модуль может исполниться повторно,
--- и тогда локальная переменная нового экземпляра была бы пустой.
-_G.bq_inv_rad = _G.bq_inv_rad or {
-    tuner_id = nil,        -- id турера на текущем уровне
-    next_tick = nil,       -- время следующего начисления, мс
-    accum_from = nil,      -- от какого момента копится время, мс
-    cycles = 0,            -- сколько раз начислили (диагностика)
-    last_log = 0,          -- время последней записи в лог, мс
-}
+_G.bq_inv_rad = _G.bq_inv_rad or {}
+
+-- Явная нормализация: дошвыставляем всё, чего может не быть в старой таблице.
+local function normalize_state()
+    local st = _G.bq_inv_rad
+    st.tuner_id   = st.tuner_id   or nil
+    st.next_tick  = st.next_tick  or nil
+    st.accum_from = st.accum_from or nil
+    st.cycles     = st.cycles     or 0
+    st.last_log   = st.last_log   or 0
+    -- Поля прежних версий скрипта - чтобы не путались под ногами.
+    st.sum         = nil
+    st.last_logged = nil
+    st.last_tick   = nil
+    st.announced   = nil
+    return st
+end
+
+normalize_state()
 
 local function tuner_object()
     local id = _G.bq_inv_rad.tuner_id
@@ -190,7 +219,7 @@ local function ensure_tuner()
     local ok, err = pcall(function()
         local created = alife():create(TUNER_SECTION, position, lvid, gvid)
         if created then
-            local st = _G.bq_inv_rad
+            local st = normalize_state()
             st.tuner_id   = created.id
             st.accum_from = time_global()
             st.next_tick  = time_global() + PERIOD_MS
@@ -218,17 +247,23 @@ function bq_rad_tuner_binder:net_spawn(server_object)
     if not object_binder.net_spawn(self, server_object) then
         return false
     end
-    local st = _G.bq_inv_rad
+    -- normalize_state обязателен: таблица в _G могла остаться от прежней версии
+    -- скрипта (она переживает пересоздание Lua-машины), и полей в ней может не
+    -- быть. Без этого был вылет "attempt to perform arithmetic on field
+    -- 'cycles' (a nil value)".
+    local st = normalize_state()
     st.tuner_id   = self.object:id()
     st.accum_from = time_global()
     st.next_tick  = time_global() + PERIOD_MS
+    st.cur_binder = self
     dbg("==== турер радиации появился, id=" .. tostring(self.object:id()) .. " ====")
     return true
 end
 
 function bq_rad_tuner_binder:net_destroy()
     if _G.bq_inv_rad.tuner_id == self.object:id() then
-        _G.bq_inv_rad.tuner_id = nil
+        _G.bq_inv_rad.tuner_id   = nil
+        _G.bq_inv_rad.cur_binder = nil
     end
     dbg("турер радиации уничтожен")
     object_binder.net_destroy(self)
