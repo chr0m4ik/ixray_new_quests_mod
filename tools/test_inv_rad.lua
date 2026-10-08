@@ -592,12 +592,16 @@ do
     local function key_in_section(text, header, key)
         local body = section_body(text, header)
         if not body then return nil, "нет секции" end
-        -- берём ПОСЛЕДНЕЕ присваивание ключа в секции (оно и побеждает)
+        -- берём ПОСЛЕДНЕЕ присваивание ключа в секции (оно и побеждает).
+        -- ВАЖНО: значение может быть ПУСТЫМ (particles_bones =). Шаблон %S+ такое
+        -- значение не ловит и вернул бы nil, а это разные вещи: "ключ есть, но
+        -- пуст" и "ключа нет". Поэтому после "=" допускаем и пустоту, и
+        -- возвращаем "" - вызывающий код сам решает, что это значит.
         local value = nil
         for line in body:gmatch("[^\r\n]+") do
             local bare = line:gsub(";.*$", "")          -- отбрасываем комментарий
-            local v = bare:match("^%s*" .. key .. "%s*=%s*(%S+)")
-            if v then value = v end
+            local v = bare:match("^%s*" .. key .. "%s*=%s*(%S*)")
+            if v ~= nil then value = v end
         end
         return value, nil
     end
@@ -731,6 +735,24 @@ do
     say(string.format("10o) пустой СИМК открыт ('%s'), комбо закрыты -> %s",
         emptyVis, (closedOk and comboClosed) and "OK"
             or "ОШИБКА: у комбо должна быть закрытая модель"))
+
+    -- p) РЕГРЕСС на вылет "Can't find particle bone [link]": ванильный af_base
+    --    задаёт particles_bone = link, и CArtefact::Load ЖЁСТКО требует эту кость
+    --    в модели (Artefact.cpp:64-91). Наши модели - статические меши без костей,
+    --    из-за чего игра падала при получении контейнера. Спасает ключ
+    --    particles_bones (МНОЖЕСТВЕННОЕ число): он уводит движок в ветку, где
+    --    particles_bone не читается.
+    local plural = key_in_section(cfg, "[bq_container_base]", "particles_bones")
+    -- ищем непустой particles_bone в ЛЮБОЙ нашей секции
+    local badBone = {}
+    for sec in cfg:gmatch("%[([^%]]+)%]") do
+        local v = key_in_section(cfg, "[" .. sec .. "]", "particles_bone")
+        if v and v ~= "" then badBone[#badBone + 1] = sec .. "=" .. v end
+    end
+    say(string.format("10p) кость частиц: particles_bones есть (%s), непустых particles_bone: %d -> %s",
+        tostring(plural), #badBone,
+        ((plural ~= nil) and #badBone == 0) and "OK"
+            or ("ОШИБКА: " .. table.concat(badBone, ", "))))
 end
 
 local f = io.open(TESTDIR .. "/test_inv_rad_out.txt", "w")

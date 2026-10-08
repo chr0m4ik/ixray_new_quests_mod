@@ -865,6 +865,67 @@ console.log('== 10. Модели предметов (visual) ==');
     }
 }
 
+// ---------------------------------------------------------------------------
+// 11. Кость частиц. Регресс на вылет "Can't find particle bone [link]".
+//
+// Ванильный af_base задаёт particles_bone = link, и это наследуется комбо от
+// артефакта. CArtefact::Load (Artefact.cpp:64-91) читает кость и ЖЁСТКО требует
+// её в модели (R_ASSERT2). Наши модели контейнеров - статические меши без
+// костей, поэтому игра падала при получении предмета.
+//
+// Спасает ключ particles_bones (МНОЖЕСТВЕННОЕ число): он уводит движок в ветку,
+// где particles_bone не читается вообще. Проверяем, что он есть у шаблона и что
+// ни у одной нашей секции не осталось непустого particles_bone.
+// ---------------------------------------------------------------------------
+console.log('== 11. Кость частиц (регресс на вылет) ==');
+{
+    const artSrc = fs.readFileSync(OUR_FILE, 'utf8');
+    const lines = artSrc.split(/\r?\n/);
+    let current = null;
+    const found = { plural: [], singular: [] };
+    for (const line of lines) {
+        const bare = line.replace(/;.*$/, '').trim();
+        const h = bare.match(/^!?\[([^\]]+)\]/);
+        if (h) { current = h[1].trim(); continue; }
+        if (!current) continue;
+        if (/^particles_bones\s*=/.test(bare)) found.plural.push(current);
+        if (/^particles_bone\s*=\s*\S/.test(bare)) found.singular.push(current);
+    }
+
+    // шаблон обязан задавать множественный ключ, иначе он не дойдёт до комбо
+    if (!found.plural.includes('bq_container_base')) {
+        err('в [bq_container_base] нет ключа particles_bones - комбо снова получат ' +
+            'particles_bone = link от af_base и игра упадёт при получении контейнера');
+    } else {
+        ok('particles_bones задан в [bq_container_base] (уводит движок от particles_bone)');
+    }
+
+    // непустой одиночный ключ у наших секций = потенциальный вылет
+    if (found.singular.length) {
+        err('непустой particles_bone у секций: ' + found.singular.join(', ') +
+            ' - движок будет искать эту кость в модели и упадёт');
+    } else {
+        ok('непустого particles_bone нет ни у одной нашей секции');
+    }
+
+    // модели без костей: если у модели нет блока BoneNames, любая кость частиц
+    // приведёт к вылету. Предупреждаем заранее.
+    const visuals = new Set();
+    for (const line of lines) {
+        const bare = line.replace(/;.*$/, '').trim();
+        const kv = bare.match(/^visual\s*=\s*(\S+)/);
+        if (kv) visuals.add(kv[1]);
+    }
+    for (const vis of visuals) {
+        const file = path.join(__dirname, '..', 'meshes', vis.replace(/\\/g, path.sep));
+        if (!fs.existsSync(file)) continue;
+        const data = fs.readFileSync(file);
+        if (data.indexOf('BoneNames', 0, 'latin1') === -1) {
+            ok(`модель без костей: ${vis.split('\\').pop()} (particles_bones это учитывает)`);
+        }
+    }
+}
+
 if (errors === 0) {
     console.log('\nOK: конфиг контейнеров согласован, обязательные ключи на месте.');
     process.exit(0);

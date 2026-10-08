@@ -1,4 +1,4 @@
-﻿; ============================================================================
+; ============================================================================
 ; Artefact containers - sections for configs\misc\artefacts.ltx
 ;
 ; HOW THIS FILE IS LOADED (checked against the engine sources):
@@ -82,6 +82,32 @@ cost                        = 15000
 can_trade                   = true
 af_rank                     = 0
 lights_enabled              = false
+; ВЫЛЕТ "Can't find particle bone [link]" - ИСПРАВЛЕНИЕ.
+;
+; Причина: ванильный af_base задаёт particles_bone = link, и комбо наследуют
+; этот ключ от артефакта. CArtefact::Load (Artefact.cpp:64-91) устроен так:
+;     if (line_exist(section, "particles_bones"))   // МНОЖЕСТВЕННОЕ число
+;         ... LoadParticles(...)                    // кости берутся из секции
+;     else if (line_exist(section, "particles_bone")) {   // единственное
+;         m_sParticlesBone = r_string(...);         // здесь и приходит "link"
+;         if (count > 1) ... else {
+;             bone_id = K->LL_BoneID("link");
+;             R_ASSERT2(bone_id != BI_NONE, "Can't find particle bone ...");
+;         }
+;     }
+; Все наши модели контейнеров (aac/iam/aam и lead_box_open/closed) - статические
+; меши БЕЗ костей (в файле нет блока BoneNames), поэтому кость не находится и
+; игра падает при получении предмета.
+;
+; Поэтому задаём ключ particles_bones (МНОЖЕСТВЕННОЕ число): он уводит движок в
+; первую ветку, и particles_bone = link из af_base уже НЕ ЧИТАЕТСЯ - ни проверки
+; кости, ни вылета. Секции с таким именем нет, поэтому список костей пуст, а
+; частиц у контейнеров и так нет: ключ particles не задан ни здесь, ни у комбо.
+;
+; Почему вылет не проявлялся раньше: у контейнеров стояла заглушка
+; dynamics\artefacts\af_eye.ogf, а у модели артефакта Глаз кость link ЕСТЬ. То
+; есть ошибка была заряжена и ждала настоящих моделей.
+particles_bones             =
 jump_height                 = 0
 ; inv_scale = 1.0 ОБЯЗАТЕЛЕН. Мод ixray-hq-icons-v2.0 переопределяет секции
 ; артефактов и задаёт им inv_scale = 2.0 (HD-атлас ui_icon_equipment_hd, там
