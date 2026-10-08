@@ -46,7 +46,6 @@ local SOUND_BY_CONTAINER = {
 local LOG_FILE = "bq_containers.log"
 
 local pending   = nil
-local hooked    = false
 local snd_cache = {}
 
 local function dbg(msg)
@@ -138,12 +137,30 @@ local function actor_vertices()
 end
 
 ----------------------------------------------------------------------------
--- Замена. Выполняется на следующем кадре.
+-- Замена предметов.
+--
+-- ИСТОРИЯ И ПРИЧИНА ПЕРЕДЕЛКИ. Раньше замена всегда откладывалась на "следующий
+-- кадр" через обработчик update. Откладывать действительно нужно: менять
+-- инвентарь ПРЯМО ВНУТРИ обработчика перетаскивания нельзя, движок в этот момент
+-- сам правит список (MEMO 15.1 п.5, проверено вылетом). Но в этой сборке
+-- подписка на update ненадёжна: реестр колбэков живёт в локальной таблице
+-- `dynamic_callbacks.lua` и пересоздаётся вместе с Lua-машиной, после чего
+-- apply_pending перестаёт вызываться и замена не применяется никогда
+-- (проверено логом: ни одной строки ЗАМЕНА при работающем OnItemDropped).
+--
+-- Поэтому порядок такой:
+--   1. движок вызывает OnItemDropped ПОСЛЕ того, как сам закончил обработку
+--      перетаскивания (UIActorMenu_action.cpp:184-190, уже вне правки списка) -
+--      здесь пробуем выполнить замену сразу;
+--   2. если не вышло (инвентарь занят, предмет не у актора) - кладём задачу в
+--      pending, и её добьёт apply_pending, ЕСЛИ обработчик update работает.
+-- Так механика работает и без реестра колбэков, а отложенный путь остаётся
+-- страховкой, а не единственным способом.
 ----------------------------------------------------------------------------
-local function do_apply()
-    if not pending then return end
-    local task = pending
-    pending = nil
+
+local function swap(task)
+    if not task then return false end
+    if not db.actor or not alife() then return false end
 
     local position, lvid, gvid = actor_vertices()
 
@@ -152,11 +169,11 @@ local function do_apply()
         local container = alife():object(task.container_id)
         if not artifact or not container then
             dbg("ОТМЕНА(put): предмет исчез")
-            return
+            return true            -- повторять бессмысленно
         end
         if not owned_by_actor(artifact) or not owned_by_actor(container) then
             dbg("ОТМЕНА(put): предмет не у актора")
-            return
+            return true
         end
         dbg("ЗАМЕНА(put): " .. artifact:section_name()
             .. " + " .. container:section_name() .. " -> " .. task.combo)
@@ -166,19 +183,20 @@ local function do_apply()
         if created then
             dbg("  ГОТОВО, комбо id=" .. tostring(created.id))
             play_sound(task.sound)
-        else
-            dbg("  ОШИБКА: комбо не создался")
+            return true
         end
+        dbg("  ОШИБКА: комбо не создался")
+        return true
 
     elseif task.mode == "take" then
         local combo = alife():object(task.combo_id)
         if not combo then
             dbg("ОТМЕНА(take): комбо исчез")
-            return
+            return true
         end
         if not owned_by_actor(combo) then
             dbg("ОТМЕНА(take): комбо не у актора")
-            return
+            return true
         end
         dbg("ЗАМЕНА(take): " .. combo:section_name()
             .. " -> " .. task.artifact .. " + " .. task.container)
@@ -188,15 +206,36 @@ local function do_apply()
         if artifact and container then
             dbg("  ГОТОВО")
             play_sound(task.sound)
-        else
-            dbg("  ОШИБКА: артефакт или контейнер не создался")
+            return true
         end
+        dbg("  ОШИБКА: артефакт или контейнер не создался")
+        return true
     end
+    return true
+end
+
+-- Попытка выполнить замену сразу, из движкового колбэка.
+-- Возвращает true, если задача решена (или решена быть не может).
+local function try_swap_now(task)
+    local ok, done = pcall(swap, task)
+    if not ok then
+        dbg("замена отложена (исключение): " .. tostring(done))
+        return false
+    end
+    return done == true
+end
+
+-- Выполняется из обработчика update, если он вообще вызывается.
+local function do_apply()
+    if not pending then return end
+    local task = pending
+    pending = nil
+    swap(task)
 end
 
 local function apply_pending()
     -- ВРЕМЕННАЯ ДИАГНОСТИКА: считается, сколько раз движок вообще вызвал
-    -- обработчик update и сколько раз из них была работа. Убрать после разбора.
+    -- обработчик update. Убрать после разбора.
     _G.bq_diag = _G.bq_diag or { cont_tick = 0, cont_work = 0, rad_tick = 0 }
     _G.bq_diag.cont_tick = _G.bq_diag.cont_tick + 1
     if _G.bq_diag.cont_tick == 1 or _G.bq_diag.cont_tick % 300 == 0 then
@@ -237,7 +276,7 @@ function on_item_dropped(first, second)
         return true
     end
 
-    pending = {
+    local task = {
         mode         = "put",
         artifact_id  = first:id(),
         container_id = second:id(),
@@ -246,6 +285,12 @@ function on_item_dropped(first, second)
     }
     dbg("вложение принято: '" .. tostring(artifact) .. "' + '"
         .. tostring(container) .. "' -> '" .. combo .. "'")
+
+    -- Пробуем выполнить сразу: движок вызывает этот колбэк уже ПОСЛЕ своей
+    -- обработки перетаскивания. Если не вышло - задача уйдёт в pending.
+    if not try_swap_now(task) then
+        pending = task
+    end
     return true
 end
 
@@ -253,7 +298,10 @@ end
 -- 2) Доставание: кнопка на комбо-предмете (use1_functor в его секции).
 --    Функция обязана вернуть false: в IX-Ray use1_functor — это УСЛОВИЕ
 --    (UIActorMenuInventory.cpp:1389), и при true движок попытается "съесть"
---    предмет. Замену делает apply_pending на следующем кадре.
+--    предмет. Но доставание инициируется из UI (правый клик), поэтому сразу
+--    менять инвентарь здесь нельзя - задача уходит в pending, а если
+--    обработчик update не работает, её добьют точки входа on_item_focus /
+--    register_and_flush (см. ниже).
 ----------------------------------------------------------------------------
 function take_artifact(combo)
     if not db.actor or not alife() or not combo then return false end
@@ -278,13 +326,37 @@ function take_artifact(combo)
 end
 
 ----------------------------------------------------------------------------
--- Хук обновления.
+-- Хук обновления + точки входа, которые движок дёргает сам.
+--
+-- Точки входа объявлены в конфиге `[callbacks]` и вызываются движком напрямую
+-- из C++, каждый раз заново разрешаясь по имени. Поэтому они работают даже
+-- когда подписка на update потеряна: здесь мы переподписываемся и добиваем
+-- отложенную задачу.
+--
+-- Все возвращают false: движок воспринимает true как "событие обработано"
+-- (для OnCanTake предмет нельзя будет взять).
 ----------------------------------------------------------------------------
-function on_game_start()
-    if hooked then return end
+local function register_and_flush()
     RegisterScriptCallback("update", apply_pending)
-    hooked = true
-    dbg("==== скрипт контейнеров загружен, хук установлен ====")
+    if pending and db.actor and alife() and not db.actor:is_talking() then
+        dbg("добиваем отложенную задачу из точки входа движка")
+        local ok, err = pcall(do_apply)
+        if not ok then
+            pending = nil
+            dbg("ОШИБКА в do_apply: " .. tostring(err))
+        end
+    end
 end
 
-on_game_start()
+-- Наведение на предмет в инвентаре. Возврат этого ключа движок игнорирует
+-- (UIActorMenu_action.cpp:347-357), поэтому возвращаем true.
+function on_item_focus(item)
+    register_and_flush()
+    return true
+end
+
+----------------------------------------------------------------------------
+-- Первичная установка при исполнении модуля.
+----------------------------------------------------------------------------
+dbg("==== скрипт контейнеров загружен ====")
+register_and_flush()

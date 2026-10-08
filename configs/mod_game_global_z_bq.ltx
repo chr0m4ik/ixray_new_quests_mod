@@ -11,7 +11,24 @@
 ; падает с "Duplicate section 'callbacks' wasn't marked as an override"
 ; (Xr_ini.cpp:1071).
 
+; ВАЖНО: каждый ключ указывает ровно на ОДНУ функцию, поэтому точки входа
+; распределены между механиками. Семантика возврата у ключей РАЗНАЯ:
+;
+;   OnItemDropped, OnItemFocusReceive - возврат игнорируется;
+;   OnKeyPress         - true = "клавиша обработана" (не дойдёт до игры);
+;   OnCanTake          - false = ЗАПРЕТИТЬ взять предмет из ящика;
+;   OnCanMoveToPartner - false = ЗАПРЕТИТЬ торговлю;
+;   OnZoneTouch        - возврат управляет звуком детектора зоны.
+;
+; Поэтому все наши функции возвращают безопасное значение своего ключа.
+;
+;   контейнеры: OnItemDropped (делает вложение) + OnItemFocusReceive
+;               (переподписка и добивание отложенной задачи)
+;   радиация:   OnKeyPress + OnCanMoveToPartner (переподписка и расчёт;
+;               обращение к функции заставляет движок загрузить скрипт,
+;               см. MEMO 33.7)
 ![callbacks]
 OnItemDropped = bq_containers.on_item_dropped
-OnItemFocusReceive = bq_inv_rad.on_game_start
+OnItemFocusReceive = bq_containers.on_item_focus
 OnKeyPress = bq_inv_rad.on_key_press
+OnCanMoveToPartner = bq_inv_rad.on_can_move_to_partner
