@@ -40,6 +40,10 @@ const HQ_ICONS = path.join(ADDONS_DIR, 'ixray-hq-icons-v2.0', 'configs', 'mod_sy
 
 const merged = new Map();
 const loadOrder = [
+    // system.ltx обязателен: в нём объявлены базовые секции движка, например
+    // [space_restrictor] (system.ltx:621), от которой наследуется наш
+    // внутренний объект-турер радиации.
+    path.join(GAME, 'system.ltx'),
     path.join(GAME, 'defines.ltx'),
     path.join(GAME, 'misc', 'artefacts.ltx'),
     HQ_ICONS,
@@ -178,6 +182,15 @@ const OUR_ITEM_SECTIONS = [
     ...CONTAINERS.map((c) => c.section),
     ...TESTED_ARTEFACTS.flatMap((a) => Object.values(a.combos)),
 ];
+
+// ВНУТРЕННИЕ секции аддона: это НЕ предметы, игрок их получить не должен.
+// Проверять у них набор ключей предмета и требовать inv_grid > 0 бессмысленно
+// и вредно: наоборот, они обязаны быть скрыты из спавнера
+// (inv_grid_width/height = 0, SpawnManager.cpp:160-161).
+// [bq_rad_tuner] - невидимый объект-ограничитель (space_restrictor), чей
+// Lua-биндер движок дёргает каждый кадр; на нём держится радиация в рюкзаке
+// (см. NOTES_radiation_research.md).
+const INTERNAL_SECTIONS = new Set(['bq_rad_tuner']);
 // Формула, подтверждённая заказчиком в игре: контейнер поглощает НЕ БОЛЬШЕ,
 // чем артефакт излучает, поэтому результат никогда не отрицательный.
 const comboRadiation = (artRad, absorb) => Math.max(0, artRad - absorb);
@@ -202,6 +215,16 @@ const isItemSection = (r) => ![...r.keys()].some((k) => k.endsWith('_immunity'))
 for (const name of ours.keys()) {
     const r = resolve(name);
     const isOurs = OUR_ITEM_SECTIONS.includes(name) || TEMPLATES.has(name);
+    // Внутренние объекты (турер) не предметы: у них другой набор ключей и они
+    // намеренно скрыты из спавнера. Проверяем только родителя.
+    if (INTERNAL_SECTIONS.has(name)) {
+        const parents = ours.get(name).parents;
+        for (const p of parents) if (!merged.has(p)) err(`[${name}] родитель [${p}] не найден`);
+        const b = r.get('script_binding');
+        if (!b) err(`[${name}] нет script_binding — биндер не заработает`);
+        ok(`[${name}] внутренний объект, script_binding=${b}`);
+        continue;
+    }
     if (isItemSection(r) && isOurs) {
         // class обязателен: без него движок падает в r_clsid
         if (!r.has('class')) {

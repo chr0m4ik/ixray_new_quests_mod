@@ -570,3 +570,36 @@ telepatic_immunity          = 0.01
 chemical_burn_immunity      = 0.02
 explosion_immunity          = 0
 fire_wound_immunity         = 0
+
+; ===========================================================================
+; RADIATION TUNER (internal object, never given to the player).
+;
+; Why it exists: in this build RegisterScriptCallback("update", ...) never
+; reaches our handlers (the callback registry is a local table inside
+; dynamic_callbacks.lua and the Lua VM is recreated on init). But every game
+; object with a script_binding gets its Lua update() called by the SCHEDULER
+; every frame:
+;   CGameObject::shedule_Update (GameObject.cpp:811-826)
+;     -> CScriptBinder::shedule_Update (:825)
+;       -> luabind::call_member<void>(this, "update", delta)
+; The belt radiation uses the very same scheduler (CActor::shedule_Update,
+; Actor.cpp:2013 -> UpdateArtefactsOnBeltAndOutfit at :2236).
+;
+; space_restrictor is the right base: class SPC_RS_S (a SERVER class, so it is
+; created with alife():create), it has $spawn (so a client object exists and
+; gets scheduled) and its script_binding slot is free - see system.ltx:621-626.
+; No visual is needed: the object is invisible and harmless.
+;
+; The script spawns it next to the actor and removes the old one, so tuners do
+; not pile up. On level change the engine destroys level objects by itself.
+;
+; inv_grid_width/height = 0 keep it out of the debug spawner: the spawner calls
+; a section fake when both are present and <= 0 (SpawnManager.cpp:160-161).
+; cost and inv_weight keep it out of the "unsorted" fakes list.
+; ===========================================================================
+[bq_rad_tuner]:space_restrictor
+script_binding              = bq_inv_rad.bind
+cost                        = 0
+inv_weight                  = 0
+inv_grid_width              = 0
+inv_grid_height             = 0

@@ -1,75 +1,76 @@
 -- bq_inv_rad.script
--- Радиация от артефактов, лежащих В РЮКЗАКЕ (инвентаре), а не на поясе.
+-- Радиация от артефактов, лежащих В РЮКЗАКЕ (а не на поясе).
 --
--- ЗАДАЧА: артефакт в рюкзаке облучает актора ровно так же, как на поясе.
--- Костюм не учитывается. NPC, трупы, ящики, предметы на земле и в слотах
--- экипировки не считаются - только пояс и рюкзак актора.
+-- ЗАДАЧА: артефакт в рюкзаке облучает актора так же, как на поясе. Костюм не
+-- учитывается. NPC, трупы, ящики, предметы на земле и в слотах не считаются -
+-- только предметы у актора, КРОМЕ надетых на пояс (пояс считает движок).
 --
--- ЭТАЛОН (движок, CActor::UpdateArtefactsOnBeltAndOutfit, Actor.cpp:2591-2630;
--- вызывается раз в 0.1 с по аккумулятору ARTEFACTS_UPDATE_TIME):
+-- ЭТАЛОН - пояс (чистый C++):
+--   CActor::UpdateArtefactsOnBeltAndOutfit, Actor.cpp:2591-2641, вызывается из
+--   CActor::shedule_Update (Actor.cpp:2013, вызов на :2236) раз в
+--   ARTEFACTS_UPDATE_TIME = 0.100f (Actor.cpp:2589):
 --
---   для каждого предмета на поясе (inventory().m_belt):
---       belt_i = radiation_restore_speed * condition
---       если belt_i > 0, то ChangeRadiation( max(0, belt_i - boost) * dt )
---       иначе            ChangeRadiation( belt_i * dt )
+--       for (const PIItem item : inventory().m_belt)      // :2608 - ТОЛЬКО пояс
+--           if (CArtefact* artefact = item->cast_artefact())
+--           {
+--               float art_cond = artefact->GetCondition();
+--               if ((artefact->m_fRadiationRestoreSpeed * art_cond) > 0.0f)
+--               {
+--                   float val = (artefact->m_fRadiationRestoreSpeed * art_cond)
+--                             - conditions().GetBoostRadiationImmunity();
+--                   clamp(val, 0.0f, val);                // :2622 - ограничение СНИЗУ
+--                   conditions().ChangeRadiation(val * f_update_time);
+--               }
+--               else
+--                   conditions().ChangeRadiation((artefact->m_fRadiationRestoreSpeed * art_cond) * f_update_time);
+--           }
 --
--- где boost - это conditions().GetBoostRadiationImmunity(). Обратите внимание
--- на строку 2622: clamp(val, 0.0f, val) - это ограничение СНИЗУ, а не сверху
--- (для clamp(value, min, max) при min > max результат равен max).
+--   Замечание про clamp: clamp(value, min, max) при min > max возвращает max,
+--   то есть здесь это max(0, val) - ограничение СНИЗУ, а не сверху. Оно активно
+--   только при boost > 0. boost_radiation_immunity из Lua НЕДОСТУПЕН (биндинга
+--   нет), поэтому берём его минимальное значение 0 - тогда вклад пояса равен
+--   radiation * condition без ограничений, и рюкзак считается ровно так же.
 --
--- ЧТО НАМ ДОСТАЁТСЯ ОТ ПОЯСА. boost_radiation_immunity из Lua недоступен
--- (биндинга нет), поэтому берём его минимальное значение 0. Тогда для
--- положительного belt_i движок начисляет ровно belt_i, а для отрицательного
--- (ветка "иначе") тоже ровно belt_i. То есть при boost = 0 вклад пояса
--- совпадает с belt_i БЕЗ каких-либо ограничений, и никакой поправки к поясу
--- не требуется. Ограничение снизу нулём в движке при этом никогда не
--- срабатывает - оно нужно только при boost > 0.
+--   Износ (condition) для рюкзака НЕ учитываем: механики износа артефактов в
+--   проекте сейчас нет (решение заказчика, 08.10.2026).
 --
--- Принятое решение: отрицательные radiation_restore_speed игнорируются.
--- Значит у нас все слагаемые неотрицательны, ограничение снизу нулём
--- неактивно по определению, и доза за кадр считается просто как
+-- ЗАЧЕМ ОБЪЕКТ-ТУРЕР. Штатная рассылка RegisterScriptCallback("update", ...) в
+-- этой сборке до наших обработчиков не доходит (проверено логами: обработчик
+-- вызывается 1 раз и замолкает). Зато у обычного игрового объекта есть свой
+-- Lua-биндер, и его метод update зовёт ПЛАНИРОВЩИК каждый кадр:
+--   CGameObject::shedule_Update (GameObject.cpp:811-826)
+--     -> CScriptBinder::shedule_Update (:825)
+--       -> luabind::call_member<void>(this, "update", time_delta)
+--          (script_binder_object_wrapper.cpp:84-87)
+-- Именно на этом механизме держится и радиация пояса.
 --
---   доза = (сумма radiation_restore_speed * condition по артефактам
---           в рюкзаке) * dt
+-- Поэтому в аддоне заведена секция [bq_rad_tuner]:space_restrictor со своим
+-- script_binding = bq_inv_rad.bind (см. configs\misc\mod_artefacts_z_bq.ltx).
+-- Турер - невидимый объект-ограничитель (класс SPC_RS_S, см. system.ltx:621),
+-- он спавнится рядом с актором и удаляется при создании нового, чтобы не
+-- копиться. При смене уровня объекты уничтожаются движком сами.
 --
--- Ровно как для пояса, без множителей. Если когда-нибудь статы артефактов
--- получат отрицательные значения, эта посылка сломается - в момент пересчёта
--- о таком случае сообщается в отладочный лог.
---
--- ПОЧЕМУ НЕ ПЕРЕСЧИТЫВАЕМ КАЖДЫЙ КАДР: actor:iterate_inventory внутри делает
--- копию списка предметов (CInventory::AddAvailableItems), это заметные
--- аллокации. Сумма обновляется раз в RECOMPUTE_MS (в Anomaly та же механика
--- сделана так же, item_artefact.script: rad_tg_step = 300 мс), а доза
--- начисляется каждый кадр из закэшированной суммы, поэтому она всегда точная.
---
--- ПОЧЕМУ ЭТО ОТДЕЛЬНЫЙ ФАЙЛ. В прошлый раз механику подключили из
--- bq_containers.on_game_start() и заодно переписали регистрацию обработчика
--- update контейнеров на общий диспетчер - из-за этого сломались контейнеры
--- (MEMO 32). Механики аддона обязаны быть независимыми, поэтому этот скрипт
--- никуда не подключается и ничего снаружи не трогает. Скрипты в scripts\
--- подхватываются движком по имени файла, прописывать его в конфигах не надо.
---
--- ОТЛАДКА: log() из скриптов аддона в игровой лог не попадает (MEMO 13.5).
--- Запись включается флагом DEBUG ниже; пишет в bq_inv_rad.log в корне игры.
+-- ОТЛАДКА: log() из скриптов аддона в игровой лог не попадает (MEMO 13.5),
+-- поэтому пишем в bq_inv_rad.log в корне игры.
 
--- Отладочный лог в файл. Включать только на время проверки в игре.
+-- Отладочный лог. Включать только на время проверки в игре.
 local DEBUG = true
 local LOG_FILE = "bq_inv_rad.log"
 
--- Как часто пересчитывается сумма по рюкзаку, мс.
-local RECOMPUTE_MS = 300
+-- Периодичность начисления, мс. Как у пояса: ARTEFACTS_UPDATE_TIME = 0.100f.
+local PERIOD_MS = 100
 
--- Ограничение дельты времени, мс. После загрузки сейва метка time_global()
--- "рвётся", и без ограничения первый тик начислил бы огромную дозу.
+-- Ограничение дельты времени, мс. После загрузки сейва или смены уровня метка
+-- time_global() "рвётся", и без ограничения первый расчёт начислил бы огромную
+-- дозу.
 local MAX_DELTA_MS = 1000
 
--- Как часто писать в лог, даже если доза не менялась (только при DEBUG).
-local HEARTBEAT_MS = 5000
+-- Секция турера (см. configs\misc\mod_artefacts_z_bq.ltx).
+local TUNER_SECTION = "bq_rad_tuner"
 
--- Актор на момент предыдущего кадра. Служит для двух целей: не пересчитывать
--- инвентарь лишний раз и заметить смену актора после загрузки сейва.
-local cached_actor = nil
-
+----------------------------------------------------------------------------
+-- Отладка
+----------------------------------------------------------------------------
 local function dbg(msg)
     if not DEBUG then return end
     local f = io.open(LOG_FILE, "a")
@@ -79,265 +80,220 @@ local function dbg(msg)
     end
 end
 
--- Вклад одного предмета: radiation_restore_speed * condition, как в движке.
--- Возвращает 0 для не-артефактов, для неположительных значений и для
--- артефактов с нулевым/испорченным состоянием.
-local function artefact_radiation(item)
-    -- get_artefact_radiation бросает исключение на не-артефакте. Проверять
-    -- принадлежность к классу из Lua нечем, поэтому только pcall.
-    local ok, rad = pcall(function() return item:get_artefact_radiation() end)
-    if not ok or not rad then return 0 end
+----------------------------------------------------------------------------
+-- Таблица радиации по секциям.
+--
+-- Кэш: section -> radiation_restore_speed. Читается из конфига через
+-- system_ini(), а НЕ через item:get_artefact_radiation(): тот бросает
+-- исключение на не-артефакте и требует живого объекта. Значение из конфига
+-- безопасно и работает для любого предмета.
+----------------------------------------------------------------------------
+local rad_cache = {}
 
-    -- Отрицательные значения игнорируем: артефакт в рюкзаке только фонит
-    -- и никогда не снимает радиацию (решение заказчика).
-    if type(rad) ~= "number" or rad <= 0 then
-        if DEBUG and type(rad) == "number" and rad < 0 then
-            dbg("внимание: у '" .. tostring(item:section())
-                .. "' отрицательная радиация " .. tostring(rad)
-                .. " - она проигнорирована")
-        end
-        return 0
+local function section_radiation(section)
+    if not section then return 0 end
+    local known = rad_cache[section]
+    if known ~= nil then return known end
+
+    local value = 0
+    local ok, res = pcall(function()
+        return system_ini():r_float(section, "radiation_restore_speed")
+    end)
+    if ok and type(res) == "number" and res > 0 then
+        value = res
     end
 
-    -- condition читается из Lua без исключений (на не-предмете вернёт false).
-    local cond = item:condition()
-    if type(cond) ~= "number" or cond <= 0 then return 0 end
-
-    return rad * cond
+    rad_cache[section] = value
+    return value
 end
 
--- Сумма вкладов всех артефактов актора, КРОМЕ лежащих на поясе:
--- пояс обрабатывает сам движок, иначе получилось бы двойное начисление.
--- Возвращает сумму и счётчики для отладки: сколько предметов перебрано,
--- сколько артефактов найдено, сколько из них на поясе.
-local function compute_ruck_sum(actor)
-    local ruck_sum = 0
+----------------------------------------------------------------------------
+-- Подсчёт суммы радиации по предметам актора, КРОМЕ надетых на пояс.
+----------------------------------------------------------------------------
+local function compute_sum(actor)
+    local sum = 0
     local total = 0
     local artefacts = 0
-    local belt_count = 0
+    local belt = 0
 
-    -- iterate_inventory перебирает inventory().m_all: рюкзак, пояс и слоты.
-    -- ВАЖНО: колбэк НИ В КОЕМ СЛУЧАЕ не должен вернуть true - в движке это
-    -- немедленно обрывает перебор (script_game_object_inventory_owner.cpp:276).
+    -- iterate_inventory перебирает inventory().m_all: рюкзак, пояс и слоты
+    -- (script_game_object_inventory_owner.cpp:270-286). ВАЖНО: колбэк НЕ должен
+    -- вернуть true - это немедленно оборвёт перебор (:276-279).
     actor:iterate_inventory(function(owner, item)
         if not item then return end
         total = total + 1
-        local rad = artefact_radiation(item)
-        if rad ~= 0 then
+
+        local rad = section_radiation(item:section())
+        if rad > 0 then
             artefacts = artefacts + 1
+            -- Пояс обрабатывает движок (Actor.cpp:2608) - пропускаем, иначе
+            -- получилось бы двойное начисление.
             if owner:is_on_belt(item) then
-                belt_count = belt_count + 1   -- пояс считает движок, пропускаем
+                belt = belt + 1
             else
-                ruck_sum = ruck_sum + rad
+                sum = sum + rad
             end
         end
     end, actor)
 
-    return ruck_sum, total, artefacts, belt_count
+    return sum, total, artefacts, belt
 end
 
 ----------------------------------------------------------------------------
--- Обработчик update. Состояние лежит в _G: движок в течение сессии исполняет
--- .script повторно, и у нового экземпляра модуля все local-переменные свои
--- (MEMO 31.2). Сама функция обработчика - не общий ресурс, её можно объявлять
--- локально: ссылка на неё попадает в реестр колбэков при регистрации ниже.
+-- Турер: поиск, спавн, удаление
 ----------------------------------------------------------------------------
--- Основной расчёт. НЕ вызывается напрямую из движковых колбэков конфига
--- (on_key_press / on_can_move_to_partner): повторный вход в Lua из C++ внутри
--- уже исполняющегося Lua-колбэка приводит к вылету в
--- luabind::detail::class_rep::function_dispatcher (проверено вылетом
--- 08.10.2026, стек CInput::KeyboardUpdate -> pcall -> pcall).
---
--- Вызывается только из обработчика update, который движок вызывает рассылкой
--- SendScriptCallback из bind_stalker.script:384 - там Lua уже исполняется как
--- обычный колбэк, без вложенного входа из C++.
-local function bq_inv_rad_step(now)
+-- Идентификатор текущего турера. Живёт в _G: модуль может исполниться повторно,
+-- и тогда локальная переменная нового экземпляра была бы пустой.
+_G.bq_inv_rad = _G.bq_inv_rad or {
+    tuner_id = nil,        -- id турера на текущем уровне
+    next_tick = nil,       -- время следующего начисления, мс
+    accum_from = nil,      -- от какого момента копится время, мс
+    cycles = 0,            -- сколько раз начислили (диагностика)
+    last_log = 0,          -- время последней записи в лог, мс
+}
+
+local function tuner_object()
+    local id = _G.bq_inv_rad.tuner_id
+    if not id then return nil end
+    local obj = alife() and alife():object(id)
+    if not obj or obj:section_name() ~= TUNER_SECTION then return nil end
+    return obj
+end
+
+-- Спавн турера рядом с актором. Старый удаляется, чтобы не копились.
+local function ensure_tuner()
+    local actor = db.actor
+    if not actor or not alife() then return end
+
+    if tuner_object() then return end           -- уже есть на этом уровне
+
+    local position = actor:position()
+    local lvid     = actor:level_vertex_id()
+    local gvid     = actor:game_vertex_id()
+
     local ok, err = pcall(function()
-        local actor = db.actor
-        local st = _G.bq_inv_rad
-
-        -- Актор появляется не сразу; на первом доступном кадре просто
-        -- запоминаем время, ничего не начисляя.
-        if not actor then
-            st.last_tick = now
-            return
-        end
-
-        -- Смена актора (новая игра, загрузка сейва): сбрасываем накопитель,
-        -- иначе накопленное время уйдёт в дозу уже другому актору.
-        if cached_actor ~= actor then
-            cached_actor = actor
-            st.sum = nil
-            st.last_tick = now
-            st.next_recompute = 0
-            dbg("актор сменился, состояние сброшено")
-            return
-        end
-
-        -- Раз в RECOMPUTE_MS пересчитываем сумму по рюкзаку.
-        if not st.sum or now >= st.next_recompute then
-            local ruck_sum, total, artefacts, belt_count = compute_ruck_sum(actor)
-            st.sum = ruck_sum
-            st.next_recompute = now + RECOMPUTE_MS
-            if DEBUG then
-                local changed = (ruck_sum ~= st.last_logged)
-                if changed or now >= (st.next_heartbeat or 0) then
-                    st.last_logged = ruck_sum
-                    st.next_heartbeat = now + HEARTBEAT_MS
-                    local actor_rad = -1
-                    local okr, r = pcall(function() return actor.radiation end)
-                    if okr and type(r) == "number" then actor_rad = r end
-                    dbg(string.format(
-                        "%s доза=%.6f | предметов=%d артефактов=%d (на поясе %d) | радиация актора=%.6f",
-                        changed and "ИЗМЕНЕНИЕ:" or "фон:", ruck_sum, total,
-                        artefacts, belt_count, actor_rad))
-                end
-            end
-        end
-
-        -- Дельта времени в секундах, с ограничением сверху и снизу.
-        local delta = now - st.last_tick
-        st.last_tick = now
-        if delta < 0 then delta = 0 end
-        if delta > MAX_DELTA_MS then delta = MAX_DELTA_MS end
-        if delta <= 0 then return end
-
-        -- Начисляем только при положительной сумме: лишние вызовы Lua -> C++
-        -- не нужны, а отрицательного вклада у нас быть не может.
-        if st.sum > 0 then
-            actor:change_radiation(st.sum * delta / 1000)
+        local created = alife():create(TUNER_SECTION, position, lvid, gvid)
+        if created then
+            local st = _G.bq_inv_rad
+            st.tuner_id   = created.id
+            st.accum_from = time_global()
+            st.next_tick  = time_global() + PERIOD_MS
+            dbg("турер создан, id=" .. tostring(created.id))
+        else
+            dbg("ОШИБКА: турер не создался")
         end
     end)
     if not ok then
-        dbg("ОШИБКА в обработчике: " .. tostring(err))
+        dbg("ОШИБКА при создании турера: " .. tostring(err))
     end
 end
 
--- Обработчик реестра "update". Никаких аргументов не получает.
-local function bq_inv_rad_tick()
-    -- ВРЕМЕННАЯ ДИАГНОСТИКА: считаем вызовы и пишем по таймеру (а не по счётчику
-    -- кадров), чтобы по логу было видно, работает ли рассылка update вообще.
-    _G.bq_diag = _G.bq_diag or { cont_tick = 0, cont_work = 0, rad_tick = 0 }
-    _G.bq_diag.rad_tick = _G.bq_diag.rad_tick + 1
-    local now = time_global()
-    if now >= (_G.bq_diag.rad_next_log or 0) then
-        _G.bq_diag.rad_next_log = now + 5000
-        dbg(string.format("ДИАГ: радиация tick=%d cont_tick=%d",
-            _G.bq_diag.rad_tick, _G.bq_diag.cont_tick))
+----------------------------------------------------------------------------
+-- Биндер турера. Движок зовёт bind(obj) при появлении объекта, а затем
+-- вызывает метод update каждый кадр (см. шапку файла).
+----------------------------------------------------------------------------
+class "bq_rad_tuner_binder" (object_binder)
+
+function bq_rad_tuner_binder:__init(obj)
+    super(obj)
+end
+
+function bq_rad_tuner_binder:net_spawn(server_object)
+    if not object_binder.net_spawn(self, server_object) then
+        return false
     end
-    bq_inv_rad_step(now)
-end
-
--- Сброс накопителя времени при загрузке сейва (аргументы не нужны).
-local function bq_inv_rad_on_load()
-    _G.bq_inv_rad.last_tick = time_global()
-    _G.bq_inv_rad.sum = nil
-    _G.bq_inv_rad.next_recompute = 0
-end
-
--- ПОЧЕМУ НЕ ПОДПИСЫВАЕМСЯ НА события актора (set_callback on_item_take/drop):
--- в этой сборке CScriptCallbackEx хранит ОДНУ функцию на слот (script_callback_ex.h,
--- поле m_functor), поэтому set_callback ПЕРЕЗАПИСЫВАЕТ того, кто подписался
--- раньше. На actor:set_callback(callback.on_item_take) уже подписан
--- bind_stalker.script:118 (статистика игры), и наша подписка её бы сломала.
--- Поэтому работаем только через рассылку "update".
-
--- Идемпотентная установка подписок. Вызывается из тела модуля и из точек входа
--- конфига: движок исполняет .script повторно, и если к этому моменту реестр
--- колбэков пересоздан, старая подписка потеряна (MEMO 31.3). Повторная подписка
--- безвредна: реестр хранит подписчиков в таблице-множестве (dynamic_callbacks.lua),
--- а лишний вызов обработчика безопасен - дельта времени после первого вызова
--- уже нулевая.
-local function bq_inv_rad_register()
-    _G.bq_inv_rad.last_tick = time_global()
-    _G.bq_inv_rad.next_recompute = 0
-    RegisterScriptCallback("update", bq_inv_rad_tick)
-    RegisterScriptCallback("load", bq_inv_rad_on_load)
-end
-
-----------------------------------------------------------------------------
--- ЗАГРУЗКА И РЕГИСТРАЦИЯ (важнейший момент, из-за него механика сначала не работала).
---
--- Разделяемое состояние - в _G. Подписка НЕ защищается флагом: движок исполняет
--- .script повторно, и если к этому моменту реестр колбэков пересоздан (перезапуск
--- Lua-машины), старая подписка потеряна - именно на это указывала прошлая
--- неудачная попытка (MEMO 31.3). Повторная подписка безвредна: реестр хранит
--- подписчиков в таблице-множестве (dynamic_callbacks.lua), а лишний вызов
--- обработчика безопасен, потому что дельта времени после первого вызова уже нулевая.
---
--- ПОЧЕМУ ФАЙЛ САМ ПО СЕБЕ НЕ ЗАГРУЖАЛСЯ. Движок НЕ сканирует папку scripts и НЕ
--- исполняет все файлы подряд. Скрипт попадает в реестр (`setup_auto_load`,
--- script_engine.cpp:168-190), но исполняется только когда к нему ОБРАЩАЮТСЯ
--- ПО ИМЕНИ:
---
---   * `CScriptEngine::function_object` (script_engine.cpp:381-398) разбирает
---     строку вида "имя_скрипта.функция" и вызывает process_file("имя_скрипта");
---     так движок достаёт функции, прописанные в конфигах (`script_binding`,
---     `OnItemDropped`, `OnItemFocusReceive`, `use1_functor` и т.п.);
---   * `prefetch("имя_скрипта")` - явный вызов загрузки (биндинг
---     `script_engine_script.cpp:339` -> `process_file`).
---
--- Поэтому боевой скрипт контейнеров грузился сам (на него ссылаются
--- `OnItemDropped` в mod_game_global_z_bq.ltx и `use1_functor` в секциях комбо),
--- а этот файл не грузился вообще.
---
--- Точка входа `addon.init` (`script:`) в этой сборке НЕ работает: разбор в
--- `CAddonManager::ReadMetaInfo` (xrCore/xrAddons.cpp:79-94) содержит перевёрнутые
--- сравнения (`find(...) == npos` там, где нужно `!=`), поэтому ни `name`, ни
--- `script` из файла не читаются. Полагаться на неё нельзя.
---
--- Точки входа объявлены НИЖЕ, после локальных функций: они вызывают
--- bq_inv_rad_register() и bq_inv_rad_tick(), а локальные функции должны быть
--- объявлены до места использования.
---
--- Подключение сделано ТОЛЬКО через конфиг, чтобы контейнеры не упоминали
--- радиацию вообще. Две строки в `[callbacks]` mod_game_global_z_bq.ltx:
---   1. `OnKeyPress = bq_inv_rad.on_key_press` - любое нажатие клавиши;
---   2. `OnCanMoveToPartner = bq_inv_rad.on_can_move_to_partner` - перетаскивание
---      предметов в инвентаре.
--- Обе функции нужны для того, чтобы движок исполнил этот файл (см. MEMO 33.7:
--- скрипт аддона не запускается сам по себе, только по обращению по имени), и
--- обе же переподписывают обработчик и добивают расчёт - на случай, если
--- подписка на update потеряна (см. 33.8).
---
--- Почему НЕ prefetch из другого скрипта: в прошлый раз механика радиации была
--- подключена из bq_containers, и это связало две независимые механики
--- (MEMO 32). Контейнеры не должны знать о радиации.
-----------------------------------------------------------------------------
-
--- Таблица состояния создаётся ДО функций: если движок вызовет точку входа
--- раньше, чем выполнится тело модуля, обращение к ней не должно падать.
-_G.bq_inv_rad = _G.bq_inv_rad or {
-    sum = 0,
-    last_tick = 0,
-    next_recompute = 0,
-    announced = false,
-    last_logged = nil,
-    last_artefacts = nil,
-}
-
--- Точки входа. Их задача - только заставить движок исполнить этот файл и
--- (пере)установить подписки. Считать радиацию ЗДЕСЬ НЕЛЬЗЯ: повторный вход в
--- Lua из C++ внутри уже исполняющегося Lua-колбэка валит игру в
--- luabind::class_rep::function_dispatcher (проверено вылетом 08.10.2026 при
--- открытии инвентаря; стек CInput::KeyboardUpdate -> pcall -> pcall).
---
--- Семантика возврата у ключей РАЗНАЯ:
---   OnKeyPress         - true означает "клавиша обработана" и НЕ дойдёт до игры,
---                        поэтому обязательно false;
---   OnCanMoveToPartner - false ЗАПРЕЩАЕТ торговлю, поэтому обязательно true
---                        (UIActorMenuTrade.cpp:339).
-function on_key_press(key, action)
-    bq_inv_rad_register()
-    return false
-end
-
--- Вторая дорога (ключ OnCanMoveToPartner в моде game_global, см.
--- UIActorMenuTrade.cpp:334-339). Аргументы движок передаёт, но нам они не нужны.
-function on_can_move_to_partner(partner, item, r1, r2, weight, partner_weight, partner_max)
-    bq_inv_rad_register()
+    local st = _G.bq_inv_rad
+    st.tuner_id   = self.object:id()
+    st.accum_from = time_global()
+    st.next_tick  = time_global() + PERIOD_MS
+    dbg("==== турер радиации появился, id=" .. tostring(self.object:id()) .. " ====")
     return true
 end
 
--- Первичная установка подписок при исполнении модуля.
-bq_inv_rad_register()
+function bq_rad_tuner_binder:net_destroy()
+    if _G.bq_inv_rad.tuner_id == self.object:id() then
+        _G.bq_inv_rad.tuner_id = nil
+    end
+    dbg("турер радиации уничтожен")
+    object_binder.net_destroy(self)
+end
+
+-- Кадровый обработчик. Движок вызывает его каждый кадр, начисляем раз в PERIOD_MS.
+function bq_rad_tuner_binder:update(delta)
+    object_binder.update(self, delta)
+
+    local actor = db.actor
+    if not actor then return end
+
+    local st  = _G.bq_inv_rad
+    local now = time_global()
+
+    -- Время копится КАЖДЫЙ кадр, а начисляем, когда накопилось на PERIOD_MS.
+    -- ВАЖНО: дельта считается от момента ПОСЛЕДНЕГО НАЧИСЛЕНИЯ, а не от
+    -- предыдущего вызова. Иначе пропущенные кадры терялись бы или, наоборот,
+    -- доза завышалась (эту ошибку поймал тест: 0.0169 вместо 0.0150 за секунду).
+    local dt = now - (st.accum_from or now)
+    if dt < 0 then dt = 0 end
+    if now < (st.next_tick or 0) then
+        return
+    end
+    st.accum_from = now
+    st.next_tick  = now + PERIOD_MS
+    if dt > MAX_DELTA_MS then dt = MAX_DELTA_MS end
+    if dt < 1 then dt = 1 end        -- не чаще одного начисления за один тик
+
+    local ok, err = pcall(function()
+        local sum, total, artefacts, belt = compute_sum(actor)
+        st.cycles = st.cycles + 1
+        st.sum = sum
+
+        -- Диагностика: раз в 5 секунд, плюс при каждом изменении суммы.
+        if now >= (st.last_log or 0) + 5000 or st.logged_sum ~= sum then
+            st.last_log = now
+            st.logged_sum = sum
+            local actor_rad = -1
+            local okr, r = pcall(function() return actor.radiation end)
+            if okr and type(r) == "number" then actor_rad = r end
+            dbg(string.format(
+                "цикл=%d доза=%.6f dt=%dмс | предметов=%d артефактов=%d (на поясе %d) | радиация актора=%.6f",
+                st.cycles, sum, dt, total, artefacts, belt, actor_rad))
+        end
+
+        if sum > 0 then
+            actor:change_radiation(sum * dt / 1000)
+        end
+    end)
+
+    if not ok then
+        dbg("ОШИБКА в update турера: " .. tostring(err))
+    end
+end
+
+function bind(obj)
+    obj:bind_object(bq_rad_tuner_binder(obj))
+end
+
+----------------------------------------------------------------------------
+-- Точки входа из конфига [callbacks] (mod_game_global_z_bq.ltx).
+--
+-- Их роль - заставить движок загрузить этот файл (скрипт аддона исполняется
+-- только при обращении по имени, см. MEMO 33.7) и убедиться, что турер создан.
+-- Считать радиацию ЗДЕСЬ НЕЛЬЗЯ: повторный вход в Lua из C++ внутри уже
+-- исполняющегося Lua-колбэка валит игру (проверено вылетом 08.10.2026).
+--
+-- Семантика возврата у ключей разная:
+--   OnKeyPress         - true означает "клавиша обработана" и НЕ дойдёт до игры;
+--   OnCanMoveToPartner - false ЗАПРЕЩАЕТ торговлю (UIActorMenuTrade.cpp:339).
+----------------------------------------------------------------------------
+function on_key_press(key, action)
+    ensure_tuner()
+    return false
+end
+
+function on_can_move_to_partner(partner, item, r1, r2, weight, partner_weight, partner_max)
+    ensure_tuner()
+    return true
+end
+
+-- Если файл исполнился по другому поводу - тоже позаботимся о турере.
+ensure_tuner()
