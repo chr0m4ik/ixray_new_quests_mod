@@ -577,16 +577,54 @@ if (!fs.existsSync(ATLAS_PATH)) {
     // Ожидаемая раскладка атласа. Три обычных контейнера занимают непустые
     // ячейки верхнего ряда (0,0), (1,0), (2,0).
     //
-    // СИМК в верхний ряд НЕ влезает: атлас 256 px = 5 ячеек по 50, а четвёртый
-    // столбец уже занят... точнее, расширять атлас нельзя - от его размеров
-    // считаются UV-координаты (x / ширина), и сдвиг сломал бы иконки в
-    // существующих сейвах. Поэтому SIMK размещён отдельной строкой: пустой в
-    // (0,6), комбо - в строке 7. Проверяем его там, а не в верхнем ряду.
+    // СИМК в верхний ряд НЕ влезает: атлас 256 px = 5 ячеек по 50, а расширять
+    // его нельзя - от размеров считаются UV-координаты (x / ширина), и сдвиг
+    // сломал бы иконки в существующих сейвах. Поэтому СИМК вынесен вниз, и он
+    // ЗАНИМАЕТ ДВЕ КЛЕТКИ В ВЫСОТУ (так нарисованы текстуры заказчика):
+    //   пустой (открытый):  (0,6) + (0,7)
+    //   комбо af_eye (закрытый + значок артефакта): (0,8) + (0,9)
     for (let i = 0; i < CONTAINERS.length; i++) {
         const c = CONTAINERS[i];
         if (c.total) continue;              // у СИМК своя ячейка, проверяем ниже
         const { opaque } = dds.countOpaqueInCell(decoded, i, 0, CELL);
         if (opaque === 0) err(`верхний ряд атласа: ячейка (${i},0) пустая, а это контейнер ${c.section}`);
+    }
+
+    // Ячейки СИМК. И у пустого, и у каждого комбо - ДВЕ клетки в высоту
+    // (так нарисованы текстуры заказчика), поэтому атлас поднят до 1024:
+    //   пустой (открытый):        (0,6) + (0,7)
+    //   комбо аp_eye:             (0,8) + (0,9)
+    //   комбо af_cristall:        (0,10) + (0,11)
+    //   ... и так далее, по паре строк на артефакт.
+    // Порядок строк задаётся ARTIFACTS в build_combo_icons.js.
+    const SIMK_ORDER = ['af_eye', 'af_cristall', 'af_compass', 'af_ice', 'af_fireball'];
+    const SIMK_CELLS = { bq_simk_container: { x: 0, y: 6 } };
+    SIMK_ORDER.forEach((art, i) => {
+        SIMK_CELLS[`${art}_bq_simk_container`] = { x: 0, y: 8 + 2 * i };
+    });
+    for (const [section, want] of Object.entries(SIMK_CELLS)) {
+        const r = resolve(section);
+        if (!r.size) { err(`[${section}] секция СИМК не найдена`); continue; }
+        const gh = parseInt(r.get('inv_grid_height'), 10);
+        const gx = parseInt(r.get('inv_grid_x'), 10);
+        const gy = parseInt(r.get('inv_grid_y'), 10);
+        if (gh !== 2) {
+            err(`[${section}] inv_grid_height=${r.get('inv_grid_height')}, у СИМК должно быть 2 ` +
+                `(иконка занимает две клетки в высоту)`);
+        }
+        if (gx !== want.x || gy !== want.y) {
+            err(`[${section}] ячейка (${gx},${gy}), ожидалось (${want.x},${want.y})`);
+        }
+        // картинка должна быть в ОБЕИХ клетках: и верхней, и нижней
+        const top = dds.countOpaqueInCell(decoded, gx, gy, CELL).opaque;
+        const bot = dds.countOpaqueInCell(decoded, gx, gy + 1, CELL).opaque;
+        if (top === 0 || bot === 0) {
+            err(`[${section}] иконка 1x2 не заполнена: клетка (${gx},${gy}) ${top} px, ` +
+                `(${gx},${gy + 1}) ${bot} px - пустая половина иконки`);
+        } else {
+            ok(`[${section}] иконка 1x2 в (${gx},${gy})+( ${gx},${gy + 1}), ` +
+                `пикселей ${top}+${bot}`);
+        }
     }
 
     // КЛЮЧЕВАЯ проверка: заполненный контейнер ОБЯЗАН ссылаться не на ту же
@@ -595,6 +633,9 @@ if (!fs.existsSync(ATLAS_PATH)) {
     // то есть на иконки пустых контейнеров.
     for (const spec of TESTED_ARTEFACTS) {
         for (const c of CONTAINERS) {
+            // СИМК проверяется отдельно выше: у него пустой и заполненный лежат
+            // в РАЗНЫХ строках (0,6) и (0,8), и это уже проверено явно.
+            if (c.total) continue;
             const combo = resolve(spec.combos[c.section]);
             const empty = resolve(c.section);
             if (!combo.size || !empty.size) continue;
@@ -739,6 +780,34 @@ for (const art of Object.keys(ARTEFACT_STATS)) {
         'bleeding_restore_speed', 'satiety_restore_speed']) {
         if (!ourKeys.has(k)) {
             err(`[${art}] переопределение не называет ${k} - останется ванильное значение`);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 9. Звуки: каждый путь из SOUND_BY_CONTAINER / SOUND_TAKE_BY_CONTAINER должен
+//    существовать файлом в аддоне. Ошибка тут не видна в игре как вылет - просто
+//    не будет звука, и заметить это можно только на слух.
+// ---------------------------------------------------------------------------
+console.log('== 9. Звуки контейнеров ==');
+{
+    const sndSrc = fs.readFileSync(scriptPath, 'utf8');
+    const found = new Set();
+    for (const m of sndSrc.matchAll(/"(interface\\\\[A-Za-z0-9_\\]+)"/g)) {
+        found.add(m[1].replace(/\\\\/g, '\\'));
+    }
+    if (found.size === 0) err('в скрипте не найдено ни одного пути к звуку');
+    for (const rel of found) {
+        const file = path.join(__dirname, '..', 'sounds', rel + '.ogg');
+        if (!fs.existsSync(file)) {
+            err(`нет файла звука: sounds\\${rel}.ogg (скрипт ссылается, но файла нет)`);
+        } else {
+            const size = fs.statSync(file).size;
+            if (size < 1000) {
+                err(`звук sounds\\${rel}.ogg подозрительно мал (${size} байт) - возможно, битый`);
+            } else {
+                ok(`sounds\\${rel}.ogg (${(size / 1024).toFixed(0)} КБ)`);
+            }
         }
     }
 }

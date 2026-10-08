@@ -667,6 +667,31 @@ do
     local twoLines = before == "\n\n"
     say(string.format("10i) в описании СИМК абзац перед фразой про пояс (\\n\\n) -> %s",
         twoLines and "OK" or ("ОШИБКА: перед фразой " .. tostring(before and before:gsub("\n", "<LF>")))))
+
+    -- l) СИМК занимает ДВЕ клетки в высоту. Так нарисованы текстуры заказчика
+    --    (открытый: крышка сверху, корпус снизу), и от этого зависит и раскладка
+    --    атласа, и размер иконки в инвентаре.
+    local emptyH = key_in_section(cfg, "[bq_simk_container]", "inv_grid_height")
+    say(string.format("10l) у пустого СИМК inv_grid_height = 2 -> %s",
+        (emptyH == "2") and "OK" or ("ОШИБКА: получено " .. tostring(emptyH))))
+
+    -- m) У комбо со глазом настроен слой значка артефакта. Слой рисует ДВИЖОК
+    --    по ключу 1icon_layer (наш патч ui\UICellCustomItems.cpp,
+    --    InitLayer/UpdateLayer); ключи читаются из секции ПРЕДМЕТА, то есть из
+    --    комбо. Значок 25x25 с отступом 1 px: scale = 25/64, отступ = 50-25-1.
+    local eyeHeader = "[af_eye_bq_simk_container]"
+    local eyeH = key_in_section(cfg, eyeHeader, "inv_grid_height")
+    local layerSect = key_in_section(cfg, eyeHeader, "1icon_layer")
+    local layerScale = tonumber(key_in_section(cfg, eyeHeader, "1icon_layer_scale") or "0")
+    local layerX = tonumber(key_in_section(cfg, eyeHeader, "1icon_layer_x") or "-1")
+    local layerY = tonumber(key_in_section(cfg, eyeHeader, "1icon_layer_y") or "-1")
+    local layerOk = layerSect == "af_eye"
+        and math.abs(layerScale - 25 / 64) < 1e-9
+        and layerX == 24 and layerY == 24
+    say(string.format("10m) слой значка 25x25 у комбо с глазом (height=%s scale=%.6f x=%s y=%s) -> %s",
+        tostring(eyeH), layerScale, tostring(layerX), tostring(layerY),
+        (eyeH == "2" and layerOk) and "OK"
+            or ("ОШИБКА: 1icon_layer=" .. tostring(layerSect))))
 end
 
 local f = io.open(TESTDIR .. "/test_inv_rad_out.txt", "w")

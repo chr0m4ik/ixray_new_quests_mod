@@ -54,9 +54,17 @@ local SOUND_BY_CONTAINER = {
     bq_field_container = "interface\\inv_iam_open",
     bq_uni_container   = "interface\\inv_aac_open",
     bq_sci_container   = "interface\\inv_aam_open",
-    -- СИМК пока использует звук научного контейнера; свой звук - отдельный
-    -- пункт плана (шаг 2).
-    bq_simk_container  = "interface\\inv_aam_open",
+    -- СИМК: свои звуки заказчика (sounds\interface\inv_lead_open.ogg и
+    -- inv_lead_close.ogg). Открытие - когда кладём артефакт, закрытие - когда
+    -- достаём. Файлы лежат в аддоне, движок грузит их по пути, без sounds.ltx.
+    bq_simk_container  = "interface\\inv_lead_open",
+}
+
+-- Звук ИЗВЛЕЧЕНИЯ артефакта. У трёх прежних контейнеров он остаётся таким же,
+-- как раньше (SOUND_BY_CONTAINER) - поведение не меняем. У СИМК свой звук:
+-- заказчик дал отдельные файлы на открытие и закрытие.
+local SOUND_TAKE_BY_CONTAINER = {
+    bq_simk_container = "interface\\inv_lead_close",
 }
 
 local LOG_FILE = "bq_containers.log"
@@ -377,7 +385,9 @@ function take_artifact(combo)
         combo_id  = combo:id(),
         artifact  = artifact,
         container = container,
-        sound     = SOUND_BY_CONTAINER[container],
+        -- При доставании контейнер ОТКРЫВАЕТСЯ, поэтому у СИМК свой звук
+        -- (inv_lead_close), а у остальных - прежний звук контейнера.
+        sound     = SOUND_TAKE_BY_CONTAINER[container] or SOUND_BY_CONTAINER[container],
     }
     dbg("доставание принято: '" .. combo_section .. "' -> '"
         .. artifact .. "' + '" .. container .. "'")
