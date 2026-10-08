@@ -26,12 +26,20 @@ local callback_backend = nil
 local initialized      = false
 local next_update      = 0
 
+-- ОТЛАДОЧНЫЙ ЛОГ ОТКЛЮЧЁН ДЛЯ РЕЛИЗА. Раньше dbg писал в bq_debug.log в корне
+-- игры - это осталось от отладки тайников Майора. Запись закомментирована, код
+-- оставлен: при доработке квеста его удобно вернуть.
+--
+-- ЧТОБЫ ВКЛЮЧИТЬ ОБРАТНО: снять комментарий с блока io.open внутри dbg.
 local function dbg(msg)
+    --[[
     local f = io.open("bq_debug.log", "a")
     if f then
         f:write(os.date("%H:%M:%S") .. "  " .. msg .. "\n")
         f:close()
     end
+    --]]
+    local _ = msg          -- аргумент оставлен, чтобы не менять вызовы dbg(...)
 end
 
 -- Forward declarations
