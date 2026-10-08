@@ -440,36 +440,48 @@
         <text>SIMK container</text>
     </string>
     <string id="bq_simk_container_descr">
-        <text>Portable SIMK container. Holds one artefact and absorbs ALL of its radiation. Carried in the backpack only - it cannot be put on the belt.</text>
+        <text>Portable SIMK container. Inside is a shielded chamber that completely suppresses artefact radiation: whatever lies within, the background stays at zero.
+
+The container holds a single artefact and cannot be attached to the belt - it is carried in the backpack.</text>
     </string>
     <string id="bq_eye_simk_name">
         <text>SIMK container (Eye)</text>
     </string>
     <string id="bq_eye_simk_descr">
-        <text>SIMK container with an artefact. Contains: Eye. The container absorbs all of the artefact radiation, so there is no background. Cannot be worn on the belt.</text>
+        <text>SIMK container with an artefact. Contains: Eye.
+
+The chamber completely suppresses radiation, so there is no background. Cannot be worn on the belt.</text>
     </string>
     <string id="bq_ice_simk_name">
         <text>Снежинка in a SIMK container container</text>
     </string>
     <string id="bq_ice_simk_descr">
-        <text>The "Снежинка" artefact inside a SIMK container. The container absorbs all of the artefact radiation, so there is no background. Cannot be worn on the belt.</text>
+        <text>SIMK container with an artefact. Contains: Snowflake.
+
+The chamber completely suppresses radiation, so there is no background. Cannot be worn on the belt.</text>
     </string>
     <string id="bq_cristall_simk_name">
         <text>Кристалл in a SIMK container container</text>
     </string>
     <string id="bq_cristall_simk_descr">
-        <text>The "Кристалл" artefact inside a SIMK container. The container absorbs all of the artefact radiation, so there is no background. Cannot be worn on the belt.</text>
+        <text>SIMK container with an artefact. Contains: Crystal.
+
+The chamber completely suppresses radiation, so there is no background. Cannot be worn on the belt.</text>
     </string>
     <string id="bq_compass_simk_name">
         <text>Компас in a SIMK container container</text>
     </string>
     <string id="bq_compass_simk_descr">
-        <text>The "Компас" artefact inside a SIMK container. The container absorbs all of the artefact radiation, so there is no background. Cannot be worn on the belt.</text>
+        <text>SIMK container with an artefact. Contains: Compass.
+
+The chamber completely suppresses radiation, so there is no background. Cannot be worn on the belt.</text>
     </string>
     <string id="bq_fireball_simk_name">
         <text>Огненный шар in a SIMK container container</text>
     </string>
     <string id="bq_fireball_simk_descr">
-        <text>The "Огненный шар" artefact inside a SIMK container. The container absorbs all of the artefact radiation, so there is no background. Cannot be worn on the belt.</text>
+        <text>SIMK container with an artefact. Contains: Fireball.
+
+The chamber completely suppresses radiation, so there is no background. Cannot be worn on the belt.</text>
     </string>
 </string_table>

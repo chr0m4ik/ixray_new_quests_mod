@@ -249,8 +249,21 @@ for (const name of ours.keys()) {
             err(`[${name}] нет inv_grid_x/inv_grid_y — движок упадёт при работе с UI`);
         }
         // по этому ключу движок решает, показывать ли окно характеристик
-        // артефакта (CUIArtefactParams::Check, ui_af_params.cpp:195)
-        if (r.get('af_actor_properties') !== 'on') {
+        // артефакта: CUIArtefactParams::Check (ui_af_params.cpp:193-195) - это
+        // ровно line_exist, значение не читается.
+        //
+        // ИСКЛЮЧЕНИЕ - СИМК: заказчик решил, что у него показываются только
+        // название и описание, без таблицы характеристик. Значит у СИМК и его
+        // комбо ключ обязан быть 'off' (ключ унаследован от bq_container_base,
+        // убрать его нельзя, но проверка смотрит на наличие, а не на значение).
+        const isSimk = name === 'bq_simk_container'
+            || name.endsWith('_bq_simk_container');
+        if (isSimk) {
+            if (r.get('af_actor_properties') !== 'off') {
+                err(`[${name}] af_actor_properties = '${r.get('af_actor_properties')}', ` +
+                    `нужно 'off' - у СИМК статистика артефакта не показывается`);
+            }
+        } else if (r.get('af_actor_properties') !== 'on') {
             err(`[${name}] af_actor_properties = '${r.get('af_actor_properties')}', нужно 'on' ` +
                 `(иначе не будет окна характеристик)`);
         }

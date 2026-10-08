@@ -563,6 +563,61 @@ do
     end
     say(string.format("10f) у комбо СИМК belt = false (нельзя на пояс) -> %s",
         beltFalse and "OK" or "ОШИБКА: комбо СИМК должно быть belt = false"))
+
+    -- g) у СИМК отключено окно статистики артефакта. Движок смотрит на НАЛИЧИЕ
+    --    ключа af_actor_properties (CUIArtefactParams::Check, ui_af_params.cpp:193),
+    --    поэтому нужен именно 'off' - убрать ключ нельзя, он наследуется от
+    --    bq_container_base, который идёт вторым родителем комбо.
+    --
+    --    ВАЖНО: читаем ПРАВИЛО, а не ищем слово в тексте. Сначала я разбирал
+    --    секции жадным шаблоном, и проверка проходила даже со сломанным
+    --    конфигом: в комментарии рядом есть слова "af_actor_properties = off",
+    --    они и подставлялись вместо настоящего значения. Теперь берём значение
+    --    из последней строки "af_actor_properties = X" ВНУТРИ секции.
+    local function section_body(text, header)
+        -- от заголовка секции до следующего заголовка "["
+        local start = text:find(header, 1, true)
+        if not start then return nil end
+        local from = start + #header
+        local stop = text:find("\n[", from, true)
+        return text:sub(from, stop or #text)
+    end
+    local function key_in_section(text, header, key)
+        local body = section_body(text, header)
+        if not body then return nil, "нет секции" end
+        -- берём ПОСЛЕДНЕЕ присваивание ключа в секции (оно и побеждает)
+        local value = nil
+        for line in body:gmatch("[^\r\n]+") do
+            local bare = line:gsub(";.*$", "")          -- отбрасываем комментарий
+            local v = bare:match("^%s*" .. key .. "%s*=%s*(%S+)")
+            if v then value = v end
+        end
+        return value, nil
+    end
+
+    local v, err2 = key_in_section(cfg, "[bq_simk_container]", "af_actor_properties")
+    say(string.format("10g) у пустого СИМК af_actor_properties = off -> %s",
+        (v == "off") and "OK" or ("ОШИБКА: получено " .. tostring(v or err2))))
+
+    local bad = {}
+    for _, art in ipairs({ "af_eye", "af_ice", "af_cristall", "af_compass", "af_fireball" }) do
+        local header = "[" .. art .. "_bq_simk_container]"
+        local vv = key_in_section(cfg, header, "af_actor_properties")
+        if vv ~= "off" then bad[#bad + 1] = art .. "=" .. tostring(vv) end
+    end
+    say(string.format("10h) у всех комбо СИМК af_actor_properties = off -> %s",
+        (#bad == 0) and "OK" or ("ОШИБКА: " .. table.concat(bad, ", "))))
+
+    -- i) в описании СИМК фраза про пояс отделена пустой строкой (\n\n), то есть
+    --    вынесена на две строки вниз. Проверяем по факту: находим фразу и
+    --    смотрим два символа ПЕРЕД ней. Без Lua-паттернов - в них "-" не ленивый,
+    --    и на этом я уже ошибся один раз.
+    local rus = read_file(ADDON .. "/configs/text/rus/st_beard_quest.xml") or ""
+    local pos = rus:find("Камера контейнера глушит", 1, true)
+    local before = pos and rus:sub(pos - 2, pos - 1)
+    local twoLines = before == "\n\n"
+    say(string.format("10i) в описании СИМК абзац перед фразой про пояс (\\n\\n) -> %s",
+        twoLines and "OK" or ("ОШИБКА: перед фразой " .. tostring(before and before:gsub("\n", "<LF>")))))
 end
 
 local f = io.open(TESTDIR .. "/test_inv_rad_out.txt", "w")
