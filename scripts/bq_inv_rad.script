@@ -53,7 +53,7 @@
 -- Запись включается флагом DEBUG ниже; пишет в bq_inv_rad.log в корне игры.
 
 -- Отладочный лог в файл. Включать только на время проверки в игре.
-local DEBUG = false
+local DEBUG = true
 local LOG_FILE = "bq_inv_rad.log"
 
 -- Как часто пересчитывается сумма по рюкзаку, мс.
@@ -62,6 +62,9 @@ local RECOMPUTE_MS = 300
 -- Ограничение дельты времени, мс. После загрузки сейва метка time_global()
 -- "рвётся", и без ограничения первый тик начислил бы огромную дозу.
 local MAX_DELTA_MS = 1000
+
+-- Как часто писать в лог, даже если доза не менялась (только при DEBUG).
+local HEARTBEAT_MS = 5000
 
 -- Актор на момент предыдущего кадра. Служит для двух целей: не пересчитывать
 -- инвентарь лишний раз и заметить смену актора после загрузки сейва.
@@ -105,8 +108,12 @@ end
 
 -- Сумма вкладов всех артефактов актора, КРОМЕ лежащих на поясе:
 -- пояс обрабатывает сам движок, иначе получилось бы двойное начисление.
+-- Возвращает сумму и счётчики для отладки: сколько предметов перебрано,
+-- сколько артефактов найдено, сколько из них на поясе.
 local function compute_ruck_sum(actor)
     local ruck_sum = 0
+    local total = 0
+    local artefacts = 0
     local belt_count = 0
 
     -- iterate_inventory перебирает inventory().m_all: рюкзак, пояс и слоты.
@@ -114,8 +121,10 @@ local function compute_ruck_sum(actor)
     -- немедленно обрывает перебор (script_game_object_inventory_owner.cpp:276).
     actor:iterate_inventory(function(owner, item)
         if not item then return end
+        total = total + 1
         local rad = artefact_radiation(item)
         if rad ~= 0 then
+            artefacts = artefacts + 1
             if owner:is_on_belt(item) then
                 belt_count = belt_count + 1   -- пояс считает движок, пропускаем
             else
@@ -124,7 +133,7 @@ local function compute_ruck_sum(actor)
         end
     end, actor)
 
-    return ruck_sum, belt_count
+    return ruck_sum, total, artefacts, belt_count
 end
 
 ----------------------------------------------------------------------------
@@ -160,11 +169,25 @@ local function bq_inv_rad_tick()
 
         -- Раз в RECOMPUTE_MS пересчитываем сумму по рюкзаку.
         if not st.sum or now >= st.next_recompute then
-            local ruck_sum, belt_count = compute_ruck_sum(actor)
+            local ruck_sum, total, artefacts, belt_count = compute_ruck_sum(actor)
             st.sum = ruck_sum
             st.next_recompute = now + RECOMPUTE_MS
-            dbg(string.format("рюкзак=%.6f (на поясе артефактов: %d)",
-                ruck_sum, belt_count))
+            if DEBUG then
+                -- Пишем, когда доза изменилась (это и есть момент «зафонило»),
+                -- и раз в HEARTBEAT_MS - чтобы было видно, что механика жива.
+                local changed = (ruck_sum ~= st.last_logged)
+                if changed or now >= (st.next_heartbeat or 0) then
+                    st.last_logged = ruck_sum
+                    st.next_heartbeat = now + HEARTBEAT_MS
+                    local actor_rad = -1
+                    local okr, r = pcall(function() return actor.radiation end)
+                    if okr and type(r) == "number" then actor_rad = r end
+                    dbg(string.format(
+                        "%s доза=%.6f | предметов=%d артефактов=%d (на поясе %d) | радиация актора=%.6f",
+                        changed and "ИЗМЕНЕНИЕ:" or "фон:", ruck_sum, total,
+                        artefacts, belt_count, actor_rad))
+                end
+            end
         end
 
         -- Дельта времени в секундах, с ограничением сверху и снизу.
@@ -193,25 +216,65 @@ local function bq_inv_rad_on_load()
 end
 
 ----------------------------------------------------------------------------
--- Регистрация. Разделяемое состояние - в _G, подписка идемпотентна.
+-- ЗАГРУЗКА И РЕГИСТРАЦИЯ (важнейший момент, из-за него механика сначала не работала).
 --
--- Подписка НЕ защищается флагом. Движок исполняет .script повторно, и если
--- к этому моменту реестр колбэков пересоздан (перезапуск Lua-машины), старая
--- подписка потеряна - именно на это указывала прошлая неудачная попытка
--- (MEMO 31.3). Повторная подписка безвредна: реестр хранит подписчиков в
--- таблице-множестве (dynamic_callbacks.lua), а лишний вызов обработчика
--- безопасен, потому что дельта времени после первого вызова уже нулевая.
+-- Разделяемое состояние - в _G. Подписка НЕ защищается флагом: движок исполняет
+-- .script повторно, и если к этому моменту реестр колбэков пересоздан (перезапуск
+-- Lua-машины), старая подписка потеряна - именно на это указывала прошлая
+-- неудачная попытка (MEMO 31.3). Повторная подписка безвредна: реестр хранит
+-- подписчиков в таблице-множестве (dynamic_callbacks.lua), а лишний вызов
+-- обработчика безопасен, потому что дельта времени после первого вызова уже нулевая.
+--
+-- ПОЧЕМУ ФАЙЛ САМ ПО СЕБЕ НЕ ЗАГРУЖАЛСЯ. Движок НЕ сканирует папку scripts и НЕ
+-- исполняет все файлы подряд. Скрипт попадает в реестр (`setup_auto_load`,
+-- script_engine.cpp:168-190), но исполняется только когда к нему ОБРАЩАЮТСЯ
+-- ПО ИМЕНИ:
+--
+--   * `CScriptEngine::function_object` (script_engine.cpp:381-398) разбирает
+--     строку вида "имя_скрипта.функция" и вызывает process_file("имя_скрипта");
+--     так движок достаёт функции, прописанные в конфигах (`script_binding`,
+--     `OnItemDropped`, `OnItemFocusReceive`, `use1_functor` и т.п.);
+--   * `prefetch("имя_скрипта")` - явный вызов загрузки (биндинг
+--     `script_engine_script.cpp:339` -> `process_file`).
+--
+-- Поэтому боевой скрипт контейнеров грузился сам (на него ссылаются
+-- `OnItemDropped` в mod_game_global_z_bq.ltx и `use1_functor` в секциях комбо),
+-- а этот файл не грузился вообще.
+--
+-- Точка входа `addon.init` (`script:`) в этой сборке НЕ работает: разбор в
+-- `CAddonManager::ReadMetaInfo` (xrCore/xrAddons.cpp:79-94) содержит перевёрнутые
+-- сравнения (`find(...) == npos` там, где нужно `!=`), поэтому ни `name`, ни
+-- `script` из файла не читаются. Полагаться на неё нельзя.
+--
+-- Подключение сделано в двух местах, чтобы загрузка была гарантированной:
+--   1. `[callbacks] OnItemFocusReceive = bq_inv_rad.on_game_start` в
+--      mod_game_global_z_bq.ltx - ленивая загрузка силами движка;
+--   2. `prefetch("bq_inv_rad")` из `bq_containers.on_game_start()` - загрузка
+--      в самом начале сессии, чтобы механика работала ещё до открытия инвентаря.
 ----------------------------------------------------------------------------
+
+-- Таблица состояния создаётся ДО on_game_start: если движок вызовет точку
+-- входа раньше, чем выполнится тело модуля, обращение к ней не должно падать.
 _G.bq_inv_rad = _G.bq_inv_rad or {
     sum = 0,
     last_tick = 0,
     next_recompute = 0,
     announced = false,
+    last_logged = nil,
+    last_artefacts = nil,
 }
+
+-- Точка входа для конфига `[callbacks] OnItemFocusReceive = bq_inv_rad.on_game_start`.
+-- Сама по себе ничего не делает: её назначение - заставить движок исполнить этот
+-- файл, а тело модуля уже установит подписки. Аргумент - предмет под курсором.
+-- Возвращает false, чтобы движок не считал событие обработанным.
+function on_game_start(item)
+    return false
+end
 
 if not _G.bq_inv_rad.announced then
     _G.bq_inv_rad.announced = true
-    dbg("==== скрипт радиации в инвентаре загружен ====")
+    dbg("==== скрипт радиации в инвентаре загружен, подписки установлены ====")
 end
 
 _G.bq_inv_rad.last_tick = time_global()

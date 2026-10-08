@@ -155,6 +155,19 @@ const TESTED_ARTEFACTS = [
             bq_sci_container:   'af_compass_bq_sci_container',
         },
     },
+    {
+        // Огненный шар. Радиация 0.002 - как у Глаза в оригинале, поэтому все
+        // три комбо дают 0 (контейнер поглощает больше, чем артефакт излучает).
+        artefact: 'af_fireball',
+        radiation: 0.002,
+        bleeding: 0,
+        absorbation: 'af_fireball_absorbation',
+        combos: {
+            bq_field_container: 'af_fireball_bq_field_container',
+            bq_uni_container:   'af_fireball_bq_uni_container',
+            bq_sci_container:   'af_fireball_bq_sci_container',
+        },
+    },
 ];
 
 // Секции НАШЕГО аддона, которые являются предметами и должны иметь полный

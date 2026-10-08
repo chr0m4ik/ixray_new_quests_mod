@@ -416,4 +416,22 @@
     <string id="bq_ice_sci_descr">
         <text>Контейнер с артефактом. Содержит в себе: Снежинка. Контейнер поглощает 14 единиц радиации артефакта.</text>
     </string>
+    <string id="bq_fireball_field_name">
+        <text>Огненный шар в полевом контейнере</text>
+    </string>
+    <string id="bq_fireball_field_descr">
+        <text>Артефакт «Огненный шар» в полевом контейнере. Контейнер поглощает 4 единиц радиации артефакта.</text>
+    </string>
+    <string id="bq_fireball_uni_name">
+        <text>Огненный шар в универсальном контейнере</text>
+    </string>
+    <string id="bq_fireball_uni_descr">
+        <text>Артефакт «Огненный шар» в универсальном контейнере. Контейнер поглощает 8 единиц радиации артефакта.</text>
+    </string>
+    <string id="bq_fireball_sci_name">
+        <text>Огненный шар в научном контейнере</text>
+    </string>
+    <string id="bq_fireball_sci_descr">
+        <text>Артефакт «Огненный шар» в научном контейнере. Контейнер поглощает 14 единиц радиации артефакта.</text>
+    </string>
 </string_table>

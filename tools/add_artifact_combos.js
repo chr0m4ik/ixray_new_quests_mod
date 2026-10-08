@@ -40,6 +40,7 @@ const ARTEFACT_NAMES = {
     af_cristall: 'Кристалл',
     af_compass: 'Компас',
     af_ice: 'Снежинка',
+    af_fireball: 'Огненный шар',
 };
 
 const CONTAINERS = [
