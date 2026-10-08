@@ -1,4 +1,4 @@
-﻿; ============================================================================
+; ============================================================================
 ; Artefact containers - sections for configs\misc\artefacts.ltx
 ;
 ; HOW THIS FILE IS LOADED (checked against the engine sources):
@@ -61,15 +61,16 @@ class                       = ARTEFACT
 ; af_actor_properties - по НАЛИЧИЮ этого ключа движок решает, показывать ли окно
 ; характеристик артефакта: CUIArtefactParams::Check (ui_af_params.cpp:193-195)
 ; это ровно "line_exist(section, "af_actor_properties")", значение НЕ читается
-; (проверено поиском по исходникам: ключ встречается только в этой строке).
+; (ключ встречается в исходниках только в этой одной строке).
 ; В af_base он есть, здесь задаём явно.
 ;
-; ВАЖНО ДЛЯ СИМК: bq_container_base идёт ВТОРЫМ родителем комбо, то есть важнее
-; артефакта. Поэтому, прописав в секции СИМК "af_actor_properties = off", мы
-; перебиваем это "on" - и окно статистики у СИМК не показывается. Значение лишь
-; должно ОТСУТСТВОВАТЬ как ключ... но ключ унаследован, а убрать ключ в X-Ray
-; нельзя. К счастью, проверка смотрит только на наличие, а не на значение,
-; поэтому "off" работает: см. комментарий у секции bq_simk_container.
+; ВАЖНО, ПРОВЕРЕНО В ИГРЕ (08.10.2026): этот ключ НЕ управляет видимостью окна
+; на практике. У СИМК он выставлен в "off" (см. bq_simk_container), но
+; статистика ВСЁ РАВНО показывалась. Поэтому единственный рабочий способ убрать
+; статы - ОБНУЛИТЬ их: SetInfo читает восстановление из секции предмета
+; (ui_af_params.cpp:256) и иммунитеты из hit_absorbation_sect (:231-232), а
+; строки с нулевыми значениями не добавляет (:233 и :257-260).
+; "off" у СИМК оставлен как безвредный, но полагаться на него НЕЛЬЗЯ.
 af_actor_properties         = on
 actor_properties            = on
 $spawn                      = "artefacts\bq_container"
@@ -251,26 +252,37 @@ inv_name                    = bq_simk_container_name
 inv_name_short              = bq_simk_container_name
 cost                        = 13000
 icons_texture               = ui\ui_bq_field_container
-; af_actor_properties = off ОТКЛЮЧАЕТ окно статистики артефакта у СИМК (и у его
-; комбо, которые наследуют от этой секции). Движок смотрит на НАЛИЧИЕ ключа
-; (CUIArtefactParams::Check, ui_af_params.cpp:193-195), поэтому "off" работает
-; так же надёжно, как отсутствие ключа: значение нигде не читается.
-; Это ключ bq_container_base, и он идёт ВТОРЫМ родителем комбо - значит важнее
-; артефакта, и наше "off" перебивает унаследованное "on".
-; Итог: у СИМК видно название и описание, а таблицы характеристик нет -
-; заказчик решил, что она тут не нужна (в контейнере артефакт обезврежен, а
-; собственных статов у СИМК нет).
+; af_actor_properties = off. ВНИМАНИЕ: на видимость окна статистики это НЕ
+; влияет - проверено в игре, статистика показывалась и с "off". Хотя
+; CUIArtefactParams::Check (ui_af_params.cpp:193-195) и смотрит на наличие
+; ключа, сам ключ унаследован от bq_container_base, и убрать его нельзя.
+; Ключ оставлен "off" как безвредный, но убрать статы из окна можно ТОЛЬКО
+; их обнулением - см. блок "СТАТЫ ОБНУЛЕНЫ" ниже.
 af_actor_properties         = off
 ; Свой фон нулевой: контейнер нейтрален, он только снимает излучение того
 ; артефакта, который в нём лежит.
-radiation_restore_speed     = 0
-hit_absorbation_sect        = bq_simk_container_absorbation
-belt                        = false
-additional_inventory_weight = 0
+; ---- СТАТЫ ОБНУЛЕНЫ (решение заказчика) ----------------------------------
+; Окно характеристик артефакта читает статы ИЗ СЕКЦИИ ПРЕДМЕТА:
+;   ui_af_params.cpp:256  val = pSettings->r_float(af_section, af_restore_section_names[i]);
+; и НЕ показывает строку, если значение равно нулю (:257-260). Иммунитеты
+; читаются из hit_absorbation_sect (:231-232), там та же проверка на ноль (:233).
+; Поэтому все статы обнулены - тогда окно не показывает ни одной строки, и
+; остаются только название и описание. Раньше был обнулён только
+; radiation_restore_speed, а остальное комбо наследовало от артефакта
+; (af_eye: power 0.003, bleeding 0.005, burn_immunity 0.0267) - из-за этого
+; статы и продолжали показываться.
+; Ключ af_actor_properties на видимость НЕ влияет, хотя Check() смотрит на его
+; наличие: проверено в игре - статистика показывалась и с "off". Оставлен "off"
+; на всякий случай, но полагаться на него нельзя.
 health_restore_speed        = 0
 satiety_restore_speed       = 0
+thirst_restore_speed        = 0
 power_restore_speed         = 0
 bleeding_restore_speed      = 0
+radiation_restore_speed     = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = bq_simk_container_absorbation
+belt                        = false
 inv_grid_width              = 1
 inv_grid_height             = 1
 ; Ячейка атласа (0,6): СИМК занимает ОТДЕЛЬНУЮ строку, а не четвёртый столбец -
@@ -573,7 +585,26 @@ inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 0
 inv_grid_y                  = 7
+; ---- СТАТЫ ОБНУЛЕНЫ (решение заказчика) ----------------------------------
+; Окно характеристик артефакта читает статы ИЗ СЕКЦИИ ПРЕДМЕТА:
+;   ui_af_params.cpp:256  val = pSettings->r_float(af_section, af_restore_section_names[i]);
+; и НЕ показывает строку, если значение равно нулю (:257-260). Иммунитеты
+; читаются из hit_absorbation_sect (:231-232), там та же проверка на ноль (:233).
+; Поэтому все статы обнулены - тогда окно не показывает ни одной строки, и
+; остаются только название и описание. Раньше был обнулён только
+; radiation_restore_speed, а остальное комбо наследовало от артефакта
+; (af_eye: power 0.003, bleeding 0.005, burn_immunity 0.0267) - из-за этого
+; статы и продолжали показываться.
+; Ключ af_actor_properties на видимость НЕ влияет, хотя Check() смотрит на его
+; наличие: проверено в игре - статистика показывалась и с "off". Оставлен "off"
+; на всякий случай, но полагаться на него нельзя.
+health_restore_speed        = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
 radiation_restore_speed     = 0
+additional_inventory_weight = 0
 hit_absorbation_sect        = bq_simk_container_absorbation
 use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
@@ -592,8 +623,27 @@ inv_grid_width               = 1
 inv_grid_height              = 1
 inv_grid_x                  = 3
 inv_grid_y                  = 7
-radiation_restore_speed      = 0
-hit_absorbation_sect         = bq_simk_container_absorbation
+; ---- СТАТЫ ОБНУЛЕНЫ (решение заказчика) ----------------------------------
+; Окно характеристик артефакта читает статы ИЗ СЕКЦИИ ПРЕДМЕТА:
+;   ui_af_params.cpp:256  val = pSettings->r_float(af_section, af_restore_section_names[i]);
+; и НЕ показывает строку, если значение равно нулю (:257-260). Иммунитеты
+; читаются из hit_absorbation_sect (:231-232), там та же проверка на ноль (:233).
+; Поэтому все статы обнулены - тогда окно не показывает ни одной строки, и
+; остаются только название и описание. Раньше был обнулён только
+; radiation_restore_speed, а остальное комбо наследовало от артефакта
+; (af_eye: power 0.003, bleeding 0.005, burn_immunity 0.0267) - из-за этого
+; статы и продолжали показываться.
+; Ключ af_actor_properties на видимость НЕ влияет, хотя Check() смотрит на его
+; наличие: проверено в игре - статистика показывалась и с "off". Оставлен "off"
+; на всякий случай, но полагаться на него нельзя.
+health_restore_speed        = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+radiation_restore_speed     = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = bq_simk_container_absorbation
 use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
@@ -611,8 +661,27 @@ inv_grid_width               = 1
 inv_grid_height              = 1
 inv_grid_x                  = 1
 inv_grid_y                  = 7
-radiation_restore_speed      = 0
-hit_absorbation_sect         = bq_simk_container_absorbation
+; ---- СТАТЫ ОБНУЛЕНЫ (решение заказчика) ----------------------------------
+; Окно характеристик артефакта читает статы ИЗ СЕКЦИИ ПРЕДМЕТА:
+;   ui_af_params.cpp:256  val = pSettings->r_float(af_section, af_restore_section_names[i]);
+; и НЕ показывает строку, если значение равно нулю (:257-260). Иммунитеты
+; читаются из hit_absorbation_sect (:231-232), там та же проверка на ноль (:233).
+; Поэтому все статы обнулены - тогда окно не показывает ни одной строки, и
+; остаются только название и описание. Раньше был обнулён только
+; radiation_restore_speed, а остальное комбо наследовало от артефакта
+; (af_eye: power 0.003, bleeding 0.005, burn_immunity 0.0267) - из-за этого
+; статы и продолжали показываться.
+; Ключ af_actor_properties на видимость НЕ влияет, хотя Check() смотрит на его
+; наличие: проверено в игре - статистика показывалась и с "off". Оставлен "off"
+; на всякий случай, но полагаться на него нельзя.
+health_restore_speed        = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+radiation_restore_speed     = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = bq_simk_container_absorbation
 use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
@@ -630,8 +699,27 @@ inv_grid_width               = 1
 inv_grid_height              = 1
 inv_grid_x                  = 2
 inv_grid_y                  = 7
-radiation_restore_speed      = 0
-hit_absorbation_sect         = bq_simk_container_absorbation
+; ---- СТАТЫ ОБНУЛЕНЫ (решение заказчика) ----------------------------------
+; Окно характеристик артефакта читает статы ИЗ СЕКЦИИ ПРЕДМЕТА:
+;   ui_af_params.cpp:256  val = pSettings->r_float(af_section, af_restore_section_names[i]);
+; и НЕ показывает строку, если значение равно нулю (:257-260). Иммунитеты
+; читаются из hit_absorbation_sect (:231-232), там та же проверка на ноль (:233).
+; Поэтому все статы обнулены - тогда окно не показывает ни одной строки, и
+; остаются только название и описание. Раньше был обнулён только
+; radiation_restore_speed, а остальное комбо наследовало от артефакта
+; (af_eye: power 0.003, bleeding 0.005, burn_immunity 0.0267) - из-за этого
+; статы и продолжали показываться.
+; Ключ af_actor_properties на видимость НЕ влияет, хотя Check() смотрит на его
+; наличие: проверено в игре - статистика показывалась и с "off". Оставлен "off"
+; на всякий случай, но полагаться на него нельзя.
+health_restore_speed        = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+radiation_restore_speed     = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = bq_simk_container_absorbation
 use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
@@ -649,8 +737,27 @@ inv_grid_width               = 1
 inv_grid_height              = 1
 inv_grid_x                  = 4
 inv_grid_y                  = 7
-radiation_restore_speed      = 0
-hit_absorbation_sect         = bq_simk_container_absorbation
+; ---- СТАТЫ ОБНУЛЕНЫ (решение заказчика) ----------------------------------
+; Окно характеристик артефакта читает статы ИЗ СЕКЦИИ ПРЕДМЕТА:
+;   ui_af_params.cpp:256  val = pSettings->r_float(af_section, af_restore_section_names[i]);
+; и НЕ показывает строку, если значение равно нулю (:257-260). Иммунитеты
+; читаются из hit_absorbation_sect (:231-232), там та же проверка на ноль (:233).
+; Поэтому все статы обнулены - тогда окно не показывает ни одной строки, и
+; остаются только название и описание. Раньше был обнулён только
+; radiation_restore_speed, а остальное комбо наследовало от артефакта
+; (af_eye: power 0.003, bleeding 0.005, burn_immunity 0.0267) - из-за этого
+; статы и продолжали показываться.
+; Ключ af_actor_properties на видимость НЕ влияет, хотя Check() смотрит на его
+; наличие: проверено в игре - статистика показывалась и с "off". Оставлен "off"
+; на всякий случай, но полагаться на него нельзя.
+health_restore_speed        = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+radiation_restore_speed     = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = bq_simk_container_absorbation
 use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 

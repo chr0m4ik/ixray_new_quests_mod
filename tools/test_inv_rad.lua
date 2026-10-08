@@ -575,12 +575,19 @@ do
     --    они и подставлялись вместо настоящего значения. Теперь берём значение
     --    из последней строки "af_actor_properties = X" ВНУТРИ секции.
     local function section_body(text, header)
-        -- от заголовка секции до следующего заголовка "["
+        -- от заголовка секции до следующего заголовка.
+        -- ВАЖНО: заголовком считается и "[x]", и "![x]" - восклицательный знак
+        -- ставится у переопределений ванильных секций. Если его не учесть,
+        -- "хвост" секции захватывает следующие секции, и проверка начинает
+        -- читать чужие статы (на этом уже ошибся дважды).
         local start = text:find(header, 1, true)
         if not start then return nil end
         local from = start + #header
-        local stop = text:find("\n[", from, true)
-        return text:sub(from, stop or #text)
+        local stopA = text:find("\n[", from, true)
+        local stopB = text:find("\n![", from, true)
+        local stop = stopA
+        if stopB and (not stop or stopB < stop) then stop = stopB end
+        return text:sub(from, (stop and stop - 1) or #text)
     end
     local function key_in_section(text, header, key)
         local body = section_body(text, header)
@@ -598,6 +605,48 @@ do
     local v, err2 = key_in_section(cfg, "[bq_simk_container]", "af_actor_properties")
     say(string.format("10g) у пустого СИМК af_actor_properties = off -> %s",
         (v == "off") and "OK" or ("ОШИБКА: получено " .. tostring(v or err2))))
+
+    -- j) ГЛАВНОЕ для окна характеристик: у комбо СИМК должны быть ОБНУЛЕНЫ все
+    --    статы. Ключ af_actor_properties на видимость не влияет (проверено в
+    --    игре), а SetInfo читает восстановление из секции предмета
+    --    (ui_af_params.cpp:256) и пропускает нулевые строки (:257-260).
+    --    Иммунитеты читаются из hit_absorbation_sect (:231-232).
+    local RESTORE = {
+        "health_restore_speed", "satiety_restore_speed", "thirst_restore_speed",
+        "power_restore_speed", "bleeding_restore_speed", "radiation_restore_speed",
+        "additional_inventory_weight",
+    }
+    local comboProblems = {}
+    for _, art in ipairs({ "af_eye", "af_ice", "af_cristall", "af_compass", "af_fireball" }) do
+        local header = "[" .. art .. "_bq_simk_container]"
+        local bad = {}
+        for _, k in ipairs(RESTORE) do
+            local kv = key_in_section(cfg, header, k)
+            if kv ~= "0" then bad[#bad + 1] = k .. "=" .. tostring(kv) end
+        end
+        local abs = key_in_section(cfg, header, "hit_absorbation_sect")
+        if abs ~= "bq_simk_container_absorbation" then
+            bad[#bad + 1] = "защита=" .. tostring(abs)
+        end
+        if #bad > 0 then comboProblems[#comboProblems + 1] = art .. "(" .. table.concat(bad, ",") .. ")" end
+    end
+    say(string.format("10j) у всех комбо СИМК статы обнулены -> %s",
+        (#comboProblems == 0) and "OK" or ("ОШИБКА: " .. table.concat(comboProblems, " "))))
+
+    -- k) таблица защит СИМК нейтральна: все девять иммунитетов нули. Иначе окно
+    --    покажет строки защиты (нулевые строки оно пропускает, :233).
+    local IMM = {
+        "radiation_immunity", "burn_immunity", "chemical_burn_immunity",
+        "telepatic_immunity", "shock_immunity", "wound_immunity",
+        "fire_wound_immunity", "explosion_immunity", "strike_immunity",
+    }
+    local immBad = {}
+    for _, k in ipairs(IMM) do
+        local kv = key_in_section(cfg, "[bq_simk_container_absorbation]", k)
+        if kv ~= "0" then immBad[#immBad + 1] = k .. "=" .. tostring(kv) end
+    end
+    say(string.format("10k) таблица защит СИМК нейтральна (9 иммунитетов = 0) -> %s",
+        (#immBad == 0) and "OK" or ("ОШИБКА: " .. table.concat(immBad, ", "))))
 
     local bad = {}
     for _, art in ipairs({ "af_eye", "af_ice", "af_cristall", "af_compass", "af_fireball" }) do

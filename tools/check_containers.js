@@ -398,13 +398,46 @@ for (const spec of TESTED_ARTEFACTS) {
             } else ok(`[${combo}] belt=false (на пояс не надевается)`);
         }
 
-        // остальные статы должны приходить от артефакта, а не переписываться.
-        // ИСКЛЮЧЕНИЕ - СИМК: он задаёт СВОЮ таблицу защит (hit_absorbation_sect),
-        // потому что защита артефакта работает только на поясе, а СИМК на пояс
-        // не надевается. Проверка этого ключа для него делается выше.
-        const skipKeys = c.total ? new Set(['hit_absorbation_sect']) : new Set();
+        // Обычные комбо НАСЛЕДУЮТ статы артефакта, а не переписывают их.
+        //
+        // ИСКЛЮЧЕНИЕ - СИМК: у него все статы ОБНУЛЕНЫ (решение заказчика -
+        // показывать только название и описание). Поэтому обычные правила к
+        // нему не применяются, а вместо них работает отдельная проверка
+        // "все статы равны нулю" ниже.
+        if (c.total) {
+            // Окно характеристик читает восстановление из СЕКЦИИ предмета
+            // (ui_af_params.cpp:256) и пропускает нулевые строки (:257-260);
+            // иммунитеты читаются из hit_absorbation_sect (:231-232) с той же
+            // проверкой на ноль (:233). Значит для пустого окна нужно, чтобы
+            // ВСЁ было нулём - и статы комбо, и таблица защит.
+            const ZEROED = [
+                'health_restore_speed', 'satiety_restore_speed', 'thirst_restore_speed',
+                'power_restore_speed', 'bleeding_restore_speed', 'radiation_restore_speed',
+                'additional_inventory_weight',
+            ];
+            const nonZero = ZEROED.filter((k) => {
+                const v = parseFloat(r.get(k));
+                return isNaN(v) || Math.abs(v) > 1e-9;
+            });
+            if (nonZero.length) {
+                err(`[${combo}] у СИМК должны быть обнулены статы, но не нули: ` +
+                    nonZero.map((k) => `${k}=${r.get(k)}`).join(', '));
+            } else {
+                ok(`[${combo}] все статы обнулены (окно покажет только название и описание)`);
+            }
+            // таблица защит должна быть нейтральной: все иммунитеты 0
+            const absRes = resolve(r.get('hit_absorbation_sect'));
+            const IMM = [
+                'radiation_immunity', 'burn_immunity', 'chemical_burn_immunity',
+                'telepatic_immunity', 'shock_immunity', 'wound_immunity',
+                'fire_wound_immunity', 'explosion_immunity', 'strike_immunity',
+            ];
+            const badImm = IMM.filter((k) => Math.abs(parseFloat(absRes.get(k) || 0)) > 1e-9);
+            if (badImm.length) {
+                err(`[${combo}] таблица защит не нейтральна, ненулевые: ${badImm.join(', ')}`);
+            }
+        } else {
         for (const key of INHERITED_FROM_ARTEFACT) {
-            if (skipKeys.has(key)) continue;
             if (m.keys.has(key)) {
                 err(`[${combo}] переопределяет '${key}' — должен наследовать от артефакта`);
             }
@@ -416,7 +449,6 @@ for (const spec of TESTED_ARTEFACTS) {
         // перебивали статы артефакта. Так пропадало замедление кровотечения
         // (af_eye: bleeding_restore_speed = 0.004).
         for (const key of INHERITED_FROM_ARTEFACT) {
-            if (skipKeys.has(key)) continue;
             const want = artRes.get(key);
             const have = r.get(key);
             if (want !== have) {
@@ -431,6 +463,7 @@ for (const spec of TESTED_ARTEFACTS) {
         } else {
             ok(`[${combo}] bleeding_restore_speed = ${r.get('bleeding_restore_speed')} (от ${art})`);
         }
+        }   // конец ветки "обычное комбо" (у СИМК статы обнулены)
 
         // belt у комбо ОБЯЗАН быть true. Тонкость наследования в X-Ray:
         // последний родитель важнее, а bq_container_base задаёт belt = false
