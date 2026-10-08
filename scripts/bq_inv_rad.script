@@ -1,0 +1,221 @@
+-- bq_inv_rad.script
+-- Радиация от артефактов, лежащих В РЮКЗАКЕ (инвентаре), а не на поясе.
+--
+-- ЗАДАЧА: артефакт в рюкзаке облучает актора ровно так же, как на поясе.
+-- Костюм не учитывается. NPC, трупы, ящики, предметы на земле и в слотах
+-- экипировки не считаются - только пояс и рюкзак актора.
+--
+-- ЭТАЛОН (движок, CActor::UpdateArtefactsOnBeltAndOutfit, Actor.cpp:2591-2630;
+-- вызывается раз в 0.1 с по аккумулятору ARTEFACTS_UPDATE_TIME):
+--
+--   для каждого предмета на поясе (inventory().m_belt):
+--       belt_i = radiation_restore_speed * condition
+--       если belt_i > 0, то ChangeRadiation( max(0, belt_i - boost) * dt )
+--       иначе            ChangeRadiation( belt_i * dt )
+--
+-- где boost - это conditions().GetBoostRadiationImmunity(). Обратите внимание
+-- на строку 2622: clamp(val, 0.0f, val) - это ограничение СНИЗУ, а не сверху
+-- (для clamp(value, min, max) при min > max результат равен max).
+--
+-- ЧТО НАМ ДОСТАЁТСЯ ОТ ПОЯСА. boost_radiation_immunity из Lua недоступен
+-- (биндинга нет), поэтому берём его минимальное значение 0. Тогда для
+-- положительного belt_i движок начисляет ровно belt_i, а для отрицательного
+-- (ветка "иначе") тоже ровно belt_i. То есть при boost = 0 вклад пояса
+-- совпадает с belt_i БЕЗ каких-либо ограничений, и никакой поправки к поясу
+-- не требуется. Ограничение снизу нулём в движке при этом никогда не
+-- срабатывает - оно нужно только при boost > 0.
+--
+-- Принятое решение: отрицательные radiation_restore_speed игнорируются.
+-- Значит у нас все слагаемые неотрицательны, ограничение снизу нулём
+-- неактивно по определению, и доза за кадр считается просто как
+--
+--   доза = (сумма radiation_restore_speed * condition по артефактам
+--           в рюкзаке) * dt
+--
+-- Ровно как для пояса, без множителей. Если когда-нибудь статы артефактов
+-- получат отрицательные значения, эта посылка сломается - в момент пересчёта
+-- о таком случае сообщается в отладочный лог.
+--
+-- ПОЧЕМУ НЕ ПЕРЕСЧИТЫВАЕМ КАЖДЫЙ КАДР: actor:iterate_inventory внутри делает
+-- копию списка предметов (CInventory::AddAvailableItems), это заметные
+-- аллокации. Сумма обновляется раз в RECOMPUTE_MS (в Anomaly та же механика
+-- сделана так же, item_artefact.script: rad_tg_step = 300 мс), а доза
+-- начисляется каждый кадр из закэшированной суммы, поэтому она всегда точная.
+--
+-- ПОЧЕМУ ЭТО ОТДЕЛЬНЫЙ ФАЙЛ. В прошлый раз механику подключили из
+-- bq_containers.on_game_start() и заодно переписали регистрацию обработчика
+-- update контейнеров на общий диспетчер - из-за этого сломались контейнеры
+-- (MEMO 32). Механики аддона обязаны быть независимыми, поэтому этот скрипт
+-- никуда не подключается и ничего снаружи не трогает. Скрипты в scripts\
+-- подхватываются движком по имени файла, прописывать его в конфигах не надо.
+--
+-- ОТЛАДКА: log() из скриптов аддона в игровой лог не попадает (MEMO 13.5).
+-- Запись включается флагом DEBUG ниже; пишет в bq_inv_rad.log в корне игры.
+
+-- Отладочный лог в файл. Включать только на время проверки в игре.
+local DEBUG = false
+local LOG_FILE = "bq_inv_rad.log"
+
+-- Как часто пересчитывается сумма по рюкзаку, мс.
+local RECOMPUTE_MS = 300
+
+-- Ограничение дельты времени, мс. После загрузки сейва метка time_global()
+-- "рвётся", и без ограничения первый тик начислил бы огромную дозу.
+local MAX_DELTA_MS = 1000
+
+-- Актор на момент предыдущего кадра. Служит для двух целей: не пересчитывать
+-- инвентарь лишний раз и заметить смену актора после загрузки сейва.
+local cached_actor = nil
+
+local function dbg(msg)
+    if not DEBUG then return end
+    local f = io.open(LOG_FILE, "a")
+    if f then
+        f:write(os.date("%H:%M:%S") .. "  " .. msg .. "\n")
+        f:close()
+    end
+end
+
+-- Вклад одного предмета: radiation_restore_speed * condition, как в движке.
+-- Возвращает 0 для не-артефактов, для неположительных значений и для
+-- артефактов с нулевым/испорченным состоянием.
+local function artefact_radiation(item)
+    -- get_artefact_radiation бросает исключение на не-артефакте. Проверять
+    -- принадлежность к классу из Lua нечем, поэтому только pcall.
+    local ok, rad = pcall(function() return item:get_artefact_radiation() end)
+    if not ok or not rad then return 0 end
+
+    -- Отрицательные значения игнорируем: артефакт в рюкзаке только фонит
+    -- и никогда не снимает радиацию (решение заказчика).
+    if type(rad) ~= "number" or rad <= 0 then
+        if DEBUG and type(rad) == "number" and rad < 0 then
+            dbg("внимание: у '" .. tostring(item:section())
+                .. "' отрицательная радиация " .. tostring(rad)
+                .. " - она проигнорирована")
+        end
+        return 0
+    end
+
+    -- condition читается из Lua без исключений (на не-предмете вернёт false).
+    local cond = item:condition()
+    if type(cond) ~= "number" or cond <= 0 then return 0 end
+
+    return rad * cond
+end
+
+-- Сумма вкладов всех артефактов актора, КРОМЕ лежащих на поясе:
+-- пояс обрабатывает сам движок, иначе получилось бы двойное начисление.
+local function compute_ruck_sum(actor)
+    local ruck_sum = 0
+    local belt_count = 0
+
+    -- iterate_inventory перебирает inventory().m_all: рюкзак, пояс и слоты.
+    -- ВАЖНО: колбэк НИ В КОЕМ СЛУЧАЕ не должен вернуть true - в движке это
+    -- немедленно обрывает перебор (script_game_object_inventory_owner.cpp:276).
+    actor:iterate_inventory(function(owner, item)
+        if not item then return end
+        local rad = artefact_radiation(item)
+        if rad ~= 0 then
+            if owner:is_on_belt(item) then
+                belt_count = belt_count + 1   -- пояс считает движок, пропускаем
+            else
+                ruck_sum = ruck_sum + rad
+            end
+        end
+    end, actor)
+
+    return ruck_sum, belt_count
+end
+
+----------------------------------------------------------------------------
+-- Обработчик update. Состояние лежит в _G: движок в течение сессии исполняет
+-- .script повторно, и у нового экземпляра модуля все local-переменные свои
+-- (MEMO 31.2). Сама функция обработчика - не общий ресурс, её можно объявлять
+-- локально: ссылка на неё попадает в реестр колбэков при регистрации ниже.
+----------------------------------------------------------------------------
+local function bq_inv_rad_tick()
+    local ok, err = pcall(function()
+        local actor = db.actor
+        local st = _G.bq_inv_rad
+
+        -- Актор появляется не сразу; на первом доступном кадре просто
+        -- запоминаем время, ничего не начисляя.
+        if not actor then
+            st.last_tick = time_global()
+            return
+        end
+
+        -- Смена актора (новая игра, загрузка сейва): сбрасываем накопитель,
+        -- иначе накопленное время уйдёт в дозу уже другому актору.
+        if cached_actor ~= actor then
+            cached_actor = actor
+            st.sum = nil
+            st.last_tick = time_global()
+            st.next_recompute = 0
+            dbg("актор сменился, состояние сброшено")
+            return
+        end
+
+        local now = time_global()
+
+        -- Раз в RECOMPUTE_MS пересчитываем сумму по рюкзаку.
+        if not st.sum or now >= st.next_recompute then
+            local ruck_sum, belt_count = compute_ruck_sum(actor)
+            st.sum = ruck_sum
+            st.next_recompute = now + RECOMPUTE_MS
+            dbg(string.format("рюкзак=%.6f (на поясе артефактов: %d)",
+                ruck_sum, belt_count))
+        end
+
+        -- Дельта времени в секундах, с ограничением сверху и снизу.
+        local delta = now - st.last_tick
+        st.last_tick = now
+        if delta < 0 then delta = 0 end
+        if delta > MAX_DELTA_MS then delta = MAX_DELTA_MS end
+        if delta <= 0 then return end
+
+        -- Начисляем только при положительной сумме: лишние вызовы Lua -> C++
+        -- каждый кадр не нужны, а отрицательного вклада у нас быть не может.
+        if st.sum > 0 then
+            actor:change_radiation(st.sum * delta / 1000)
+        end
+    end)
+    if not ok then
+        dbg("ОШИБКА в обработчике: " .. tostring(err))
+    end
+end
+
+-- Сброс накопителя времени при загрузке сейва (аргументы не нужны).
+local function bq_inv_rad_on_load()
+    _G.bq_inv_rad.last_tick = time_global()
+    _G.bq_inv_rad.sum = nil
+    _G.bq_inv_rad.next_recompute = 0
+end
+
+----------------------------------------------------------------------------
+-- Регистрация. Разделяемое состояние - в _G, подписка идемпотентна.
+--
+-- Подписка НЕ защищается флагом. Движок исполняет .script повторно, и если
+-- к этому моменту реестр колбэков пересоздан (перезапуск Lua-машины), старая
+-- подписка потеряна - именно на это указывала прошлая неудачная попытка
+-- (MEMO 31.3). Повторная подписка безвредна: реестр хранит подписчиков в
+-- таблице-множестве (dynamic_callbacks.lua), а лишний вызов обработчика
+-- безопасен, потому что дельта времени после первого вызова уже нулевая.
+----------------------------------------------------------------------------
+_G.bq_inv_rad = _G.bq_inv_rad or {
+    sum = 0,
+    last_tick = 0,
+    next_recompute = 0,
+    announced = false,
+}
+
+if not _G.bq_inv_rad.announced then
+    _G.bq_inv_rad.announced = true
+    dbg("==== скрипт радиации в инвентаре загружен ====")
+end
+
+_G.bq_inv_rad.last_tick = time_global()
+_G.bq_inv_rad.next_recompute = 0
+
+RegisterScriptCallback("update", bq_inv_rad_tick)
+RegisterScriptCallback("load", bq_inv_rad_on_load)
