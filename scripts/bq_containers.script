@@ -270,6 +270,15 @@ function on_item_dropped(first, second)
     local container = container_section_of(second)
     if not container then return true end          -- цель не контейнер
 
+    -- ВАЖНО: движок вызывает OnItemDropped ДВАЖДЫ на одно перетаскивание
+    -- (UIActorMenu_action.cpp:99 - до своей обработки дропа и :190 - после).
+    -- Первый вызов уже выполнил замену, поэтому во втором предметы не найдены -
+    -- без этой проверки в лог сыпалось "ОТМЕНА(put): предмет исчез", и был шанс
+    -- создать лишний комбо-предмет. Проверяем, что предметы ещё у актора.
+    if not owned_by_actor(first) or not owned_by_actor(second) then
+        return true
+    end
+
     local artifact = first:section()
     local combo = combo_section_of(artifact, container)
     if not combo then
@@ -288,8 +297,8 @@ function on_item_dropped(first, second)
     dbg("вложение принято: '" .. tostring(artifact) .. "' + '"
         .. tostring(container) .. "' -> '" .. combo .. "'")
 
-    -- Пробуем выполнить сразу: движок вызывает этот колбэк уже ПОСЛЕ своей
-    -- обработки перетаскивания. Если не вышло - задача уйдёт в pending.
+    -- Выполняем сразу: движок вызывает этот колбэк при перетаскивании, а
+    -- подписка на update в этой сборке не срабатывает (см. шапку файла).
     if not try_swap_now(task) then
         pending = task
     end
@@ -309,6 +318,10 @@ end
 ----------------------------------------------------------------------------
 function take_artifact(combo)
     if not db.actor or not alife() or not combo then return false end
+
+    -- Та же защита от повторного вызова, что и во вложении: движок может
+    -- обратиться к use1_functor дважды, а комбо к тому моменту уже заменён.
+    if not owned_by_actor(combo) then return false end
 
     local combo_section = combo:section()
     local artifact, container = split_combo(combo_section)
