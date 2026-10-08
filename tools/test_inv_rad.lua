@@ -695,6 +695,42 @@ do
         tostring(eyeH), layerScale, tostring(layerX), tostring(layerY),
         (eyeH == "2" and layerOk) and "OK"
             or ("ОШИБКА: 1icon_layer=" .. tostring(layerSect))))
+
+    -- n) Модели: каждая строка visual должна указывать на существующий файл в
+    --    meshes аддона. Ошибка в пути не даёт вылета - предмет просто станет
+    --    невидимым, и заметить это можно только в игре.
+    local function file_exists(p)
+        local f = io.open(p, "r")
+        if f then f:close(); return true end
+        return false
+    end
+    local badModels = {}
+    local checkedModels = 0
+    for sec, vis in cfg:gmatch("%[([^%]]+)%][^%[]-visual%s*=%s*([^\r\n]+)") do
+        -- в секции комбо visual мог быть унаследован, поэтому проверяем только
+        -- то, что реально записано в файле
+        local rel = vis:gsub("%s+$", "")
+        local p = ADDON .. "/meshes/" .. rel:gsub("\\", "/")
+        checkedModels = checkedModels + 1
+        if not file_exists(p) then badModels[#badModels + 1] = rel end
+    end
+    say(string.format("10n) все модели из конфига существуют (%d шт.) -> %s",
+        checkedModels,
+        (#badModels == 0) and "OK" or ("ОШИБКА: нет файлов " .. table.concat(badModels, ", "))))
+
+    -- o) у комбо СИМК модель ЗАКРЫТАЯ, у пустого - ОТКРЫТАЯ. Иначе заполненный
+    --    контейнер выглядел бы как пустой (комбо наследует модель от
+    --    bq_container_base, который идёт вторым родителем).
+    local emptyVis = key_in_section(cfg, "[bq_simk_container]", "visual") or ""
+    local closedOk = emptyVis:find("open") ~= nil
+    local comboClosed = true
+    for _, art in ipairs({ "af_eye", "af_ice", "af_cristall", "af_compass", "af_fireball" }) do
+        local v = key_in_section(cfg, "[" .. art .. "_bq_simk_container]", "visual")
+        if not v or not v:find("closed") then comboClosed = false end
+    end
+    say(string.format("10o) пустой СИМК открыт ('%s'), комбо закрыты -> %s",
+        emptyVis, (closedOk and comboClosed) and "OK"
+            or "ОШИБКА: у комбо должна быть закрытая модель"))
 end
 
 local f = io.open(TESTDIR .. "/test_inv_rad_out.txt", "w")

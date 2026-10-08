@@ -812,6 +812,59 @@ console.log('== 9. Звуки контейнеров ==');
     }
 }
 
+// ---------------------------------------------------------------------------
+// 10. Модели (visual): каждый путь должен существовать файлом в meshes аддона.
+//     Ошибка тут не видна как вылет - предмет просто станет невидимым в руках
+//     и в слоте, и заметить это можно только в игре.
+// ---------------------------------------------------------------------------
+console.log('== 10. Модели предметов (visual) ==');
+{
+    const artSrc = fs.readFileSync(OUR_FILE, 'utf8');
+    const lines = artSrc.split(/\r?\n/);
+    let current = null;
+    const seen = new Map();          // visual -> [секции]
+    for (const line of lines) {
+        const bare = line.replace(/;.*$/, '').trim();
+        const h = bare.match(/^!?\[([^\]]+)\]/);
+        if (h) { current = h[1].trim(); continue; }
+        const kv = bare.match(/^visual\s*=\s*(\S+)/);
+        if (!kv || !current) continue;
+        if (!seen.has(kv[1])) seen.set(kv[1], []);
+        seen.get(kv[1]).push(current);
+    }
+    if (seen.size === 0) err('в конфиге не найдено ни одной строки visual');
+    for (const [vis, sections] of seen) {
+        const file = path.join(__dirname, '..', 'meshes', vis.replace(/\\/g, path.sep));
+        if (!fs.existsSync(file)) {
+            err(`нет файла модели: meshes\\${vis} (используется в: ${sections.join(', ')})`);
+        } else {
+            const size = fs.statSync(file).size;
+            if (size < 100) {
+                err(`модель meshes\\${vis} подозрительно мала (${size} байт)`);
+            } else {
+                ok(`meshes\\${vis} (${(size / 1024).toFixed(0)} КБ) — ${sections.length} секц.`);
+            }
+        }
+    }
+
+    // У комбо СИМК модель ОБЯЗАНА быть закрытой: иначе они унаследуют открытую
+    // от bq_container_base, и заполненный контейнер будет выглядеть пустым.
+    for (const spec of TESTED_ARTEFACTS) {
+        const combo = resolve(`${spec.artefact}_bq_simk_container`);
+        if (!combo.size) continue;
+        const vis = combo.get('visual');
+        if (!vis || !vis.includes('closed')) {
+            err(`[${spec.artefact}_bq_simk_container] visual='${vis}', а нужна ЗАКРЫТАЯ ` +
+                `модель СИМК (lead_box_closed) - иначе заполненный выглядит как пустой`);
+        }
+    }
+    const emptyVis = resolve('bq_simk_container').get('visual');
+    if (!emptyVis || !emptyVis.includes('open')) {
+        err(`[bq_simk_container] visual='${emptyVis}', а нужна ОТКРЫТАЯ модель ` +
+            `(lead_box_open) - пустой контейнер показывается открытым`);
+    }
+}
+
 if (errors === 0) {
     console.log('\nOK: конфиг контейнеров согласован, обязательные ключи на месте.');
     process.exit(0);
