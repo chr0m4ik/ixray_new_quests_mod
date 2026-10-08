@@ -135,9 +135,22 @@ end
 
 -- Разбор секции комбо на артефакт и контейнер.
 -- "af_eye_bq_field_container" -> ("af_eye", "bq_field_container")
+--
+-- ВАЖНО: сравниваем суффиксы от САМОГО ДЛИННОГО к короткому. Сейчас все суффиксы
+-- одной длины (bq_field_container, bq_uni_container, bq_sci_container,
+-- bq_simk_container), поэтому порядок ни на что не влияет. Но если однажды
+-- появится суффикс, который является окончанием другого (например
+-- bq_container), то при переборе в порядке таблицы короткий совпал бы первым и
+-- артефакт определился бы неверно. Сортировка по длине убирает эту мину.
+local COMBO_SUFFIXES = {}
+for _, item in ipairs(CONTAINERS) do
+    COMBO_SUFFIXES[#COMBO_SUFFIXES + 1] = item
+end
+table.sort(COMBO_SUFFIXES, function(a, b) return #a.combo > #b.combo end)
+
 local function split_combo(combo_section)
     if not combo_section then return nil, nil end
-    for _, item in ipairs(CONTAINERS) do
+    for _, item in ipairs(COMBO_SUFFIXES) do
         local marker = "_" .. item.combo
         local n = string.len(marker)
         if string.len(combo_section) > n

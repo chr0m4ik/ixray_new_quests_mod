@@ -924,6 +924,28 @@ console.log('== 11. Кость частиц (регресс на вылет) =='
             ok(`модель без костей: ${vis.split('\\').pop()} (particles_bones это учитывает)`);
         }
     }
+
+    // Модель комбо обязана совпадать с моделью СВОЕГО контейнера. Раньше все
+    // комбо наследовали visual от артефакта-родителя и выглядели как артефакт
+    // Глаз - заказчик это увидел в игре.
+    //
+    // ИСКЛЮЧЕНИЕ - СИМК: у него ПУСТОЙ показывается открытым, а заполненный
+    // закрытым, то есть модели РАЗНЫЕ по замыслу. Проверка для него сделана
+    // выше (пустой открыт, комбо закрыты).
+    for (const spec of TESTED_ARTEFACTS) {
+        for (const c of CONTAINERS) {
+            if (c.total) continue;
+            const comboName = spec.combos[c.section];
+            if (!comboName) continue;
+            const comboVis = resolve(comboName).get('visual');
+            const emptyVis = resolve(c.section).get('visual');
+            if (comboVis !== emptyVis) {
+                err(`[${comboName}] visual='${comboVis}', а у контейнера [${c.section}] ` +
+                    `'${emptyVis}' - заполненный должен выглядеть как контейнер, а не как артефакт`);
+            }
+        }
+    }
+    ok('модели комбо совпадают с моделями своих контейнеров (кроме СИМК)');
 }
 
 if (errors === 0) {

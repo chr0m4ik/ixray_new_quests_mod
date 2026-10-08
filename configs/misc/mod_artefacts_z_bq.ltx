@@ -1,4 +1,4 @@
-; ============================================================================
+﻿; ============================================================================
 ; Artefact containers - sections for configs\misc\artefacts.ltx
 ;
 ; HOW THIS FILE IS LOADED (checked against the engine sources):
@@ -350,6 +350,10 @@ fire_wound_immunity         = 0
 ; "slows bleeding" effect, and the combos inherit it.
 ; ---------------------------------------------------------------------------
 [af_eye_bq_field_container]:af_eye, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\aac.ogf
 description                 = bq_eye_field_descr
 inv_name                    = bq_eye_field_name
 inv_name_short              = bq_eye_field_name
@@ -365,6 +369,10 @@ use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
 
 [af_eye_bq_uni_container]:af_eye, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\iam.ogf
 description                 = bq_eye_uni_descr
 inv_name                    = bq_eye_uni_name
 inv_name_short              = bq_eye_uni_name
@@ -380,6 +388,10 @@ use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
 
 [af_eye_bq_sci_container]:af_eye, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\aam.ogf
 description                 = bq_eye_sci_descr
 inv_name                    = bq_eye_sci_name
 inv_name_short              = bq_eye_sci_name
@@ -403,6 +415,10 @@ use1_functor                = bq_containers.take_artifact
 ; burn 0.02. Radiation rule: +1 + min(-4, +1) = 0 for every container.
 ; ---------------------------------------------------------------------------
 [af_cristall_bq_field_container]:af_cristall, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\aac.ogf
 description                 = bq_cristall_field_descr
 inv_name                    = bq_cristall_field_name
 inv_name_short              = bq_cristall_field_name
@@ -418,6 +434,10 @@ use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
 
 [af_cristall_bq_uni_container]:af_cristall, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\iam.ogf
 description                 = bq_cristall_uni_descr
 inv_name                    = bq_cristall_uni_name
 inv_name_short              = bq_cristall_uni_name
@@ -433,6 +453,10 @@ use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
 
 [af_cristall_bq_sci_container]:af_cristall, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\aam.ogf
 description                 = bq_cristall_sci_descr
 inv_name                    = bq_cristall_sci_name
 inv_name_short              = bq_cristall_sci_name
@@ -448,6 +472,10 @@ use1_text                   = bq_take_artifact
 use1_functor                = bq_containers.take_artifact
 
 [af_fireball_bq_field_container]:af_fireball, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\aac.ogf
 description                  = bq_fireball_field_descr
 inv_name                     = bq_fireball_field_name
 inv_name_short               = bq_fireball_field_name
@@ -463,6 +491,10 @@ use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
 [af_fireball_bq_uni_container]:af_fireball, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\iam.ogf
 description                  = bq_fireball_uni_descr
 inv_name                     = bq_fireball_uni_name
 inv_name_short               = bq_fireball_uni_name
@@ -478,6 +510,10 @@ use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
 [af_fireball_bq_sci_container]:af_fireball, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\aam.ogf
 description                  = bq_fireball_sci_descr
 inv_name                     = bq_fireball_sci_name
 inv_name_short               = bq_fireball_sci_name
@@ -494,6 +530,10 @@ use1_functor                 = bq_containers.take_artifact
 
 
 [af_compass_bq_field_container]:af_compass, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\aac.ogf
 description                  = bq_compass_field_descr
 inv_name                     = bq_compass_field_name
 inv_name_short               = bq_compass_field_name
@@ -509,6 +549,10 @@ use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
 [af_compass_bq_uni_container]:af_compass, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\iam.ogf
 description                  = bq_compass_uni_descr
 inv_name                     = bq_compass_uni_name
 inv_name_short               = bq_compass_uni_name
@@ -524,6 +568,10 @@ use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
 [af_compass_bq_sci_container]:af_compass, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\aam.ogf
 description                  = bq_compass_sci_descr
 inv_name                     = bq_compass_sci_name
 inv_name_short               = bq_compass_sci_name
@@ -539,6 +587,10 @@ use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
 [af_ice_bq_field_container]:af_ice, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\aac.ogf
 description                  = bq_ice_field_descr
 inv_name                     = bq_ice_field_name
 inv_name_short               = bq_ice_field_name
@@ -554,6 +606,10 @@ use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
 [af_ice_bq_uni_container]:af_ice, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\iam.ogf
 description                  = bq_ice_uni_descr
 inv_name                     = bq_ice_uni_name
 inv_name_short               = bq_ice_uni_name
@@ -569,6 +625,10 @@ use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
 
 [af_ice_bq_sci_container]:af_ice, bq_container_base
+; Модель контейнера. Задаём ЯВНО: без этой строки комбо наследует
+; visual от артефакта (bq_container_base идёт вторым родителем, но
+; visual у него свой - и до появления моделей это была заглушка af_eye).
+visual                      = dynamics\equipments\aa\aam.ogf
 description                  = bq_ice_sci_descr
 inv_name                     = bq_ice_sci_name
 inv_name_short               = bq_ice_sci_name
