@@ -43,10 +43,19 @@ const ARTEFACT_NAMES = {
     af_fireball: 'Огненный шар',
 };
 
+// Поглощение контейнера и его особенности.
+//   absorb - сколько радиации снимает (в единицах конфига);
+//   belt   - можно ли надеть комбо на пояс. У СИМК false: заказчик решил, что
+//            этот контейнер носится только в рюкзаке;
+//   total  - поглощает ВСЮ радиацию артефакта, сколько бы её ни было. Для нашей
+//            механики это radiation_restore_speed = 0 у комбо (она игнорирует
+//            отрицательные значения), а absorb здесь нужен только для текста.
 const CONTAINERS = [
-    { section: 'bq_field_container', absorb: 0.004, cellX: 0, ru: 'полевом', en: 'a field' },
-    { section: 'bq_uni_container', absorb: 0.008, cellX: 1, ru: 'универсальном', en: 'a universal' },
-    { section: 'bq_sci_container', absorb: 0.014, cellX: 2, ru: 'научном', en: 'a scientific' },
+    { section: 'bq_field_container', absorb: 0.004, cellX: 0, belt: true,  ru: 'полевом', en: 'a field' },
+    { section: 'bq_uni_container',   absorb: 0.008, cellX: 1, belt: true,  ru: 'универсальном', en: 'a universal' },
+    { section: 'bq_sci_container',   absorb: 0.014, cellX: 2, belt: true,  ru: 'научном', en: 'a scientific' },
+    { section: 'bq_simk_container',  absorb: 0,     cellX: 3, belt: false, total: true,
+      ru: 'контейнере СИМК', en: 'a SIMK container' },
 ];
 
 const argv = process.argv.slice(2);
@@ -102,19 +111,20 @@ for (const art of artefacts) {
 
     for (const c of CONTAINERS) {
         const combo = `${art}_${c.section}`;
-        const rad = Math.max(0, +(artRad - c.absorb).toFixed(6));
+        // total (СИМК) => радиация комбо ровно 0: поглощается всё.
+        const rad = c.total ? 0 : Math.max(0, +(artRad - c.absorb).toFixed(6));
         const short = `${art.replace(/^af_/, '')}_${c.section.replace('bq_', '').replace('_container', '')}`;
 
         if (modText.includes(`[${combo}]`)) {
             skipped++;
             console.log(`  есть:  [${combo}] - не трогаю`);
         } else {
-            newSections.push([
+            const section = [
                 `[${combo}]:${art}, bq_container_base`,
                 `${pad('description')} = bq_${short}_descr`,
                 `${pad('inv_name')} = bq_${short}_name`,
                 `${pad('inv_name_short')} = bq_${short}_name`,
-                `${pad('belt')} = true`,
+                `${pad('belt')} = ${c.belt ? 'true' : 'false'}`,
                 `${pad('can_trade')} = false`,
                 `${pad('icons_texture')} = ui\\ui_bq_field_container`,
                 `${pad('inv_grid_width')} = 1`,
@@ -122,21 +132,40 @@ for (const art of artefacts) {
                 `${pad('inv_grid_x')} = ${c.cellX}`,
                 `${pad('inv_grid_y')} = 0`,
                 `${pad('radiation_restore_speed')} = ${rad}`,
+            ];
+            // СИМК: своя нейтральная таблица защит (у артефакта её взять нельзя -
+            // комбо на пояс не надевается, а в рюкзаке защита не работает).
+            if (c.total) section.push(`${pad('hit_absorbation_sect')} = bq_simk_container_absorbation`);
+            section.push(
                 `${pad('use1_text')} = bq_take_artifact`,
                 `${pad('use1_functor')} = bq_containers.take_artifact`,
                 '',
-            ].join('\n'));
-            console.log(`  новая: [${combo}] радиация ${rad} = max(0, ${artRad} - ${c.absorb})`);
+            );
+            newSections.push(section.join('\n'));
+            console.log(`  новая: [${combo}] радиация ${rad}, belt=${c.belt}` +
+                (c.total ? ' (поглощает всё)' : ` = max(0, ${artRad} - ${c.absorb})`));
         }
 
         addLoc('rus', `bq_${short}_name`, `${artName} в ${c.ru} контейнере`);
         addLoc('eng', `bq_${short}_name`, `${artName} in ${c.en} container`);
-        addLoc('rus', `bq_${short}_descr`,
-            `Артефакт «${artName}» в ${c.ru} контейнере. Контейнер поглощает ` +
-            `${Math.round(c.absorb * 1000)} единиц радиации артефакта.`);
-        addLoc('eng', `bq_${short}_descr`,
-            `The "${artName}" artefact inside ${c.en} container. The container absorbs ` +
-            `${Math.round(c.absorb * 1000)} units of the artefact radiation.`);
+        if (c.total) {
+            // Для СИМК текст другой: он поглощает всё и на пояс не надевается.
+            // Эти строки в файле уже есть (добавлены вручную) - addLoc их не
+            // тронет, но при генерации для НОВОГО артефакта текст будет верным.
+            addLoc('rus', `bq_${short}_descr`,
+                `Артефакт «${artName}» в контейнере СИМК. Контейнер поглощает ` +
+                `всю радиацию артефакта, поэтому фона нет. На пояс не надевается.`);
+            addLoc('eng', `bq_${short}_descr`,
+                `The "${artName}" artefact inside a SIMK container. The container absorbs ` +
+                `all of the artefact radiation, so there is no background. Cannot be worn on the belt.`);
+        } else {
+            addLoc('rus', `bq_${short}_descr`,
+                `Артефакт «${artName}» в ${c.ru} контейнере. Контейнер поглощает ` +
+                `${Math.round(c.absorb * 1000)} единиц радиации артефакта.`);
+            addLoc('eng', `bq_${short}_descr`,
+                `The "${artName}" artefact inside ${c.en} container. The container absorbs ` +
+                `${Math.round(c.absorb * 1000)} units of the artefact radiation.`);
+        }
     }
 
     tableRows.push({ artefact: art, radiation: artRad, bleeding: artBleed });

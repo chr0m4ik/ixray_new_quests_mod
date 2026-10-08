@@ -70,6 +70,13 @@ const CONTAINERS = [
     { short: 'sci', name: 'научный' },
 ];
 
+// СИМК стоит ОСОБНЯКОМ: он не влезает четвёртым столбцом (атлас 256 px = 5
+// ячеек по 50), а расширять атлас нельзя - от его размеров считаются
+// UV-координаты (x / ширина), и сдвиг сломал бы иконки в существующих сейвах.
+// Поэтому пустой СИМК занимает ячейку (0,6), а все его комбо - строку 7,
+// по одному артефакту на столбец. Артефакты занимают строки 1-5.
+const SIMK = { short: 'simk', cellX: 0, cellY: 6, comboY: 7, maxComboX: ATLAS_W / CELL - 1 };
+
 const CHECK_ONLY = process.argv.includes('--check');
 
 // ---------------------------------------------------------------- утилиты ---
@@ -245,6 +252,25 @@ for (let row = 0; row < ARTIFACTS.length; row++) {
     }
 }
 
+// 3b. СИМК: пустой контейнер отдельной ячейкой и все его комбо отдельной
+// строкой. Пустая ячейка СИМК - та же картинка, что у полевого контейнера
+// (заглушка до пункта 2 плана, когда сделаем свою текстуру).
+{
+    const emptySimk = new Uint8Array(containerIcons[0]);       // копия полевого
+    blit(atlas, ATLAS_W, emptySimk, CELL, CELL, SIMK.cellX * CELL, SIMK.cellY * CELL);
+
+    if (ARTIFACTS.length > SIMK.maxComboX + 1) {
+        console.error(`FAIL: комбо СИМК не влезают в строку ${SIMK.comboY}: ` +
+            `артефактов ${ARTIFACTS.length}, столбцов ${SIMK.maxComboX + 1}`);
+        process.exit(1);
+    }
+    for (let row = 0; row < ARTIFACTS.length; row++) {
+        const cellImg = new Uint8Array(containerIcons[0]);      // копия полевого
+        blit(cellImg, CELL, artIcons[row], ART, ART, OFFSET, OFFSET);
+        blit(atlas, ATLAS_W, cellImg, CELL, CELL, row * CELL, SIMK.comboY * CELL);
+    }
+}
+
 // 4. запись атласа
 const dds = encodeDXT5(atlas, ATLAS_W, ATLAS_H);
 console.log(`\nАтлас: ${ATLAS_W}x${ATLAS_H}, ${(dds.length / 1024).toFixed(1)} КБ, ` +
@@ -264,14 +290,19 @@ if (!CHECK_ONLY) {
     console.log(`Предпросмотр (x3): ${pngPath}`);
 }
 
-// 5. сетка комбо: x = столбец контейнера, y = строка артефакта (+1)
+// 5. сетка комбо: x = столбец контейнера, y = строка артефакта (+1).
+//    СИМК - исключение: его комбо лежат в своей строке (SIMK.comboY), по
+//    столбцу на артефакт, а пустой контейнер - в ячейке (SIMK.cellX, SIMK.cellY).
 const combosGrid = {};
 for (let row = 0; row < ARTIFACTS.length; row++) {
     for (let col = 0; col < CONTAINERS.length; col++) {
         combosGrid[`${ARTIFACTS[row]}_bq_${CONTAINERS[col].short}_container`] =
             { x: col, y: row + 1 };
     }
+    combosGrid[`${ARTIFACTS[row]}_bq_${SIMK.short}_container`] =
+        { x: row, y: SIMK.comboY };
 }
+combosGrid[`bq_${SIMK.short}_container`] = { x: SIMK.cellX, y: SIMK.cellY };
 const changed = writeComboGrids(combosGrid);
 console.log(`Секций комбо обновлено: ${changed}` + (CHECK_ONLY ? ' (режим проверки, файлы не менялись)' : ''));
 

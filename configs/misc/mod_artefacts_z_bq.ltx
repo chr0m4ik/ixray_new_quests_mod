@@ -1,4 +1,4 @@
-; ============================================================================
+﻿; ============================================================================
 ; Artefact containers - sections for configs\misc\artefacts.ltx
 ;
 ; HOW THIS FILE IS LOADED (checked against the engine sources):
@@ -196,6 +196,70 @@ inv_grid_x                  = 2
 inv_grid_y                  = 0
 
 [bq_sci_container_absorbation]
+burn_immunity               = 0
+strike_immunity             = 0
+shock_immunity              = 0
+wound_immunity              = 0
+radiation_immunity          = 0
+telepatic_immunity          = 0
+chemical_burn_immunity      = 0
+explosion_immunity          = 0
+fire_wound_immunity         = 0
+
+; ---------------------------------------------------------------------------
+; SIMK CONTAINER - holds ONE artefact and absorbs ALL of its radiation.
+;
+; Two things make it different from the other three containers:
+;
+; 1. IT CANNOT BE WORN ON THE BELT. Two separate places say so:
+;      * the container itself:  belt = false (cannot be put on the belt at all);
+;      * the combo:             belt = false as well (unlike the other combos,
+;                               which are belt = true).
+;    The engine gate is CInventory::CanPutInBelt (Inventory.cpp:1295-1303):
+;        if (!pIItem || !pIItem->Belt()) return false;
+;    and the flag comes straight from the section
+;    (inventory_item.cpp:170: r_bool, section, "belt", FALSE).
+;    So the combo physically cannot be equipped - no script needed.
+;
+; 2. IT ABSORBS EVERYTHING. Our backpack radiation mechanic IGNORES negative
+;    radiation_restore_speed values, so "absorb everything" is expressed as
+;    radiation_restore_speed = 0 on the combo: whatever the artefact emits, the
+;    combo contributes exactly zero to the backpack dose.
+;
+; radiation_restore_speed of the EMPTY container is also 0 (not a negative
+; "absorption" number like the other containers). That is deliberate: a negative
+; value would make an empty SIMK in the backpack REDUCE the actor's radiation
+; (the mechanic counts negative contributions only if we allowed them, and the
+; value would also show up in the tooltip as healing). The container is neutral
+; by itself and only cancels the radiation of the artefact inside it.
+;
+; Weight 3 kg and cost 13000: it is a portable container, not a premium one.
+; ---------------------------------------------------------------------------
+[bq_simk_container]:bq_container_base
+visual                      = dynamics\artefacts\af_eye.ogf
+description                 = bq_simk_container_descr
+inv_name                    = bq_simk_container_name
+inv_name_short              = bq_simk_container_name
+cost                        = 13000
+icons_texture               = ui\ui_bq_field_container
+; Свой фон нулевой: контейнер нейтрален, он только снимает излучение того
+; артефакта, который в нём лежит.
+radiation_restore_speed     = 0
+hit_absorbation_sect        = bq_simk_container_absorbation
+belt                        = false
+additional_inventory_weight = 0
+health_restore_speed        = 0
+satiety_restore_speed       = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+inv_grid_width              = 1
+inv_grid_height             = 1
+; Ячейка атласа (3,0) - четвёртый столбец верхнего ряда, там пока заглушка.
+; Свою текстуру и звук сделаем отдельными пунктами плана.
+inv_grid_x                  = 0
+inv_grid_y                  = 6
+
+[bq_simk_container_absorbation]
 burn_immunity               = 0
 strike_immunity             = 0
 shock_immunity              = 0
@@ -458,6 +522,102 @@ inv_grid_y                   = 4
 radiation_restore_speed      = 0
 use1_text                    = bq_take_artifact
 use1_functor                 = bq_containers.take_artifact
+
+; ---------------------------------------------------------------------------
+; SIMK combo: artefact inside the SIMK container.
+;
+; belt = FALSE is the whole point: unlike every other combo, this one must NOT
+; be wearable on the belt (CInventory::CanPutInBelt, Inventory.cpp:1295-1303
+; checks the Belt flag, which comes from this key - inventory_item.cpp:170).
+;
+; radiation_restore_speed = 0 means "absorbs everything": the backpack mechanic
+; ignores negative values, so zero contribution is exactly full absorption,
+; whatever the artefact emits.
+;
+; Protection comes from the SIMK's own neutral table, not from the artefact:
+; the artefact's protection is belt-only and this item can never reach the belt.
+; Cell (3,1) in the atlas - the first row of filled combos, fourth column.
+; ---------------------------------------------------------------------------
+[af_eye_bq_simk_container]:af_eye, bq_container_base
+description                 = bq_eye_simk_descr
+inv_name                    = bq_eye_simk_name
+inv_name_short              = bq_eye_simk_name
+belt                        = false
+can_trade                   = false
+icons_texture               = ui\ui_bq_field_container
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 7
+radiation_restore_speed     = 0
+hit_absorbation_sect        = bq_simk_container_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+[af_ice_bq_simk_container]:af_ice, bq_container_base
+description                  = bq_ice_simk_descr
+inv_name                     = bq_ice_simk_name
+inv_name_short               = bq_ice_simk_name
+belt                         = false
+can_trade                    = false
+icons_texture                = ui\ui_bq_field_container
+inv_grid_width               = 1
+inv_grid_height              = 1
+inv_grid_x                  = 3
+inv_grid_y                  = 7
+radiation_restore_speed      = 0
+hit_absorbation_sect         = bq_simk_container_absorbation
+use1_text                    = bq_take_artifact
+use1_functor                 = bq_containers.take_artifact
+
+[af_cristall_bq_simk_container]:af_cristall, bq_container_base
+description                  = bq_cristall_simk_descr
+inv_name                     = bq_cristall_simk_name
+inv_name_short               = bq_cristall_simk_name
+belt                         = false
+can_trade                    = false
+icons_texture                = ui\ui_bq_field_container
+inv_grid_width               = 1
+inv_grid_height              = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 7
+radiation_restore_speed      = 0
+hit_absorbation_sect         = bq_simk_container_absorbation
+use1_text                    = bq_take_artifact
+use1_functor                 = bq_containers.take_artifact
+
+[af_compass_bq_simk_container]:af_compass, bq_container_base
+description                  = bq_compass_simk_descr
+inv_name                     = bq_compass_simk_name
+inv_name_short               = bq_compass_simk_name
+belt                         = false
+can_trade                    = false
+icons_texture                = ui\ui_bq_field_container
+inv_grid_width               = 1
+inv_grid_height              = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 7
+radiation_restore_speed      = 0
+hit_absorbation_sect         = bq_simk_container_absorbation
+use1_text                    = bq_take_artifact
+use1_functor                 = bq_containers.take_artifact
+
+[af_fireball_bq_simk_container]:af_fireball, bq_container_base
+description                  = bq_fireball_simk_descr
+inv_name                     = bq_fireball_simk_name
+inv_name_short               = bq_fireball_simk_name
+belt                         = false
+can_trade                    = false
+icons_texture                = ui\ui_bq_field_container
+inv_grid_width               = 1
+inv_grid_height              = 1
+inv_grid_x                  = 4
+inv_grid_y                  = 7
+radiation_restore_speed      = 0
+hit_absorbation_sect         = bq_simk_container_absorbation
+use1_text                    = bq_take_artifact
+use1_functor                 = bq_containers.take_artifact
+
 
 ; ===========================================================================
 ; ARTEFACT STATS (by rarity tier list). Only ASCII comments here!

@@ -34,6 +34,19 @@ local CONTAINERS = {
     { section = "bq_field_container", combo = "bq_field_container" },
     { section = "bq_uni_container",   combo = "bq_uni_container" },
     { section = "bq_sci_container",   combo = "bq_sci_container" },
+    -- СИМК: вмещает ОДИН артефакт и поглощает ВСЮ его радиацию. Два отличия от
+    -- остальных, и оба живут в конфиге, а не здесь:
+    --   * комбо имеет belt = false, поэтому его нельзя надеть на пояс
+    --     (движок проверяет флаг Belt: Inventory.cpp:1295-1303);
+    --   * у комбо radiation_restore_speed = 0, что для нашей механики рюкзака
+    --     и означает "поглощает всё" (отрицательные значения игнорируются).
+    { section = "bq_simk_container",  combo = "bq_simk_container" },
+}
+
+-- Секции контейнеров, в которые можно класть ТОЛЬКО "чистые" артефакты
+-- (комбо-предметы и другие контейнеры не принимаются - решение заказчика).
+local CLEAN_ARTIFACT_ONLY = {
+    bq_simk_container = true,
 }
 
 -- Секция контейнера -> звук вложения (файлы берутся на этапе звуков).
@@ -41,6 +54,9 @@ local SOUND_BY_CONTAINER = {
     bq_field_container = "interface\\inv_iam_open",
     bq_uni_container   = "interface\\inv_aac_open",
     bq_sci_container   = "interface\\inv_aam_open",
+    -- СИМК пока использует звук научного контейнера; свой звук - отдельный
+    -- пункт плана (шаг 2).
+    bq_simk_container  = "interface\\inv_aam_open",
 }
 
 local LOG_FILE = "bq_containers.log"
@@ -130,6 +146,36 @@ end
 local function owned_by_actor(object)
     -- db.actor.id — функция, а не число, поэтому именно :id().
     return object ~= nil and object.parent_id == db.actor:id()
+end
+
+-- Проверяет, что в контейнер кладут ГОЛЫЙ артефакт, а не комбо-предмет или
+-- другой контейнер. Нужно для СИМК (CLEAN_ARTIFACT_ONLY): заказчик решил, что
+-- в него можно поместить только "чистый" артефакт.
+--
+-- Как отличить: комбо-предметы носят на себе признак "достать артефакт" -
+-- use1_functor = bq_containers.take_artifact. Он есть у всех комбо и нет ни у
+-- одного обычного артефакта. Плюс отсекаем сами контейнеры по таблице.
+--
+-- ВАЖНО: сначала section_exist/line_exist, и только потом чтение ключа.
+-- Чтение несуществующего ключа даёт Debug.fatal и роняет игру (проверено
+-- вылетом 08.10.2026: "Can't find variable ... in [device_pda]").
+local function is_clean_artifact(section)
+    if not section then return false end
+    local ini = system_ini()
+    if not ini:section_exist(section) then return false end
+
+    -- сам контейнер вложить нельзя
+    for _, item in ipairs(CONTAINERS) do
+        if item.section == section then return false end
+    end
+
+    -- комбо-предмет (артефакт уже в контейнере) вложить нельзя
+    if ini:line_exist(section, "use1_functor")
+        and ini:r_string(section, "use1_functor") == "bq_containers.take_artifact" then
+        return false
+    end
+
+    return true
 end
 
 local function actor_vertices()
@@ -271,6 +317,15 @@ function on_item_dropped(first, second)
     if not container then return true end          -- цель не контейнер
 
     local artifact = first:section()
+
+    -- СИМК принимает только "чистый" артефакт: ни комбо-предмет, ни другой
+    -- контейнер. Остальные контейнеры работают как раньше.
+    if CLEAN_ARTIFACT_ONLY[container] and not is_clean_artifact(artifact) then
+        dbg("вложение в '" .. tostring(container) .. "' отклонено: '"
+            .. tostring(artifact) .. "' не чистый артефакт (комбо или контейнер)")
+        return true
+    end
+
     local combo = combo_section_of(artifact, container)
     if not combo then
         dbg("вложение: нет комбо-секции для '" .. tostring(artifact)

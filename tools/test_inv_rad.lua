@@ -37,9 +37,20 @@ local CONFIG = {
     ["af_eye_bq_field_container"] = 0.002,
     bq_field_container = -0.004,      -- контейнер: отрицательное -> игнор
     device_pda = nil,                 -- существует, но ключа radiation нет
+    -- СИМК: комбо поглощает ВСЮ радиацию артефакта, поэтому у него ровно 0.
+    -- Эти секции добавлены специально для проверки 10, чтобы отличить "ноль из
+    -- конфига" от "ноль, потому что секция не нашлась".
+    bq_simk_container = 0,
+    ["af_eye_bq_simk_container"] = 0,
 }
--- Секции, которые есть, но БЕЗ ключа radiation_restore_speed.
+-- Секции, которых в этом макете НЕТ: обращение к ним должно быть видно.
 local SECTIONS_WITHOUT_KEY = { device_pda = true }
+
+-- Фиксатор обращений к секциям, которых нет в макете. Нужен, чтобы проверка
+-- СИМК была честной: если бы af_eye_bq_simk_container не существовала, то
+-- "доза = 0" получилась бы из-за ошибки конфига, а не из-за поглощения.
+-- Такой тест ничего не доказывает, поэтому такие обращения запоминаем и валим.
+local unknown_sections = {}
 
 -- Фиксатор небезопасных чтений. В движке r_float на отсутствующий ключ зовёт
 -- Debug.fatal, то есть МГНОВЕННО завершает игру, и pcall это НЕ ловит. В тесте
@@ -52,7 +63,11 @@ local unsafe_reads = {}
 function system_ini()
     return {
         section_exist = function(self, section)
-            return CONFIG[section] ~= nil or SECTIONS_WITHOUT_KEY[section] == true
+            local known = CONFIG[section] ~= nil or SECTIONS_WITHOUT_KEY[section] == true
+            if not known then
+                unknown_sections[#unknown_sections + 1] = tostring(section)
+            end
+            return known
         end,
         line_exist = function(self, section, key)
             if not (CONFIG[section] ~= nil or SECTIONS_WITHOUT_KEY[section]) then
@@ -382,13 +397,15 @@ end
 ----------------------------------------------------------------------------
 -- 8) Проверка ПОДКЛЮЧЕНИЯ механики (без неё скрипт в игре не заработает)
 ----------------------------------------------------------------------------
-do
-    local function read_file(path)
-        local f = io.open(path, "r")
-        if not f then return nil end
-        local s = f:read("*a"); f:close(); return s
-    end
+-- Читает файл целиком. Вынесено на уровень файла: используется и в блоке 8,
+-- и в блоке 10 (проверка подключения СИМК).
+local function read_file(path)
+    local f = io.open(path, "r")
+    if not f then return nil end
+    local s = f:read("*a"); f:close(); return s
+end
 
+do
     -- a) секция турера есть в конфиге и её родитель - space_restrictor
     local cfg = read_file(ADDON .. "/configs/misc/mod_artefacts_z_bq.ltx") or ""
     local header = cfg:match("%[bq_rad_tuner%]:([%w_]+)")
@@ -473,6 +490,79 @@ do
     local ok_calc = math.abs(got - 0.006) < 0.001 and st.cycles >= 1
     say(string.format("9b) расчёт работает со старой таблицей: получено %.4f, cycles=%s -> %s",
         got, tostring(st.cycles), ok_calc and "OK" or "ОШИБКА"))
+end
+
+----------------------------------------------------------------------------
+-- 10) СИМК: поглощает ВСЮ радиацию артефакта.
+--     Комбо СИМК имеет radiation_restore_speed = 0, поэтому артефакт внутри
+--     не даёт фона вообще. Проверяем арифметику и, отдельно, само подключение
+--     контейнера (секция в конфиге, таблица в скрипте, запрет пояса).
+----------------------------------------------------------------------------
+do
+    -- a) артефакт В СИМК не даёт фона
+    reset()
+    unknown_sections = {}
+    db.actor = mk_actor({ mk_item("af_eye_bq_simk_container", false) })
+    load_script()
+    local b = make_binder()
+    tick(b, 1)
+    local before = rad_delta_total
+    NOW = NOW + 1000
+    tick(b, 1)
+    local got = rad_delta_total - before
+    -- Секция обязана существовать: иначе ноль получился бы из-за ошибки, а не
+    -- из-за поглощения (см. фиксатор unknown_sections).
+    local known = #unknown_sections == 0
+    say(string.format("10a) артефакт в СИМК: доза %.6f (ожидалось 0) -> %s",
+        got, (got == 0 and known) and "OK"
+            or ("ОШИБКА" .. (known and "" or (": неизвестные секции " ..
+                table.concat(unknown_sections, ", "))))))
+
+    -- b) для сравнения: тот же артефакт в поле даёт фон (af_eye 0.006, поле 0.004 -> 0.002)
+    reset()
+    db.actor = mk_actor({ mk_item("af_eye_bq_field_container", false) })
+    load_script()
+    local b2 = make_binder()
+    tick(b2, 1)
+    local before2 = rad_delta_total
+    NOW = NOW + 1000
+    tick(b2, 1)
+    local got2 = rad_delta_total - before2
+    say(string.format("10b) для сравнения, тот же артефакт в поле: доза %.6f (должна быть > 0) -> %s",
+        got2, (got2 > 0) and "OK" or "ОШИБКА: полевой контейнер не фонит"))
+
+    -- c) подключение контейнера: секция в конфиге + таблица в скрипте
+    local cfg = read_file(ADDON .. "/configs/misc/mod_artefacts_z_bq.ltx") or ""
+    local script = read_file(ADDON .. "/scripts/bq_containers.script") or ""
+
+    local has_empty = cfg:find("%[bq_simk_container%]") ~= nil
+    local has_combo = cfg:find("%[af_eye_bq_simk_container%]") ~= nil
+    local has_absorb = cfg:find("%[bq_simk_container_absorbation%]") ~= nil
+    say(string.format("10c) секции СИМК в конфиге (пустой, комбо, защиты) -> %s",
+        (has_empty and has_combo and has_absorb) and "OK"
+            or ("ОШИБКА: " .. tostring(has_empty) .. "/" .. tostring(has_combo)
+                .. "/" .. tostring(has_absorb))))
+
+    local in_script = script:find("bq_simk_container") ~= nil
+    local clean_only = script:find("CLEAN_ARTIFACT_ONLY") ~= nil
+        and script:find("is_clean_artifact") ~= nil
+    say(string.format("10d) контейнер описан в скрипте -> %s", in_script and "OK" or "ОШИБКА"))
+    say(string.format("10e) есть правило 'только чистые артефакты' -> %s",
+        clean_only and "OK" or "ОШИБКА: нет CLEAN_ARTIFACT_ONLY/is_clean_artifact"))
+
+    -- f) belt = false у комбо: движок по этому ключу не пускает предмет на пояс
+    --    (CInventory::CanPutInBelt, Inventory.cpp:1295-1303)
+    local beltFalse = false
+    for block in cfg:gmatch("%[af_%w+_bq_simk_container%](.-)\n%[") do
+        if block:find("belt%s*=%s*false") then beltFalse = true end
+    end
+    -- последний блок в файле может не иметь следующего "[", проверим и так
+    if not beltFalse then
+        local tail = cfg:match("%[af_%w+_bq_simk_container%][^%[]*$")
+        if tail and tail:find("belt%s*=%s*false") then beltFalse = true end
+    end
+    say(string.format("10f) у комбо СИМК belt = false (нельзя на пояс) -> %s",
+        beltFalse and "OK" or "ОШИБКА: комбо СИМК должно быть belt = false"))
 end
 
 local f = io.open(TESTDIR .. "/test_inv_rad_out.txt", "w")

@@ -103,6 +103,9 @@ const CONTAINERS = [
     { section: 'bq_field_container', combo: 'af_eye_bq_field_container', absorb: 0.004 },
     { section: 'bq_uni_container', combo: 'af_eye_bq_uni_container', absorb: 0.008 },
     { section: 'bq_sci_container', combo: 'af_eye_bq_sci_container', absorb: 0.014 },
+    // СИМК: поглощает ВСЮ радиацию (комбо всегда 0) и НЕ надевается на пояс.
+    // absorb тут не используется - для него работает отдельная проверка ниже.
+    { section: 'bq_simk_container', combo: 'af_eye_bq_simk_container', absorb: 0, total: true, belt: false },
 ];
 
 // Артефакты, для которых есть комбо. `radiation` - ИТОГОВОЕ значение
@@ -121,6 +124,7 @@ const TESTED_ARTEFACTS = [
             bq_field_container: 'af_ice_bq_field_container',
             bq_uni_container:   'af_ice_bq_uni_container',
             bq_sci_container:   'af_ice_bq_sci_container',
+            bq_simk_container:  'af_ice_bq_simk_container',
         },
     },
     {
@@ -132,6 +136,7 @@ const TESTED_ARTEFACTS = [
             bq_field_container: 'af_eye_bq_field_container',
             bq_uni_container:   'af_eye_bq_uni_container',
             bq_sci_container:   'af_eye_bq_sci_container',
+            bq_simk_container:  'af_eye_bq_simk_container',
         },
     },
     {
@@ -143,6 +148,7 @@ const TESTED_ARTEFACTS = [
             bq_field_container: 'af_cristall_bq_field_container',
             bq_uni_container:   'af_cristall_bq_uni_container',
             bq_sci_container:   'af_cristall_bq_sci_container',
+            bq_simk_container:  'af_cristall_bq_simk_container',
         },
     },
     {
@@ -157,11 +163,13 @@ const TESTED_ARTEFACTS = [
             bq_field_container: 'af_compass_bq_field_container',
             bq_uni_container:   'af_compass_bq_uni_container',
             bq_sci_container:   'af_compass_bq_sci_container',
+            bq_simk_container:  'af_compass_bq_simk_container',
         },
     },
     {
         // Огненный шар. Радиация 0.002 - как у Глаза в оригинале, поэтому все
-        // три комбо дают 0 (контейнер поглощает больше, чем артефакт излучает).
+        // три обычных комбо дают 0 (контейнер поглощает больше, чем артефакт
+        // излучает), а СИМК даёт 0 всегда - он поглощает всё.
         artefact: 'af_fireball',
         radiation: 0.002,
         bleeding: 0,
@@ -170,6 +178,7 @@ const TESTED_ARTEFACTS = [
             bq_field_container: 'af_fireball_bq_field_container',
             bq_uni_container:   'af_fireball_bq_uni_container',
             bq_sci_container:   'af_fireball_bq_sci_container',
+            bq_simk_container:  'af_fireball_bq_simk_container',
         },
     },
 ];
@@ -329,27 +338,60 @@ for (const spec of TESTED_ARTEFACTS) {
         if (!own('radiation_restore_speed')) err(`[${combo}] radiation_restore_speed не задан явно`);
 
         // защита: таблица иммунитетов артефакта, заданная в проверке явно
-        // (а не выведенная из того же конфига - иначе проверка бессмысленна)
-        if (r.get('hit_absorbation_sect') !== spec.absorbation) {
+        // (а не выведенная из того же конфига - иначе проверка бессмысленна).
+        //
+        // ИСКЛЮЧЕНИЕ - СИМК (total): у него СВОЯ нейтральная таблица. Защита
+        // артефакта работает только на поясе, а СИМК на пояс не надевается
+        // (belt = false), поэтому наследовать её незачем.
+        if (c.total) {
+            if (r.get('hit_absorbation_sect') !== 'bq_simk_container_absorbation') {
+                err(`[${combo}] hit_absorbation_sect='${r.get('hit_absorbation_sect')}', ` +
+                    `ожидалось 'bq_simk_container_absorbation' (у СИМК своя нейтральная таблица)`);
+            } else ok(`[${combo}] защита: своя нейтральная таблица СИМК`);
+        } else if (r.get('hit_absorbation_sect') !== spec.absorbation) {
             err(`[${combo}] hit_absorbation_sect='${r.get('hit_absorbation_sect')}', ` +
                 `ожидалось '${spec.absorbation}'`);
         } else ok(`[${combo}] защита от артефакта (${spec.absorbation})`);
 
         // радиация: combo = artefact + min(-absorb, artefact), то есть
         // контейнер поглощает не больше, чем артефакт излучает (MEMO 13.2).
+        //
+        // ДЛЯ СИМК правило другое: он поглощает ВСЁ, поэтому радиация комбо
+        // равна 0 при любой радиации артефакта. Формулу к нему применять
+        // нельзя - его "поглощение" в конфиге равно 0 (контейнер нейтрален
+        // сам по себе), и формула вернула бы радиацию артефакта.
         const exact = +(artRad - c.absorb).toFixed(6);
-        const want = comboRadiation(artRad, c.absorb);
+        const want = c.total ? 0 : comboRadiation(artRad, c.absorb);
         const got = parseFloat(r.get('radiation_restore_speed'));
         if (Math.abs(want - got) > 0.0000005) {
             err(`[${combo}] radiation_restore_speed=${got}, ожидалось ${want} ` +
-                `(${artRad} + min(${-c.absorb}, ${artRad})` +
-                (exact < 0 ? `; без ограничения получилось бы ${exact}` : '') + ')');
+                (c.total
+                    ? '(СИМК: поглощает всю радиацию, всегда 0)'
+                    : `(${artRad} + min(${-c.absorb}, ${artRad})` +
+                      (exact < 0 ? `; без ограничения получилось бы ${exact}` : '') + ')'));
         } else {
-            ok(`[${combo}] radiation=${got} (артефакт ${artRad}, поглощение ${c.absorb})`);
+            ok(`[${combo}] radiation=${got} ` +
+                (c.total ? '(СИМК: поглощает всё)' : `(артефакт ${artRad}, поглощение ${c.absorb})`));
         }
 
-        // остальные статы должны приходить от артефакта, а не переписываться
+        // СИМК НЕЛЬЗЯ надеть на пояс - это его главное отличие. Движок решает по
+        // ключу belt (CInventory::CanPutInBelt, Inventory.cpp:1295-1303;
+        // флаг читается из секции в inventory_item.cpp:170).
+        if (c.total) {
+            const belt = r.get('belt');
+            if (belt !== 'false') {
+                err(`[${combo}] belt='${belt}', у СИМК должно быть false - ` +
+                    `иначе контейнер можно надеть на пояс, а он переносной`);
+            } else ok(`[${combo}] belt=false (на пояс не надевается)`);
+        }
+
+        // остальные статы должны приходить от артефакта, а не переписываться.
+        // ИСКЛЮЧЕНИЕ - СИМК: он задаёт СВОЮ таблицу защит (hit_absorbation_sect),
+        // потому что защита артефакта работает только на поясе, а СИМК на пояс
+        // не надевается. Проверка этого ключа для него делается выше.
+        const skipKeys = c.total ? new Set(['hit_absorbation_sect']) : new Set();
         for (const key of INHERITED_FROM_ARTEFACT) {
+            if (skipKeys.has(key)) continue;
             if (m.keys.has(key)) {
                 err(`[${combo}] переопределяет '${key}' — должен наследовать от артефакта`);
             }
@@ -361,6 +403,7 @@ for (const spec of TESTED_ARTEFACTS) {
         // перебивали статы артефакта. Так пропадало замедление кровотечения
         // (af_eye: bleeding_restore_speed = 0.004).
         for (const key of INHERITED_FROM_ARTEFACT) {
+            if (skipKeys.has(key)) continue;
             const want = artRes.get(key);
             const have = r.get(key);
             if (want !== have) {
@@ -380,7 +423,10 @@ for (const spec of TESTED_ARTEFACTS) {
         // последний родитель важнее, а bq_container_base задаёт belt = false
         // (он идёт вторым родителем) - без явного belt = true в комбо предмет
         // нельзя положить на пояс, и он не даёт никаких эффектов.
-        if (r.get('belt') !== 'true') {
+        //
+        // ИСКЛЮЧЕНИЕ - СИМК: ему на пояс НЕЛЬЗЯ, это его смысл (переносной
+        // контейнер). Проверка belt=false для него сделана выше.
+        if (!c.total && r.get('belt') !== 'true') {
             err(`[${combo}] belt = '${r.get('belt')}', нужно 'true': ` +
                 `bq_container_base идёт последним родителем и перебивает belt от артефакта`);
         }
@@ -482,10 +528,19 @@ if (!fs.existsSync(ATLAS_PATH)) {
             ok(`[${e.section}] атлас, ячейка (${gx},${gy}), пикселей ${opaque}/${total}`);
         }
     }
-    // Ожидаемая раскладка атласа: три непустые ячейки в верхнем ряду.
+    // Ожидаемая раскладка атласа. Три обычных контейнера занимают непустые
+    // ячейки верхнего ряда (0,0), (1,0), (2,0).
+    //
+    // СИМК в верхний ряд НЕ влезает: атлас 256 px = 5 ячеек по 50, а четвёртый
+    // столбец уже занят... точнее, расширять атлас нельзя - от его размеров
+    // считаются UV-координаты (x / ширина), и сдвиг сломал бы иконки в
+    // существующих сейвах. Поэтому SIMK размещён отдельной строкой: пустой в
+    // (0,6), комбо - в строке 7. Проверяем его там, а не в верхнем ряду.
     for (let i = 0; i < CONTAINERS.length; i++) {
+        const c = CONTAINERS[i];
+        if (c.total) continue;              // у СИМК своя ячейка, проверяем ниже
         const { opaque } = dds.countOpaqueInCell(decoded, i, 0, CELL);
-        if (opaque === 0) err(`верхний ряд атласа: ячейка (${i},0) пустая, а это контейнер ${CONTAINERS[i].section}`);
+        if (opaque === 0) err(`верхний ряд атласа: ячейка (${i},0) пустая, а это контейнер ${c.section}`);
     }
 
     // КЛЮЧЕВАЯ проверка: заполненный контейнер ОБЯЗАН ссылаться не на ту же

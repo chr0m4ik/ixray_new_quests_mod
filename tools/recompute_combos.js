@@ -21,7 +21,7 @@ const HQ = 'Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_IXRAY\\ixr_addons
 
 const dryRun = process.argv.includes('--dry-run');
 
-const CONTAINERS = ['bq_field_container', 'bq_uni_container', 'bq_sci_container'];
+const CONTAINERS = ['bq_field_container', 'bq_uni_container', 'bq_sci_container', 'bq_simk_container'];
 
 // Итоговые статы: ваниль -> моды сборки -> наш мод (последний выигрывает)
 const merged = loadAll([
@@ -32,14 +32,24 @@ const merged = loadAll([
 ]);
 const resolve = makeResolver(merged);
 
-// Поглощение контейнера = -radiation_restore_speed его пустой секции
+// Поглощение контейнера = -radiation_restore_speed его пустой секции.
+//
+// ИСКЛЮЧЕНИЕ - СИМК: у него radiation_restore_speed = 0 (контейнер нейтрален
+// сам по себе), но он поглощает ВСЮ радиацию артефакта. Если считать его
+// поглощение как -0 = 0, то формула max(0, радиация - 0) ВЕРНУЛА БЫ комбо
+// радиацию артефакта, то есть затёрла бы правильный ноль. Поэтому для СИМК
+// радиация комбо задаётся жёстко нулём и от конфига не зависит.
+const TOTAL_ABSORB = { bq_simk_container: true };
+
 const absorb = {};
 for (const c of CONTAINERS) {
     const r = resolve(c);
     const rad = parseFloat(r.get('radiation_restore_speed'));
     if (isNaN(rad)) { console.error(`FAIL: у [${c}] нет radiation_restore_speed`); process.exit(1); }
-    absorb[c] = -rad;
-    console.log(`[${c}] поглощает ${absorb[c]}`);
+    absorb[c] = TOTAL_ABSORB[c] ? 0 : -rad;
+    console.log(`[${c}] ` + (TOTAL_ABSORB[c]
+        ? 'поглощает ВСЮ радиацию (radiation_restore_speed комбо = 0)'
+        : `поглощает ${absorb[c]}`));
 }
 
 const text = fs.readFileSync(MOD_FILE).toString('latin1');
@@ -85,7 +95,12 @@ for (const sec of sections) {
                 artefact,
                 artRad,
                 container: c,
-                want: Math.max(0, +(artRad - absorb[c]).toFixed(6)),
+                // СИМК поглощает ВСЁ, поэтому у его комбо радиация всегда 0.
+                // Формулу max(0, артефакт - поглощение) к нему применять НЕЛЬЗЯ:
+                // его "поглощение" в конфиге равно 0 (контейнер нейтрален сам),
+                // и формула вернула бы радиацию артефакта.
+                want: TOTAL_ABSORB[c] ? 0 : Math.max(0, +(artRad - absorb[c]).toFixed(6)),
+                total: TOTAL_ABSORB[c] === true,
             };
             break;
         }
@@ -102,7 +117,9 @@ for (const sec of sections) {
         continue;
     }
     console.log(`  правка: [${sec.name}] ${have} -> ${combo.want} ` +
-        `(артефакт ${combo.artRad}, поглощение ${absorb[combo.container]})`);
+        (combo.total
+            ? '(СИМК: поглощает всю радиацию, всегда 0)'
+            : `(артефакт ${combo.artRad}, поглощение ${absorb[combo.container]})`));
     edits.push({ index: radKey.index, line: radKey.line.replace(/=.*$/, `= ${combo.want}`) });
     changed++;
 }
