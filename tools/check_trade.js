@@ -31,9 +31,12 @@ const err = (m) => { console.error('FAIL: ' + m); errors++; };
 const ok = (m) => console.log('  ok: ' + m);
 
 const CONTAINERS = {
-    bq_field_container: { cost: 15000, count: 2, prob: 0.5 },
-    bq_uni_container:   { cost: 25000, count: 2, prob: 0.2 },
-    bq_sci_container:   { cost: 40000, count: 2, prob: 0.05 },
+    bq_field_container: { cost: 20000, count: 2, prob: 0.5 },
+    bq_uni_container:   { cost: 32000, count: 2, prob: 0.2 },
+    bq_sci_container:   { cost: 45000, count: 2, prob: 0.05 },
+    // СИМК дешевле намеренно: его нельзя надеть на пояс (решение заказчика).
+    // Наличие: до 3 единиц, каждая с шансом 50%.
+    bq_simk_container:  { cost: 13000, count: 3, prob: 0.5 },
 };
 // Скидка торговца: цена = cost * condition_factor * action_factor * discount
 // (trade2.cpp:270-286). Для продажи игроком берётся ветка buy, то есть первый
