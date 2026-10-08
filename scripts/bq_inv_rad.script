@@ -83,10 +83,22 @@ end
 ----------------------------------------------------------------------------
 -- Таблица радиации по секциям.
 --
--- Кэш: section -> radiation_restore_speed. Читается из конфига через
--- system_ini(), а НЕ через item:get_artefact_radiation(): тот бросает
--- исключение на не-артефакте и требует живого объекта. Значение из конфига
--- безопасно и работает для любого предмета.
+-- Кэш: section -> radiation_restore_speed.
+--
+-- ВАЖНО (проверено вылетом 08.10.2026): читать ключ можно ТОЛЬКО после проверки
+-- line_exist. CScriptIniFile::r_float при отсутствии ключа делает VERIFY3
+-- ("Cannot find line", script_ini_file.cpp:80-108), а VERIFY3 в этой сборке
+-- приводит к Debug.fatal - то есть к МГНОВЕННОМУ завершению игры:
+--
+--   FATAL ERROR  CInifile::r_string  Xr_ini.cpp:612
+--   Arguments    : Can't find variable radiation_restore_speed in [device_pda]
+--
+-- pcall такой вылет НЕ ловит: это не Lua-ошибка, а фатальный выход движка.
+-- Поэтому порядок строго такой: section_exist -> line_exist -> r_float.
+--
+-- Берём значение из конфига, а НЕ через item:get_artefact_radiation(): тот
+-- бросает исключение на не-артефакте и требует живого объекта, а конфиг
+-- работает для любого предмета.
 ----------------------------------------------------------------------------
 local rad_cache = {}
 
@@ -97,7 +109,11 @@ local function section_radiation(section)
 
     local value = 0
     local ok, res = pcall(function()
-        return system_ini():r_float(section, "radiation_restore_speed")
+        local ini = system_ini()
+        -- section_exist и line_exist обязательны: без них r_float убьёт игру.
+        if not ini:section_exist(section) then return 0 end
+        if not ini:line_exist(section, "radiation_restore_speed") then return 0 end
+        return ini:r_float(section, "radiation_restore_speed")
     end)
     if ok and type(res) == "number" and res > 0 then
         value = res
