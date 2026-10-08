@@ -8,28 +8,28 @@
         <text>Field container (Firefly and Flame)</text>
     </string>
     <string id="bq_fire_field_descr">
-        <text>The "Firefly and Flame" artefact inside a field container. Properties: health +1.8, wound healing +3.6, stamina +1.4, radiation +4. The container absorbs all of the artefact radiation (4 units).</text>
+        <text>The "Firefly and Flame" artefact inside a field container. Properties: health +1.8, wound healing +3.6, stamina +1.4, radiation +9. The container absorbs 4 units of radiation, 5 remains.</text>
     </string>
 
     <string id="bq_fire_uni_name">
         <text>Universal container (Firefly and Flame)</text>
     </string>
     <string id="bq_fire_uni_descr">
-        <text>The "Firefly and Flame" artefact inside a universal container. Properties: health +1.8, wound healing +3.6, stamina +1.4, radiation +4. The container absorbs all of the artefact radiation (4 units).</text>
+        <text>The "Firefly and Flame" artefact inside a universal container. Properties: health +1.8, wound healing +3.6, stamina +1.4, radiation +9. The container absorbs 8 units of radiation, 1 remains.</text>
     </string>
 
     <string id="bq_fire_sci_name">
         <text>Scientific container (Firefly and Flame)</text>
     </string>
     <string id="bq_fire_sci_descr">
-        <text>The "Firefly and Flame" artefact inside a scientific container. Properties: health +1.8, wound healing +3.6, stamina +1.4, radiation +4. The container absorbs all of the artefact radiation (4 units).</text>
+        <text>The "Firefly and Flame" artefact inside a scientific container. Properties: health +1.8, wound healing +3.6, stamina +1.4, radiation +9. The container absorbs all of the artefact radiation (9 units).</text>
     </string>
 
     <string id="bq_fire_simk_name">
         <text>SIMK container (Firefly and Flame)</text>
     </string>
     <string id="bq_fire_simk_descr">
-        <text>The "Firefly and Flame" artefact inside a SIMK container. Properties: health +1.8, wound healing +3.6, stamina +1.4, radiation +4. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Firefly and Flame" artefact inside a SIMK container. Properties: health +1.8, wound healing +3.6, stamina +1.4, radiation +9. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_baloon_field_name">
@@ -64,196 +64,196 @@
         <text>Field container (Gravi)</text>
     </string>
     <string id="bq_gravi_field_descr">
-        <text>The "Gravi" artefact inside a field container. Properties: health +0.6, max weight +4 kg, radiation +3. The container absorbs all of the artefact radiation (3 units).</text>
+        <text>The "Gravi" artefact inside a field container. Properties: health +0.6, max weight +4 kg, radiation +10. The container absorbs 4 units of radiation, 6 remains.</text>
     </string>
 
     <string id="bq_gravi_uni_name">
         <text>Universal container (Gravi)</text>
     </string>
     <string id="bq_gravi_uni_descr">
-        <text>The "Gravi" artefact inside a universal container. Properties: health +0.6, max weight +4 kg, radiation +3. The container absorbs all of the artefact radiation (3 units).</text>
+        <text>The "Gravi" artefact inside a universal container. Properties: health +0.6, max weight +4 kg, radiation +10. The container absorbs 8 units of radiation, 2 remains.</text>
     </string>
 
     <string id="bq_gravi_sci_name">
         <text>Scientific container (Gravi)</text>
     </string>
     <string id="bq_gravi_sci_descr">
-        <text>The "Gravi" artefact inside a scientific container. Properties: health +0.6, max weight +4 kg, radiation +3. The container absorbs all of the artefact radiation (3 units).</text>
+        <text>The "Gravi" artefact inside a scientific container. Properties: health +0.6, max weight +4 kg, radiation +10. The container absorbs all of the artefact radiation (10 units).</text>
     </string>
 
     <string id="bq_gravi_simk_name">
         <text>SIMK container (Gravi)</text>
     </string>
     <string id="bq_gravi_simk_descr">
-        <text>The "Gravi" artefact inside a SIMK container. Properties: health +0.6, max weight +4 kg, radiation +3. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Gravi" artefact inside a SIMK container. Properties: health +0.6, max weight +4 kg, radiation +10. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_gold_fish_field_name">
         <text>Field container (Goldfish)</text>
     </string>
     <string id="bq_gold_fish_field_descr">
-        <text>The "Goldfish" artefact inside a field container. Properties: health +0.6, max weight +6 kg, radiation +3. The container absorbs all of the artefact radiation (3 units).</text>
+        <text>The "Goldfish" artefact inside a field container. Properties: health +0.6, max weight +6 kg, radiation +14. The container absorbs 4 units of radiation, 10 remains.</text>
     </string>
 
     <string id="bq_gold_fish_uni_name">
         <text>Universal container (Goldfish)</text>
     </string>
     <string id="bq_gold_fish_uni_descr">
-        <text>The "Goldfish" artefact inside a universal container. Properties: health +0.6, max weight +6 kg, radiation +3. The container absorbs all of the artefact radiation (3 units).</text>
+        <text>The "Goldfish" artefact inside a universal container. Properties: health +0.6, max weight +6 kg, radiation +14. The container absorbs 8 units of radiation, 6 remains.</text>
     </string>
 
     <string id="bq_gold_fish_sci_name">
         <text>Scientific container (Goldfish)</text>
     </string>
     <string id="bq_gold_fish_sci_descr">
-        <text>The "Goldfish" artefact inside a scientific container. Properties: health +0.6, max weight +6 kg, radiation +3. The container absorbs all of the artefact radiation (3 units).</text>
+        <text>The "Goldfish" artefact inside a scientific container. Properties: health +0.6, max weight +6 kg, radiation +14. The container absorbs all of the artefact radiation (14 units).</text>
     </string>
 
     <string id="bq_gold_fish_simk_name">
         <text>SIMK container (Goldfish)</text>
     </string>
     <string id="bq_gold_fish_simk_descr">
-        <text>The "Goldfish" artefact inside a SIMK container. Properties: health +0.6, max weight +6 kg, radiation +3. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Goldfish" artefact inside a SIMK container. Properties: health +0.6, max weight +6 kg, radiation +14. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_eye_field_name">
         <text>Field container (Eye)</text>
     </string>
     <string id="bq_eye_field_descr">
-        <text>The "Eye" artefact inside a field container. Properties: health +0.8, wound healing +4, radiation +2, psi protection +0.03. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Eye" artefact inside a field container. Properties: health +0.8, wound healing +4, radiation +11, psi protection +0.03. The container absorbs 4 units of radiation, 7 remains.</text>
     </string>
 
     <string id="bq_eye_uni_name">
         <text>Universal container (Eye)</text>
     </string>
     <string id="bq_eye_uni_descr">
-        <text>The "Eye" artefact inside a universal container. Properties: health +0.8, wound healing +4, radiation +2, psi protection +0.03. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Eye" artefact inside a universal container. Properties: health +0.8, wound healing +4, radiation +11, psi protection +0.03. The container absorbs 8 units of radiation, 3 remains.</text>
     </string>
 
     <string id="bq_eye_sci_name">
         <text>Scientific container (Eye)</text>
     </string>
     <string id="bq_eye_sci_descr">
-        <text>The "Eye" artefact inside a scientific container. Properties: health +0.8, wound healing +4, radiation +2, psi protection +0.03. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Eye" artefact inside a scientific container. Properties: health +0.8, wound healing +4, radiation +11, psi protection +0.03. The container absorbs all of the artefact radiation (11 units).</text>
     </string>
 
     <string id="bq_eye_simk_name">
         <text>SIMK container (Eye)</text>
     </string>
     <string id="bq_eye_simk_descr">
-        <text>The "Eye" artefact inside a SIMK container. Properties: health +0.8, wound healing +4, radiation +2, psi protection +0.03. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Eye" artefact inside a SIMK container. Properties: health +0.8, wound healing +4, radiation +11, psi protection +0.03. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_ice_field_name">
         <text>Field container (Shell)</text>
     </string>
     <string id="bq_ice_field_descr">
-        <text>The "Shell" artefact inside a field container. Properties: health +0.8, stamina +3.6, radiation +2, electric protection +0.03. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Shell" artefact inside a field container. Properties: health +0.8, stamina +3.6, radiation +12, electric protection +0.03. The container absorbs 4 units of radiation, 8 remains.</text>
     </string>
 
     <string id="bq_ice_uni_name">
         <text>Universal container (Shell)</text>
     </string>
     <string id="bq_ice_uni_descr">
-        <text>The "Shell" artefact inside a universal container. Properties: health +0.8, stamina +3.6, radiation +2, electric protection +0.03. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Shell" artefact inside a universal container. Properties: health +0.8, stamina +3.6, radiation +12, electric protection +0.03. The container absorbs 8 units of radiation, 4 remains.</text>
     </string>
 
     <string id="bq_ice_sci_name">
         <text>Scientific container (Shell)</text>
     </string>
     <string id="bq_ice_sci_descr">
-        <text>The "Shell" artefact inside a scientific container. Properties: health +0.8, stamina +3.6, radiation +2, electric protection +0.03. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Shell" artefact inside a scientific container. Properties: health +0.8, stamina +3.6, radiation +12, electric protection +0.03. The container absorbs all of the artefact radiation (12 units).</text>
     </string>
 
     <string id="bq_ice_simk_name">
         <text>SIMK container (Shell)</text>
     </string>
     <string id="bq_ice_simk_descr">
-        <text>The "Shell" artefact inside a SIMK container. Properties: health +0.8, stamina +3.6, radiation +2, electric protection +0.03. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Shell" artefact inside a SIMK container. Properties: health +0.8, stamina +3.6, radiation +12, electric protection +0.03. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_dummy_dummy_field_name">
         <text>Field container (Dummy)</text>
     </string>
     <string id="bq_dummy_dummy_field_descr">
-        <text>The "Dummy" artefact inside a field container. Properties: health +2, wound healing +1.4, max weight +1 kg, radiation +3. The container absorbs all of the artefact radiation (3 units).</text>
+        <text>The "Dummy" artefact inside a field container. Properties: health +2, wound healing +1.4, max weight +1 kg, radiation +13. The container absorbs 4 units of radiation, 9 remains.</text>
     </string>
 
     <string id="bq_dummy_dummy_uni_name">
         <text>Universal container (Dummy)</text>
     </string>
     <string id="bq_dummy_dummy_uni_descr">
-        <text>The "Dummy" artefact inside a universal container. Properties: health +2, wound healing +1.4, max weight +1 kg, radiation +3. The container absorbs all of the artefact radiation (3 units).</text>
+        <text>The "Dummy" artefact inside a universal container. Properties: health +2, wound healing +1.4, max weight +1 kg, radiation +13. The container absorbs 8 units of radiation, 5 remains.</text>
     </string>
 
     <string id="bq_dummy_dummy_sci_name">
         <text>Scientific container (Dummy)</text>
     </string>
     <string id="bq_dummy_dummy_sci_descr">
-        <text>The "Dummy" artefact inside a scientific container. Properties: health +2, wound healing +1.4, max weight +1 kg, radiation +3. The container absorbs all of the artefact radiation (3 units).</text>
+        <text>The "Dummy" artefact inside a scientific container. Properties: health +2, wound healing +1.4, max weight +1 kg, radiation +13. The container absorbs all of the artefact radiation (13 units).</text>
     </string>
 
     <string id="bq_dummy_dummy_simk_name">
         <text>SIMK container (Dummy)</text>
     </string>
     <string id="bq_dummy_dummy_simk_descr">
-        <text>The "Dummy" artefact inside a SIMK container. Properties: health +2, wound healing +1.4, max weight +1 kg, radiation +3. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Dummy" artefact inside a SIMK container. Properties: health +2, wound healing +1.4, max weight +1 kg, radiation +13. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_soul_field_name">
         <text>Field container (Soul)</text>
     </string>
     <string id="bq_soul_field_descr">
-        <text>The "Soul" artefact inside a field container. Properties: health +1.2, wound healing +1.4, radiation +2, radiation protection +4. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Soul" artefact inside a field container. Properties: health +1.2, wound healing +1.4, radiation +7, radiation protection +4. The container absorbs 4 units of radiation, 3 remains.</text>
     </string>
 
     <string id="bq_soul_uni_name">
         <text>Universal container (Soul)</text>
     </string>
     <string id="bq_soul_uni_descr">
-        <text>The "Soul" artefact inside a universal container. Properties: health +1.2, wound healing +1.4, radiation +2, radiation protection +4. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Soul" artefact inside a universal container. Properties: health +1.2, wound healing +1.4, radiation +7, radiation protection +4. The container absorbs all of the artefact radiation (7 units).</text>
     </string>
 
     <string id="bq_soul_sci_name">
         <text>Scientific container (Soul)</text>
     </string>
     <string id="bq_soul_sci_descr">
-        <text>The "Soul" artefact inside a scientific container. Properties: health +1.2, wound healing +1.4, radiation +2, radiation protection +4. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Soul" artefact inside a scientific container. Properties: health +1.2, wound healing +1.4, radiation +7, radiation protection +4. The container absorbs all of the artefact radiation (7 units).</text>
     </string>
 
     <string id="bq_soul_simk_name">
         <text>SIMK container (Soul)</text>
     </string>
     <string id="bq_soul_simk_descr">
-        <text>The "Soul" artefact inside a SIMK container. Properties: health +1.2, wound healing +1.4, radiation +2, radiation protection +4. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Soul" artefact inside a SIMK container. Properties: health +1.2, wound healing +1.4, radiation +7, radiation protection +4. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_fuzz_kolobok_field_name">
         <text>Field container (Kolobok)</text>
     </string>
     <string id="bq_fuzz_kolobok_field_descr">
-        <text>The "Kolobok" artefact inside a field container. Properties: health +1.6, stamina +0.9, max weight +1 kg, radiation +2. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Kolobok" artefact inside a field container. Properties: health +1.6, stamina +0.9, max weight +1 kg, radiation +8. The container absorbs 4 units of radiation, 4 remains.</text>
     </string>
 
     <string id="bq_fuzz_kolobok_uni_name">
         <text>Universal container (Kolobok)</text>
     </string>
     <string id="bq_fuzz_kolobok_uni_descr">
-        <text>The "Kolobok" artefact inside a universal container. Properties: health +1.6, stamina +0.9, max weight +1 kg, radiation +2. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Kolobok" artefact inside a universal container. Properties: health +1.6, stamina +0.9, max weight +1 kg, radiation +8. The container absorbs all of the artefact radiation (8 units).</text>
     </string>
 
     <string id="bq_fuzz_kolobok_sci_name">
         <text>Scientific container (Kolobok)</text>
     </string>
     <string id="bq_fuzz_kolobok_sci_descr">
-        <text>The "Kolobok" artefact inside a scientific container. Properties: health +1.6, stamina +0.9, max weight +1 kg, radiation +2. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Kolobok" artefact inside a scientific container. Properties: health +1.6, stamina +0.9, max weight +1 kg, radiation +8. The container absorbs all of the artefact radiation (8 units).</text>
     </string>
 
     <string id="bq_fuzz_kolobok_simk_name">
         <text>SIMK container (Kolobok)</text>
     </string>
     <string id="bq_fuzz_kolobok_simk_descr">
-        <text>The "Kolobok" artefact inside a SIMK container. Properties: health +1.6, stamina +0.9, max weight +1 kg, radiation +2. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Kolobok" artefact inside a SIMK container. Properties: health +1.6, stamina +0.9, max weight +1 kg, radiation +8. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_vyvert_field_name">
@@ -288,196 +288,196 @@
         <text>Field container (Night Star)</text>
     </string>
     <string id="bq_night_star_field_descr">
-        <text>The "Night Star" artefact inside a field container. Properties: health +0.6, max weight +2 kg, radiation +1. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Night Star" artefact inside a field container. Properties: health +0.6, max weight +2 kg, radiation +9. The container absorbs 4 units of radiation, 5 remains.</text>
     </string>
 
     <string id="bq_night_star_uni_name">
         <text>Universal container (Night Star)</text>
     </string>
     <string id="bq_night_star_uni_descr">
-        <text>The "Night Star" artefact inside a universal container. Properties: health +0.6, max weight +2 kg, radiation +1. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Night Star" artefact inside a universal container. Properties: health +0.6, max weight +2 kg, radiation +9. The container absorbs 8 units of radiation, 1 remains.</text>
     </string>
 
     <string id="bq_night_star_sci_name">
         <text>Scientific container (Night Star)</text>
     </string>
     <string id="bq_night_star_sci_descr">
-        <text>The "Night Star" artefact inside a scientific container. Properties: health +0.6, max weight +2 kg, radiation +1. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Night Star" artefact inside a scientific container. Properties: health +0.6, max weight +2 kg, radiation +9. The container absorbs all of the artefact radiation (9 units).</text>
     </string>
 
     <string id="bq_night_star_simk_name">
         <text>SIMK container (Night Star)</text>
     </string>
     <string id="bq_night_star_simk_descr">
-        <text>The "Night Star" artefact inside a SIMK container. Properties: health +0.6, max weight +2 kg, radiation +1. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Night Star" artefact inside a SIMK container. Properties: health +0.6, max weight +2 kg, radiation +9. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_dummy_glassbeads_field_name">
         <text>Field container (Mama's Beads)</text>
     </string>
     <string id="bq_dummy_glassbeads_field_descr">
-        <text>The "Mama's Beads" artefact inside a field container. Properties: health +0.8, wound healing +2, radiation +1. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Mama's Beads" artefact inside a field container. Properties: health +0.8, wound healing +2, radiation +10. The container absorbs 4 units of radiation, 6 remains.</text>
     </string>
 
     <string id="bq_dummy_glassbeads_uni_name">
         <text>Universal container (Mama's Beads)</text>
     </string>
     <string id="bq_dummy_glassbeads_uni_descr">
-        <text>The "Mama's Beads" artefact inside a universal container. Properties: health +0.8, wound healing +2, radiation +1. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Mama's Beads" artefact inside a universal container. Properties: health +0.8, wound healing +2, radiation +10. The container absorbs 8 units of radiation, 2 remains.</text>
     </string>
 
     <string id="bq_dummy_glassbeads_sci_name">
         <text>Scientific container (Mama's Beads)</text>
     </string>
     <string id="bq_dummy_glassbeads_sci_descr">
-        <text>The "Mama's Beads" artefact inside a scientific container. Properties: health +0.8, wound healing +2, radiation +1. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Mama's Beads" artefact inside a scientific container. Properties: health +0.8, wound healing +2, radiation +10. The container absorbs all of the artefact radiation (10 units).</text>
     </string>
 
     <string id="bq_dummy_glassbeads_simk_name">
         <text>SIMK container (Mama's Beads)</text>
     </string>
     <string id="bq_dummy_glassbeads_simk_descr">
-        <text>The "Mama's Beads" artefact inside a SIMK container. Properties: health +0.8, wound healing +2, radiation +1. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Mama's Beads" artefact inside a SIMK container. Properties: health +0.8, wound healing +2, radiation +10. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_electra_moonlight_field_name">
         <text>Field container (Moonlight)</text>
     </string>
     <string id="bq_electra_moonlight_field_descr">
-        <text>The "Moonlight" artefact inside a field container. Properties: health +0.6, radiation +2, radiation protection +4, psi protection +0.06. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Moonlight" artefact inside a field container. Properties: health +0.6, radiation +11, radiation protection +4, psi protection +0.06. The container absorbs 4 units of radiation, 7 remains.</text>
     </string>
 
     <string id="bq_electra_moonlight_uni_name">
         <text>Universal container (Moonlight)</text>
     </string>
     <string id="bq_electra_moonlight_uni_descr">
-        <text>The "Moonlight" artefact inside a universal container. Properties: health +0.6, radiation +2, radiation protection +4, psi protection +0.06. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Moonlight" artefact inside a universal container. Properties: health +0.6, radiation +11, radiation protection +4, psi protection +0.06. The container absorbs 8 units of radiation, 3 remains.</text>
     </string>
 
     <string id="bq_electra_moonlight_sci_name">
         <text>Scientific container (Moonlight)</text>
     </string>
     <string id="bq_electra_moonlight_sci_descr">
-        <text>The "Moonlight" artefact inside a scientific container. Properties: health +0.6, radiation +2, radiation protection +4, psi protection +0.06. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Moonlight" artefact inside a scientific container. Properties: health +0.6, radiation +11, radiation protection +4, psi protection +0.06. The container absorbs all of the artefact radiation (11 units).</text>
     </string>
 
     <string id="bq_electra_moonlight_simk_name">
         <text>SIMK container (Moonlight)</text>
     </string>
     <string id="bq_electra_moonlight_simk_descr">
-        <text>The "Moonlight" artefact inside a SIMK container. Properties: health +0.6, radiation +2, radiation protection +4, psi protection +0.06. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Moonlight" artefact inside a SIMK container. Properties: health +0.6, radiation +11, radiation protection +4, psi protection +0.06. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_dummy_battery_field_name">
         <text>Field container (Battery)</text>
     </string>
     <string id="bq_dummy_battery_field_descr">
-        <text>The "Battery" artefact inside a field container. Properties: health +0.6, stamina +1.6, radiation +1, electric protection +0.03. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Battery" artefact inside a field container. Properties: health +0.6, stamina +1.6, radiation +12, electric protection +0.03. The container absorbs 4 units of radiation, 8 remains.</text>
     </string>
 
     <string id="bq_dummy_battery_uni_name">
         <text>Universal container (Battery)</text>
     </string>
     <string id="bq_dummy_battery_uni_descr">
-        <text>The "Battery" artefact inside a universal container. Properties: health +0.6, stamina +1.6, radiation +1, electric protection +0.03. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Battery" artefact inside a universal container. Properties: health +0.6, stamina +1.6, radiation +12, electric protection +0.03. The container absorbs 8 units of radiation, 4 remains.</text>
     </string>
 
     <string id="bq_dummy_battery_sci_name">
         <text>Scientific container (Battery)</text>
     </string>
     <string id="bq_dummy_battery_sci_descr">
-        <text>The "Battery" artefact inside a scientific container. Properties: health +0.6, stamina +1.6, radiation +1, electric protection +0.03. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Battery" artefact inside a scientific container. Properties: health +0.6, stamina +1.6, radiation +12, electric protection +0.03. The container absorbs all of the artefact radiation (12 units).</text>
     </string>
 
     <string id="bq_dummy_battery_simk_name">
         <text>SIMK container (Battery)</text>
     </string>
     <string id="bq_dummy_battery_simk_descr">
-        <text>The "Battery" artefact inside a SIMK container. Properties: health +0.6, stamina +1.6, radiation +1, electric protection +0.03. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Battery" artefact inside a SIMK container. Properties: health +0.6, stamina +1.6, radiation +12, electric protection +0.03. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_blood_field_name">
         <text>Field container (Stone Blood)</text>
     </string>
     <string id="bq_blood_field_descr">
-        <text>The "Stone Blood" artefact inside a field container. Properties: health +0.5, radiation +1, radiation protection +2, chemical protection +0.02. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Stone Blood" artefact inside a field container. Properties: health +0.5, radiation +3, radiation protection +2, chemical protection +0.02. The container absorbs all of the artefact radiation (3 units).</text>
     </string>
 
     <string id="bq_blood_uni_name">
         <text>Universal container (Stone Blood)</text>
     </string>
     <string id="bq_blood_uni_descr">
-        <text>The "Stone Blood" artefact inside a universal container. Properties: health +0.5, radiation +1, radiation protection +2, chemical protection +0.02. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Stone Blood" artefact inside a universal container. Properties: health +0.5, radiation +3, radiation protection +2, chemical protection +0.02. The container absorbs all of the artefact radiation (3 units).</text>
     </string>
 
     <string id="bq_blood_sci_name">
         <text>Scientific container (Stone Blood)</text>
     </string>
     <string id="bq_blood_sci_descr">
-        <text>The "Stone Blood" artefact inside a scientific container. Properties: health +0.5, radiation +1, radiation protection +2, chemical protection +0.02. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Stone Blood" artefact inside a scientific container. Properties: health +0.5, radiation +3, radiation protection +2, chemical protection +0.02. The container absorbs all of the artefact radiation (3 units).</text>
     </string>
 
     <string id="bq_blood_simk_name">
         <text>SIMK container (Stone Blood)</text>
     </string>
     <string id="bq_blood_simk_descr">
-        <text>The "Stone Blood" artefact inside a SIMK container. Properties: health +0.5, radiation +1, radiation protection +2, chemical protection +0.02. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Stone Blood" artefact inside a SIMK container. Properties: health +0.5, radiation +3, radiation protection +2, chemical protection +0.02. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_mincer_meat_field_name">
         <text>Field container (Meat Chunk)</text>
     </string>
     <string id="bq_mincer_meat_field_descr">
-        <text>The "Meat Chunk" artefact inside a field container. Properties: health +0.5, radiation +2, radiation protection +2, chemical protection +0.04. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Meat Chunk" artefact inside a field container. Properties: health +0.5, radiation +4, radiation protection +2, chemical protection +0.04. The container absorbs all of the artefact radiation (4 units).</text>
     </string>
 
     <string id="bq_mincer_meat_uni_name">
         <text>Universal container (Meat Chunk)</text>
     </string>
     <string id="bq_mincer_meat_uni_descr">
-        <text>The "Meat Chunk" artefact inside a universal container. Properties: health +0.5, radiation +2, radiation protection +2, chemical protection +0.04. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Meat Chunk" artefact inside a universal container. Properties: health +0.5, radiation +4, radiation protection +2, chemical protection +0.04. The container absorbs all of the artefact radiation (4 units).</text>
     </string>
 
     <string id="bq_mincer_meat_sci_name">
         <text>Scientific container (Meat Chunk)</text>
     </string>
     <string id="bq_mincer_meat_sci_descr">
-        <text>The "Meat Chunk" artefact inside a scientific container. Properties: health +0.5, radiation +2, radiation protection +2, chemical protection +0.04. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Meat Chunk" artefact inside a scientific container. Properties: health +0.5, radiation +4, radiation protection +2, chemical protection +0.04. The container absorbs all of the artefact radiation (4 units).</text>
     </string>
 
     <string id="bq_mincer_meat_simk_name">
         <text>SIMK container (Meat Chunk)</text>
     </string>
     <string id="bq_mincer_meat_simk_descr">
-        <text>The "Meat Chunk" artefact inside a SIMK container. Properties: health +0.5, radiation +2, radiation protection +2, chemical protection +0.04. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Meat Chunk" artefact inside a SIMK container. Properties: health +0.5, radiation +4, radiation protection +2, chemical protection +0.04. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_cristall_flower_field_name">
         <text>Field container (Stone Flower)</text>
     </string>
     <string id="bq_cristall_flower_field_descr">
-        <text>The "Stone Flower" artefact inside a field container. Properties: health +0.5, radiation +1, radiation protection +2, psi protection +0.02. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Stone Flower" artefact inside a field container. Properties: health +0.5, radiation +5, radiation protection +2, psi protection +0.02. The container absorbs 4 units of radiation, 1 remains.</text>
     </string>
 
     <string id="bq_cristall_flower_uni_name">
         <text>Universal container (Stone Flower)</text>
     </string>
     <string id="bq_cristall_flower_uni_descr">
-        <text>The "Stone Flower" artefact inside a universal container. Properties: health +0.5, radiation +1, radiation protection +2, psi protection +0.02. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Stone Flower" artefact inside a universal container. Properties: health +0.5, radiation +5, radiation protection +2, psi protection +0.02. The container absorbs all of the artefact radiation (5 units).</text>
     </string>
 
     <string id="bq_cristall_flower_sci_name">
         <text>Scientific container (Stone Flower)</text>
     </string>
     <string id="bq_cristall_flower_sci_descr">
-        <text>The "Stone Flower" artefact inside a scientific container. Properties: health +0.5, radiation +1, radiation protection +2, psi protection +0.02. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Stone Flower" artefact inside a scientific container. Properties: health +0.5, radiation +5, radiation protection +2, psi protection +0.02. The container absorbs all of the artefact radiation (5 units).</text>
     </string>
 
     <string id="bq_cristall_flower_simk_name">
         <text>SIMK container (Stone Flower)</text>
     </string>
     <string id="bq_cristall_flower_simk_descr">
-        <text>The "Stone Flower" artefact inside a SIMK container. Properties: health +0.5, radiation +1, radiation protection +2, psi protection +0.02. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Stone Flower" artefact inside a SIMK container. Properties: health +0.5, radiation +5, radiation protection +2, psi protection +0.02. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_medusa_field_name">
@@ -512,112 +512,112 @@
         <text>Field container (Crystal)</text>
     </string>
     <string id="bq_cristall_field_descr">
-        <text>The "Crystal" artefact inside a field container. Properties: health +0.5, radiation +1, radiation protection +2, thermal protection +0.02. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Crystal" artefact inside a field container. Properties: health +0.5, radiation +6, radiation protection +2, thermal protection +0.02. The container absorbs 4 units of radiation, 2 remains.</text>
     </string>
 
     <string id="bq_cristall_uni_name">
         <text>Universal container (Crystal)</text>
     </string>
     <string id="bq_cristall_uni_descr">
-        <text>The "Crystal" artefact inside a universal container. Properties: health +0.5, radiation +1, radiation protection +2, thermal protection +0.02. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Crystal" artefact inside a universal container. Properties: health +0.5, radiation +6, radiation protection +2, thermal protection +0.02. The container absorbs all of the artefact radiation (6 units).</text>
     </string>
 
     <string id="bq_cristall_sci_name">
         <text>Scientific container (Crystal)</text>
     </string>
     <string id="bq_cristall_sci_descr">
-        <text>The "Crystal" artefact inside a scientific container. Properties: health +0.5, radiation +1, radiation protection +2, thermal protection +0.02. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Crystal" artefact inside a scientific container. Properties: health +0.5, radiation +6, radiation protection +2, thermal protection +0.02. The container absorbs all of the artefact radiation (6 units).</text>
     </string>
 
     <string id="bq_cristall_simk_name">
         <text>SIMK container (Crystal)</text>
     </string>
     <string id="bq_cristall_simk_descr">
-        <text>The "Crystal" artefact inside a SIMK container. Properties: health +0.5, radiation +1, radiation protection +2, thermal protection +0.02. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Crystal" artefact inside a SIMK container. Properties: health +0.5, radiation +6, radiation protection +2, thermal protection +0.02. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_fireball_field_name">
         <text>Field container (Fireball)</text>
     </string>
     <string id="bq_fireball_field_descr">
-        <text>The "Fireball" artefact inside a field container. Properties: health +0.5, radiation +2, radiation protection +2, thermal protection +0.04. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Fireball" artefact inside a field container. Properties: health +0.5, radiation +7, radiation protection +2, thermal protection +0.04. The container absorbs 4 units of radiation, 3 remains.</text>
     </string>
 
     <string id="bq_fireball_uni_name">
         <text>Universal container (Fireball)</text>
     </string>
     <string id="bq_fireball_uni_descr">
-        <text>The "Fireball" artefact inside a universal container. Properties: health +0.5, radiation +2, radiation protection +2, thermal protection +0.04. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Fireball" artefact inside a universal container. Properties: health +0.5, radiation +7, radiation protection +2, thermal protection +0.04. The container absorbs all of the artefact radiation (7 units).</text>
     </string>
 
     <string id="bq_fireball_sci_name">
         <text>Scientific container (Fireball)</text>
     </string>
     <string id="bq_fireball_sci_descr">
-        <text>The "Fireball" artefact inside a scientific container. Properties: health +0.5, radiation +2, radiation protection +2, thermal protection +0.04. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Fireball" artefact inside a scientific container. Properties: health +0.5, radiation +7, radiation protection +2, thermal protection +0.04. The container absorbs all of the artefact radiation (7 units).</text>
     </string>
 
     <string id="bq_fireball_simk_name">
         <text>SIMK container (Fireball)</text>
     </string>
     <string id="bq_fireball_simk_descr">
-        <text>The "Fireball" artefact inside a SIMK container. Properties: health +0.5, radiation +2, radiation protection +2, thermal protection +0.04. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Fireball" artefact inside a SIMK container. Properties: health +0.5, radiation +7, radiation protection +2, thermal protection +0.04. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_electra_sparkler_field_name">
         <text>Field container (Sparkler)</text>
     </string>
     <string id="bq_electra_sparkler_field_descr">
-        <text>The "Sparkler" artefact inside a field container. Properties: health +0.5, radiation +1, radiation protection +2, electric protection +0.02. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Sparkler" artefact inside a field container. Properties: health +0.5, radiation +4, radiation protection +2, electric protection +0.02. The container absorbs all of the artefact radiation (4 units).</text>
     </string>
 
     <string id="bq_electra_sparkler_uni_name">
         <text>Universal container (Sparkler)</text>
     </string>
     <string id="bq_electra_sparkler_uni_descr">
-        <text>The "Sparkler" artefact inside a universal container. Properties: health +0.5, radiation +1, radiation protection +2, electric protection +0.02. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Sparkler" artefact inside a universal container. Properties: health +0.5, radiation +4, radiation protection +2, electric protection +0.02. The container absorbs all of the artefact radiation (4 units).</text>
     </string>
 
     <string id="bq_electra_sparkler_sci_name">
         <text>Scientific container (Sparkler)</text>
     </string>
     <string id="bq_electra_sparkler_sci_descr">
-        <text>The "Sparkler" artefact inside a scientific container. Properties: health +0.5, radiation +1, radiation protection +2, electric protection +0.02. The container absorbs all of the artefact radiation (1 units).</text>
+        <text>The "Sparkler" artefact inside a scientific container. Properties: health +0.5, radiation +4, radiation protection +2, electric protection +0.02. The container absorbs all of the artefact radiation (4 units).</text>
     </string>
 
     <string id="bq_electra_sparkler_simk_name">
         <text>SIMK container (Sparkler)</text>
     </string>
     <string id="bq_electra_sparkler_simk_descr">
-        <text>The "Sparkler" artefact inside a SIMK container. Properties: health +0.5, radiation +1, radiation protection +2, electric protection +0.02. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Sparkler" artefact inside a SIMK container. Properties: health +0.5, radiation +4, radiation protection +2, electric protection +0.02. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_electra_flash_field_name">
         <text>Field container (Flash)</text>
     </string>
     <string id="bq_electra_flash_field_descr">
-        <text>The "Flash" artefact inside a field container. Properties: health +0.5, radiation +2, radiation protection +2, electric protection +0.04. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Flash" artefact inside a field container. Properties: health +0.5, radiation +5, radiation protection +2, electric protection +0.04. The container absorbs 4 units of radiation, 1 remains.</text>
     </string>
 
     <string id="bq_electra_flash_uni_name">
         <text>Universal container (Flash)</text>
     </string>
     <string id="bq_electra_flash_uni_descr">
-        <text>The "Flash" artefact inside a universal container. Properties: health +0.5, radiation +2, radiation protection +2, electric protection +0.04. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Flash" artefact inside a universal container. Properties: health +0.5, radiation +5, radiation protection +2, electric protection +0.04. The container absorbs all of the artefact radiation (5 units).</text>
     </string>
 
     <string id="bq_electra_flash_sci_name">
         <text>Scientific container (Flash)</text>
     </string>
     <string id="bq_electra_flash_sci_descr">
-        <text>The "Flash" artefact inside a scientific container. Properties: health +0.5, radiation +2, radiation protection +2, electric protection +0.04. The container absorbs all of the artefact radiation (2 units).</text>
+        <text>The "Flash" artefact inside a scientific container. Properties: health +0.5, radiation +5, radiation protection +2, electric protection +0.04. The container absorbs all of the artefact radiation (5 units).</text>
     </string>
 
     <string id="bq_electra_flash_simk_name">
         <text>SIMK container (Flash)</text>
     </string>
     <string id="bq_electra_flash_simk_descr">
-        <text>The "Flash" artefact inside a SIMK container. Properties: health +0.5, radiation +2, radiation protection +2, electric protection +0.04. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
+        <text>The "Flash" artefact inside a SIMK container. Properties: health +0.5, radiation +5, radiation protection +2, electric protection +0.04. The SIMK absorbs all of the artefact radiation, so there is no background. It cannot be worn on the belt - it is carried in the backpack.</text>
     </string>
 
     <string id="bq_compass_field_name">
