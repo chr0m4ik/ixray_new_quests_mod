@@ -311,7 +311,19 @@ function bq_rad_tuner_binder:update(delta)
         end
 
         if sum > 0 then
-            actor:change_radiation(sum * dt / 1000)
+            -- ВНИМАНИЕ: метода change_radiation в Lua НЕТ (проверено вылетом
+            -- 08.10.2026: "attempt to call method 'change_radiation' (a nil
+            -- value)"). Радиация доступна только как СВОЙСТВО:
+            --   script_game_object_script2.cpp:80
+            --     .property("radiation", &GetRadiation, &SetRadiation)
+            -- а SetRadiation в этой сборке определён как
+            --   script_game_object.cpp:90
+            --     BIND_FUNCTION01(..., conditions().ChangeRadiation, float, float)
+            -- и через CALL_FUNCTION01 (script_bind_macroses.h:49-51) зовёт
+            -- ChangeRadiation, то есть m_fDeltaRadiation += value.
+            -- Значит ПРИСВАИВАНИЕ свойству ДОБАВЛЯЕТ значение, а не заменяет -
+            -- ровно то, что нужно, и так же накапливает пояс.
+            actor.radiation = sum * dt / 1000
         end
     end)
 

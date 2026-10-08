@@ -32,6 +32,13 @@ tools/*
 !tools/fix_rus_localization.js
 !tools/check_artifact_bleed.js
 
+# Проверка механики радиации в рюкзаке БЕЗ запуска игры: исполняет скрипт
+# настоящим LuaJIT из bin\lua51.dll с заглушками движка. Версионируем вместе с
+# кодом: тест ловит регрессы (персистентность _G, чтение конфига без line_exist,
+# вызов несуществующего метода change_radiation), без него их не видно.
+!tools/test_inv_rad.lua
+!tools/test_inv_rad.ps1
+
 # Атлас иконок из аномали (33 МБ, используется только как источник картинок)
 textures/ui/ui_anomaly_icons.dds
 

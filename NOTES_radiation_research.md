@@ -467,7 +467,7 @@ script_binding        = bind_restrictor.bind
 | Источник чисел | `system_ini():r_float(section, "radiation_restore_speed")` |
 | Износ (`condition`) | **не учитываем** — механики износа пока нет |
 | Расчёт | сумма по предметам у актора, кроме надетых на пояс (пояс считает движок) |
-| Применение | `actor:change_radiation(сумма * dt)`, как у пояса |
+| Применение | **`actor.radiation = сумма * dt`** — это свойство, а не метод (см. 10.4) |
 
 ### 10.3. Остающийся риск
 
@@ -484,6 +484,46 @@ script_binding        = bind_restrictor.bind
 событиям (накапливать сумму в `_G` при подборе/выбросе и при `OnItemDropped`,
 а турер только применяет готовое число). Тогда в кадровом пути живых объектов
 не останется вообще.
+
+### 10.4. ГЛАВНОЕ: радиация применяется через СВОЙСТВО, метода нет
+
+Проверено вылетом 08.10.2026 и исходниками:
+
+```
+attempt to call method 'change_radiation' (a nil value)
+```
+
+**Метода `change_radiation` в Lua НЕ существует**, хотя он упоминается и в
+старых заметках, и в подсказках. Радиация доступна только как свойство:
+
+```cpp
+// script_game_object_script2.cpp:80
+.property("radiation", &CScriptGameObject::GetRadiation, &CScriptGameObject::SetRadiation)
+```
+
+И ключевое: **присваивание этому свойству ДОБАВЛЯЕТ значение, а не заменяет**:
+
+```cpp
+// script_game_object.cpp:90
+BIND_FUNCTION01(&object(), CScriptGameObject::SetRadiation,
+                CEntityAlive, conditions().ChangeRadiation, float, float);
+// script_bind_macroses.h:49-51
+#define CALL_FUNCTION01(C,F)  l_tpEntity->C((F)(f));
+// CEntityCondition::ChangeRadiation (EntityCondition.cpp:178-181)
+//     m_fDeltaRadiation += value;
+```
+
+То есть `actor.radiation = x` эквивалентно «начислить x» — ровно то, что нужно,
+и так же накапливает пояс.
+
+**Правило:** применять радиацию только как `actor.radiation = value`. Любое
+`actor:change_radiation(...)`, `actor:set_radiation(...)` упадёт.
+
+Отдельная морока: в моём тестовом макете этот метод был **замокан**, поэтому
+тест оставался зелёным, пока игра падала. Теперь макет предоставляет радиацию
+как **свойство** (`__index`/`__newindex`, присваивание накапливает) и намеренно
+не даёт никакого `change_radiation` — проверка 8g дополнительно следит, чтобы
+такой вызов не вернулся в код.
 
 ---
 
@@ -507,3 +547,10 @@ script_binding        = bind_restrictor.bind
 6. **`boost_radiation_immunity`, `GetRestoreSpeed`, `GetBoostRadiationImmunity`
    из Lua недоступны.** Учитывать их нельзя.
 7. **`db.actor.id` — функция.** Сравнивать владение только с `db.actor:id()`.
+8. **Метода `change_radiation` в Lua НЕТ**, и вообще радиация — это **свойство**
+   `actor.radiation`, присваивание которому **добавляет** значение (см. 10.4).
+9. **Поля в `_G` нельзя считать созданными**: `_G` переживает пересоздание
+   Lua-машины, поэтому там может лежать таблица прежней версии скрипта. Нужна
+   явная нормализация всех полей при каждом исполнении модуля.
+10. **`r_float` без `line_exist` = вылет игры** (`Debug.fatal`, `pcall` не ловит).
+    Порядок строго: `section_exist` → `line_exist` → `r_float`.
