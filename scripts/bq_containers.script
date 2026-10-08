@@ -195,9 +195,22 @@ local function do_apply()
 end
 
 local function apply_pending()
+    -- ВРЕМЕННАЯ ДИАГНОСТИКА: считается, сколько раз движок вообще вызвал
+    -- обработчик update и сколько раз из них была работа. Убрать после разбора.
+    _G.bq_diag = _G.bq_diag or { cont_tick = 0, cont_work = 0, rad_tick = 0 }
+    _G.bq_diag.cont_tick = _G.bq_diag.cont_tick + 1
+    if _G.bq_diag.cont_tick == 1 or _G.bq_diag.cont_tick % 300 == 0 then
+        dbg("ДИАГ: контейнеры tick=" .. _G.bq_diag.cont_tick
+            .. " pending=" .. tostring(pending ~= nil)
+            .. " is_talking=" .. tostring(db.actor and db.actor:is_talking()))
+    end
     if not pending then return end
+    _G.bq_diag.cont_work = _G.bq_diag.cont_work + 1
     if not db.actor or not alife() then return end
-    if db.actor:is_talking() then return end
+    if db.actor:is_talking() then
+        dbg("ДИАГ: apply_pending отложен, актор разговаривает")
+        return
+    end
     local ok, err = pcall(do_apply)
     if not ok then
         pending = nil
@@ -270,17 +283,6 @@ end
 function on_game_start()
     if hooked then return end
     RegisterScriptCallback("update", apply_pending)
-
-    -- Соседний скрипт отключает контейнеры от своего кода и не ссылается на
-    -- них. Единственная причина этой строки - ЗАГРУЗИТЬ bq_inv_rad.script:
-    -- движок исполняет скрипт только когда к нему обращаются по имени
-    -- (script_engine.cpp:381-398), а сам по себе файл в папке scripts не
-    -- запускается. Иначе механика радиации в рюкзаке молча не работает.
-    -- prefetch - штатный биндинг (script_engine_script.cpp:339).
-    -- Механики при этом остаются независимыми: bq_inv_rad не знает о
-    -- контейнерах и ничего у них не переопределяет.
-    pcall(prefetch, "bq_inv_rad")
-
     hooked = true
     dbg("==== скрипт контейнеров загружен, хук установлен ====")
 end
