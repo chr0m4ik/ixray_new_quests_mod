@@ -946,6 +946,92 @@ console.log('== 11. Кость частиц (регресс на вылет) =='
         }
     }
     ok('модели комбо совпадают с моделями своих контейнеров (кроме СИМК)');
+
+    // Текстуры моделей. Меш хранит имена текстур строками с префиксом длины;
+    // если файла нет, движок пишет в лог "! Can't find texture" и предмет
+    // выглядит битым. Именно так и было с контейнерами Anomaly: модели взяли, а
+    // текстуры (aa\aa_af_aac, aa\aa_af_iam, aa\aa_af_aam) остались в .db-архивах.
+    //
+    // Формат записи (разобран по файлу): u32 длина, ВКЛЮЧАЯ нулевой байт и
+    // выравнивание до 4, затем сама строка. Поэтому читаем "длина + строка".
+    //
+    // ВАЖНО про мусор: в мешах лежат ещё пути SDK ("sdk\editors\import\aam") и
+    // имена авторов ("JEDNOSTKA\Administrator"). Их отсекаем по первому сегменту:
+    // настоящая текстура начинается с папки, которая есть в textures.
+    const TEX_ROOTS = [
+        path.join(__dirname, '..', 'textures'),                       // наш аддон
+        path.join(ADDONS_DIR, 'ixray-hq-icons-v2.0', 'textures'),
+        'Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_IXRAY\\gamedata\\textures',
+        'Z:\\Games\\Stalker_Call_of_Pripyat_Mod\\StalkerCoP_Original_gamedata\\gamedata\\textures',
+    ];
+    const texFolders = new Set();
+    for (const root of TEX_ROOTS) {
+        if (!fs.existsSync(root)) continue;
+        for (const d of fs.readdirSync(root, { withFileTypes: true })) {
+            if (d.isDirectory()) texFolders.add(d.name.toLowerCase());
+        }
+    }
+    const texExists = (rel) => {
+        const norm = rel.replace(/\\/g, path.sep);
+        for (const root of TEX_ROOTS) {
+            if (fs.existsSync(path.join(root, norm + '.dds'))) return true;
+            if (fs.existsSync(path.join(root, norm + '.tga'))) return true;
+        }
+        return false;
+    };
+    // Читает из меша имена текстур. Меш хранит их строками вида "aa\aa_af_aac"
+    // (первый сегмент - папка внутри textures). Формат записи разбирать не
+    // нужно: ищем по шаблону, а мусор отсекаем по первому сегменту - в мешах
+    // лежат ещё пути SDK ("sdk\editors\import\aam") и имя автора
+    // ("JEDNOSTKA\Administrator"), но папок sdk/JEDNOSTKA в textures нет.
+    const meshTextures = (buf) => {
+        const out = new Set();
+        const s = buf.toString('latin1');
+        for (const m of s.matchAll(/[A-Za-z0-9_]{2,20}(?:\\[A-Za-z0-9_.\-]{2,40}){1,4}/g)) {
+            const t = m[0];
+            const first = t.split('\\')[0].toLowerCase();
+            if (!texFolders.has(first)) continue;               // отсекаем мусор
+            if (!/\.(dds|tga)$/i.test(t) && t.split('\\').length < 2) continue;
+            out.add(t);
+        }
+        return out;
+    };
+    // Сколько имён-кандидатов отсеяно как мусор. Нужно, чтобы поймать ловушку:
+    // если папки textures\aa нет, то ВСЕ ссылки aa\... отсеиваются, остаются
+    // только item\... от СИМК - и проверка молчит, хотя текстуры пропали.
+    // "Нет данных" не должно выглядеть как "всё хорошо".
+    const meshMissed = (buf) => {
+        let n = 0;
+        const s = buf.toString('latin1');
+        for (const m of s.matchAll(/[A-Za-z0-9_]{2,20}(?:\\[A-Za-z0-9_.\-]{2,40}){1,4}/g)) {
+            const first = m[0].split('\\')[0].toLowerCase();
+            if (!texFolders.has(first)) n++;
+        }
+        return n;
+    };
+    let texChecked = 0;
+    for (const vis of visuals) {
+        const file = path.join(__dirname, '..', 'meshes', vis.replace(/\\/g, path.sep));
+        if (!fs.existsSync(file)) continue;
+        const buf = fs.readFileSync(file);
+        const found = meshTextures(buf);
+        if (found.size === 0) {
+            err(`из модели ${vis.split('\\').pop()} не прочитано НИ ОДНОЙ текстуры: ` +
+                `проверять нечего (отсеяно кандидатов ${meshMissed(buf)}). ` +
+                `Скорее всего нет папки textures с нужным именем`);
+            continue;
+        }
+        for (const t of found) {
+            texChecked++;
+            if (!texExists(t)) {
+                err(`нет текстуры для модели ${vis.split('\\').pop()}: ` +
+                    `textures\\${t}.dds (в игре будет "Can't find texture")`);
+            } else {
+                ok(`текстура модели ${vis.split('\\').pop()}: ${t}`);
+            }
+        }
+    }
+    if (texChecked === 0) err('не удалось прочитать ни одной ссылки на текстуру из моделей');
 }
 
 if (errors === 0) {
