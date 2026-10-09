@@ -270,6 +270,28 @@ local function set_condition(item, value)
     pcall(function() item:set_condition(value) end)
 end
 
+-- ОСЛАБЛЕНИЕ ПОЯСА ПО МЕРЕ РАЗРЯДА (решение заказчика, 10.10.2026).
+-- Пояс отдаёт вклад артефактов не полностью, а по заряду аккумулятора:
+--   множитель = weak_min_factor + (1 - weak_min_factor) * заряд
+-- (100% -> 1.0, около нуля -> weak_min_factor, по умолчанию 0.5).
+-- Движок умножает на condition артефакта эффекты, защиту и вес, поэтому другой
+-- ручки не нужно. Если аккумулятора в слоте нет - возвращаем 1.0, питание
+-- всё равно отсекает powered (артефакты просто гасятся в 0).
+local function belt_factor()
+    local actor = db.actor
+    if not actor then return 1.0 end
+    local item = actor:item_in_slot(BATTERY_SLOT)
+    if not item or not is_battery(item:section()) then return 1.0 end
+    local charge = get_condition(item)
+    if charge == nil then return 1.0 end
+    if charge > 1 then charge = 1 end
+    if charge <= 0 then return 0 end
+    local weak = cfg_float(DISCHARGE_SECTION, "weak_min_factor", 0.5)
+    if weak < 0 then weak = 0 end
+    if weak > 1 then weak = 1 end
+    return weak + (1 - weak) * charge
+end
+
 -- Один проход по инвентарю актора.
 -- ВАЖНО: колбэк iterate_inventory НЕ должен вернуть true - это немедленно
 -- оборвёт перебор (script_game_object_inventory_owner.cpp:276-279).
@@ -277,6 +299,7 @@ local function apply_gate(actor, powered)
     local st = normalize_state()
     local stats = { belt = 0, artefacts = 0, hidden = 0, restored = 0 }
     local seen = {}      -- id предметов, которые сейчас у актора
+    local factor = powered and belt_factor() or 0
 
     actor:iterate_inventory(function(owner, item)
         if not item then return end
@@ -290,21 +313,37 @@ local function apply_gate(actor, powered)
         stats.artefacts = stats.artefacts + 1
         if on_belt then stats.belt = stats.belt + 1 end
 
-        if (not powered) and on_belt then
-            -- Пояс выключен: прячем вклад артефакта.
-            local current = get_condition(item)
-            if current and current > 0 then
-                remember_condition(id, current)
-                set_condition(item, 0)
-                stats.hidden = stats.hidden + 1
-                dbg(string.format("спрятал состояние %s (id=%d), было %.3f", section, id, current))
-            elseif current == 0 and saved_condition(id) == nil then
-                -- Так бывает, если сейв сделан нашей прошлой версией или сейв
-                -- чужой: состояние 0, а записи о настоящем значении нет.
-                remember_condition(id, 1.0)
+        if on_belt then
+            -- На поясе: настоящий вклад берём из записи (если мы его уже
+            -- ослабляли), иначе - текущее состояние предмета.
+            local real = saved_condition(id)
+            if real == nil then
+                real = get_condition(item)
+                if real == nil or real <= 0 then
+                    -- Ноль без записи = сейв от упавшей сборки (артефакты в этой
+                    -- сборке не изнашиваются, значит 0 мог поставить только скрипт).
+                    real = 1.0
+                end
+            end
+            local target = real * factor
+            if get_condition(item) ~= target then
+                set_condition(item, target)
+                if target == 0 then
+                    stats.hidden = stats.hidden + 1
+                    dbg(string.format("спрятал состояние %s (id=%d), было %.3f", section, id, real))
+                else
+                    stats.restored = stats.restored + 1
+                    dbg(string.format("вклад %s (id=%d): %.3f -> %.3f (пояс %.0f%%)",
+                        section, id, real, target, factor * 100))
+                end
+            end
+            if factor >= 0.999 then
+                forget_condition(id)          -- полный заряд: запись не нужна
+            else
+                remember_condition(id, real)  -- помним НАСТОЯЩЕЕ значение
             end
         else
-            -- Пояс включён или предмет не на поясе: возвращаем настоящее значение.
+            -- Не на поясе: возвращаем настоящее значение, если мы его меняли.
             local real = saved_condition(id)
             if real ~= nil and real > 0 then
                 if get_condition(item) ~= real then
@@ -313,14 +352,6 @@ local function apply_gate(actor, powered)
                     dbg(string.format("вернул состояние %s (id=%d) = %.3f", section, id, real))
                 end
                 forget_condition(id)
-            elseif on_belt and get_condition(item) == 0 then
-                -- Артефакт на поясе, состояние 0, записи о нашем «прятании» нет.
-                -- Так бывает, если прошлая версия скрипта упала, не сохранив
-                -- значение (или сейв сделан промежуточной сборкой). Артефакты в
-                -- этой сборке НЕ изнашиваются (нет degrade_rate), поэтому 0 у них
-                -- может быть только нашей работой - возвращаем 1.0.
-                set_condition(item, 1.0)
-                dbg(string.format("восстановил потерянное состояние %s (id=%d) = 1.000", section, id))
             end
         end
     end, actor)
@@ -397,29 +428,39 @@ local function fast_belt_check(actor, powered)
     end
 
     local changes = 0
+    local factor = powered and belt_factor() or 0
 
-    -- 1. Пояс: гасим вклад артефактов, если аккумулятора нет, или возвращаем,
-    --    если он появился.
+    -- 1. Пояс: гасим вклад артефактов, если аккумулятора нет, или отдаём его
+    --    ослабленным по заряду (belt_factor), если аккумулятор есть.
     for id, item in pairs(on_belt) do
         local section = item:section()
         if is_artefact(section) then
             if powered then
                 local real = saved_condition(id)
                 if real ~= nil and real > 0 then
-                    if get_condition(item) ~= real then
-                        set_condition(item, real)
-                        dbg(string.format("быстро вернул состояние %s (id=%d) = %.3f", section, id, real))
+                    local target = real * factor
+                    if get_condition(item) ~= target then
+                        set_condition(item, target)
+                        dbg(string.format("быстро обновил вклад %s (id=%d): %.3f -> %.3f",
+                            section, id, real, target))
                     end
-                    forget_condition(id)
+                    if factor >= 0.999 then
+                        forget_condition(id)
+                    else
+                        remember_condition(id, real)
+                    end
                     changes = changes + 1
                 end
             else
                 local current = get_condition(item)
                 if current and current > 0 then
-                    remember_condition(id, current)
+                    -- Настоящее значение берём из записи, если она есть: текущее
+                    -- могло быть уже ослаблено зарядом.
+                    local real = saved_condition(id) or current
+                    remember_condition(id, real)
                     set_condition(item, 0)
                     changes = changes + 1
-                    dbg(string.format("быстро спрятал состояние %s (id=%d), было %.3f", section, id, current))
+                    dbg(string.format("быстро спрятал состояние %s (id=%d), было %.3f", section, id, real))
                 end
             end
         end
