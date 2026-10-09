@@ -4,19 +4,22 @@
     аккумулятора нужно описать в обоих вариантах интерфейса.
     См. подробные пояснения в mod_actor_menu_z_bq.xml.
 
-    ГЕОМЕТРИЯ 16:9 (замерено по ванильному файлу; в ixray-hd-hud такое же):
-      пояс:    dragdrop_belt x=390 y=480 width=240 (ячейки 33x41) -> 390..630
-      рюкзак:  dragdrop_bag  x=662 y=119
-      между поясом и рюкзаком 31 px, поэтому ячейка 30x41 без наложений.
-      Ширина 30 (а не 33) выбрана, чтобы не залезть на рюкзак.
+    ГЕОМЕТРИЯ 16:9 (10.10.2026): ячейка поставлена по рисунку в атласе - справа от
+    пяти ячеек пояса, ровно того же размера, что ячейка артефакта (33x41).
+      пояс:   dragdrop_belt 390,510 193x41, ячейка 33x41, шаг 40 -> ячейки
+              390..423, 430..463, 470..503, 510..543, 550..583 (нарисованы 406.5,
+              446.5, 486.5, 526.5, 566.5 по центрам);
+      наш слот: 598,510 33x41 (центр 614.5; иконка батарейки в атласе - 614.9).
+
+    НАБРОСОК УБРАН: рамку слота рисует сам атлас (файл ui_bq_inventory_back.dds),
+    поэтому у slot_progress нет <background>, а slot_highlight ссылается на
+    прозрачную заглушку. Узел <progress> обязателен (без него движок не разберёт
+    остальное, UIXmlInit.cpp:610-613) - в пункте 4 сюда встанет полоска заряда.
 -->
 <w>
     <inventory_slot_wnd override="add">
         <slot> <!-- Аккумулятор (CUSTOM_SLOT_1 = 14) -->
             <slot_progress x="598" y="510" width="33" height="41" horz="1" min="0" max="1" pos="0">
-                <background stretch="1">
-                    <texture>ui\ui_bq_battery_slot</texture>
-                </background>
                 <progress stretch="1">
                     <texture>ui\ui_bq_battery_slot_prog</texture>
                 </progress>
@@ -25,7 +28,7 @@
                 <max_color r="107" g="207" b="119"/>
             </slot_progress>
             <slot_highlight x="598" y="510" width="33" height="41" stretch="1">
-                <texture>ui\ui_bq_battery_slot_hl</texture>
+                <texture>ui\ui_bq_blank</texture>
             </slot_highlight>
             <slot_dragdrop x="598" y="510" width="33" height="41"
                 cell_width="33" cell_height="41" rows_num="1" cols_num="1"
