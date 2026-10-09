@@ -531,16 +531,47 @@ console.log('\n== 8. Слот аккумулятора (пункт 2) ==');
         // Покадровая быстрая проверка пояса. Без неё артефакт, положенный на пояс
         // без аккумулятора, успевает отдать статы (движок считает пояс раз в 100 мс),
         // и в интерфейсе видно «скачок статов» - заказчик это заметил.
-        if (!/function\s+fast_belt_check\s*\(/.test(src)) {
-            err('bq_battery.script: нет fast_belt_check - вернётся видимый «скачок статов»');
+        //
+        // Оба кадровых источника (биндер турера и штатная рассылка update) обязаны
+        // звать ОДНУ общую функцию tick: раньше у каждого была своя копия, они
+        // делили один таймер, и в логе заказчика пропадали строки диагностики.
+        const slice = (needle, len) => {
+            const i = src.indexOf(needle);
+            return i < 0 ? '' : src.slice(i, i + len);
+        };
+        const tickBody = slice('local function tick', 2000);
+        if (!tickBody) {
+            err('bq_battery.script: нет общей кадровой функции tick');
+        } else {
+            if (!tickBody.includes('fast_belt_check(')) {
+                err('bq_battery.script: tick не вызывает fast_belt_check - ' +
+                    'вернётся видимый «скачок статов»');
+            }
+            if (!tickBody.includes('battery_in_slot(')) {
+                err('bq_battery.script: tick не проверяет слот аккумулятора');
+            }
+            if (!tickBody.includes('ensure_tuner()')) {
+                err('bq_battery.script: tick не создаёт турер - механика будет ждать ' +
+                    'первого действия игрока (так и было в логе 09.10.2026)');
+            }
         }
-        if (!src.includes('belt_count') || !src.includes('item_on_belt')) {
-            err('bq_battery.script: быстрая проверка должна обходить пояс через ' +
-                'belt_count/item_on_belt (инвентарь целиком каждый кадр - дорого)');
+        if (!slice('function bq_battery_tuner_binder:update', 400).includes('tick()')) {
+            err('bq_battery.script: update биндера турера не зовёт tick()');
         }
-        if (!/bq_battery_tuner_binder:update[\s\S]{0,900}fast_belt_check/.test(src)) {
-            err('bq_battery.script: fast_belt_check не вызывается из update биндера - ' +
-                'реакция снова станет раз в 300 мс');
+        if (!slice('function bq_battery_update', 400).includes('tick()')) {
+            err('bq_battery.script: резервный update не зовёт tick()');
+        }
+        const fastBody = slice('local function fast_belt_check', 3000);
+        if (!fastBody) {
+            err('bq_battery.script: нет fast_belt_check');
+        } else {
+            if (!fastBody.includes('belt_count') || !fastBody.includes('item_on_belt')) {
+                err('bq_battery.script: быстрая проверка должна обходить пояс через ' +
+                    'belt_count/item_on_belt (инвентарь целиком каждый кадр - дорого)');
+            }
+            if (!fastBody.includes('set_condition(')) {
+                err('bq_battery.script: fast_belt_check не меняет состояние артефактов');
+            }
         }
         ok('bq_battery.script: точки входа на месте');
     }

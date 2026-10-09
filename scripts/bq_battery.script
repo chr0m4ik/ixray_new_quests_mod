@@ -454,17 +454,36 @@ function bq_battery_tuner_binder:net_destroy()
     object_binder.net_destroy(self)
 end
 
--- Кадровый обработчик: раз в PERIOD_MS проверяем слот и состояние пояса.
-function bq_battery_tuner_binder:update(delta)
-    object_binder.update(self, delta)
-
+----------------------------------------------------------------------------
+-- ОБЩАЯ КАДРОВАЯ ЧАСТЬ.
+--
+-- Её зовут ДВА источника, и оба могут работать одновременно:
+--   1) update биндера турера - механизм планировщика (основной);
+--   2) штатная рассылка update, на которую мы подписываемся в on_game_start
+--      (резервный; лог заказчика 09.10.2026 показал, что в этой сборке она
+--      работает и переживает загрузку сейва).
+--
+-- ПОЧЕМУ ОДНА ФУНКЦИЯ, А НЕ ДВЕ КОПИИ. Раньше у каждого источника был свой
+-- обработчик, и они делили один таймер next_tick: тот, кто срабатывал первым,
+-- съедал окно, а второй почти всегда выходил по throttle. В логе заказчика из-за
+-- этого пропали строки «ПОЯС ...» и диагностика (их писала только ветка биндера).
+-- Теперь оба источника зовут tick(), который:
+--   * КАЖДЫЙ вызов делает быструю проверку пояса (<= 5 предметов) - она
+--     идемпотентна, повторный вызов в том же кадре ничего не делает;
+--   * раз в PERIOD_MS (300 мс) делает полный проход и пишет лог.
+----------------------------------------------------------------------------
+local function tick()
     local actor = db.actor
     if not actor then return end
 
     local st  = normalize_state()
     local now = time_global()
 
-    -- 1. КАЖДЫЙ КАДР: быстрая проверка пояса (см. fast_belt_check). Именно она
+    -- Турер нужен как кадровый источник: создаём его при первой же возможности
+    -- (актор уже есть), чтобы не ждать первого действия игрока.
+    if not st.tuner_id then ensure_tuner() end
+
+    -- 1. КАЖДЫЙ ВЫЗОВ: быстрая проверка пояса (см. fast_belt_check). Именно она
     -- убирает «скачок статов»: артефакт, положенный на пояс без аккумулятора,
     -- гасится в том же кадре, до следующего пересчёта пояса движком (100 мс).
     local ok_fast, err_fast = pcall(function()
@@ -510,8 +529,14 @@ function bq_battery_tuner_binder:update(delta)
 
     if not ok and now >= (st.last_error or 0) + 1000 then
         st.last_error = now
-        dbg("ОШИБКА в update турера: " .. tostring(err))
+        dbg("ОШИБКА в кадровом обработчике: " .. tostring(err))
     end
+end
+
+-- Кадровый обработчик биндера турера (основной источник).
+function bq_battery_tuner_binder:update(delta)
+    object_binder.update(self, delta)
+    tick()
 end
 
 function bind(obj)
@@ -548,22 +573,13 @@ function on_game_start()
     dbg("==== механика аккумулятора загружена (on_game_start) ====")
 end
 
--- Резервный тик (см. on_game_start). Идемпотентен, поэтому двойной вызов с
--- биндером ничего не портит.
+-- Резервный кадровый источник: штатная рассылка update. Лог заказчика от
+-- 09.10.2026 показал, что в этой сборке она работает и переживает загрузку
+-- сейва (механика отработала именно через неё), поэтому оставляем её как
+-- полноценный второй источник, а не как «аварийный»: оба зовут одну tick()
+-- (см. пояснение выше) - двойной вызов ничего не ломает.
 function bq_battery_update(delta)
-    local actor = db.actor
-    if not actor then return end
-    local st = normalize_state()
-    local now = time_global()
-    if now < (st.next_tick or 0) then return end
-    st.next_tick = now + PERIOD_MS
-
-    local ok, err = pcall(function()
-        local powered = battery_in_slot(actor)
-        local stats, seen = apply_gate(actor, powered)
-        restore_orphans(seen)
-    end)
-    if not ok then dbg("ОШИБКА в резервном update: " .. tostring(err)) end
+    tick()
 end
 
 -- Резервные точки загрузки из [callbacks] (mod_game_global_z_bq.ltx).
