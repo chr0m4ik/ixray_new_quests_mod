@@ -217,13 +217,25 @@ local DROP_SECTION = "bq_battery_drop"
 
 -- Читает число из конфига без риска Debug.fatal: сначала section_exist, потом
 -- line_exist, и только затем r_float (MEMO 35.3 - иначе движок падает).
+-- ВАЖНО: system_ini() берём ЗДЕСЬ, локально. Раньше функция пользовалась
+-- переменной ini, а она объявлена как local ВНУТРИ section_class/is_battery -
+-- на верхнем уровне её нет, поэтому ini был nil, pcall глотал ошибку, и
+-- discharge_days всегда читался как 0: разряд молча ничего не делал (сеанс 36).
+local cfg_errors = {}
 local function cfg_float(section, key, default)
     local ok, value = pcall(function()
+        local ini = system_ini()
         if not ini:section_exist(section) then return nil end
         if not ini:line_exist(section, key) then return nil end
         return ini:r_float(section, key)
     end)
     if ok and type(value) == "number" then return value end
+    -- Один раз на ключ пишем в лог: иначе такая ошибка снова спрячется.
+    local tag = tostring(section) .. "." .. tostring(key)
+    if not cfg_errors[tag] then
+        cfg_errors[tag] = true
+        dbg(string.format("не смог прочитать %s (значение по умолчанию %s)", tag, tostring(default)))
+    end
     return default
 end
 
@@ -603,6 +615,7 @@ local function drop_step(actor)
     local cmax = cfg_float(DROP_SECTION, "condition_max", 1.0)
     local communities = ""
     pcall(function()
+        local ini = system_ini()
         if ini:section_exist(DROP_SECTION) and ini:line_exist(DROP_SECTION, "communities") then
             communities = ini:r_string(DROP_SECTION, "communities")
         end
