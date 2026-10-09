@@ -80,9 +80,11 @@ for (const p of PAIRS) {
     }
 
     // 3. Картинки.
+    const ddsCheck = require('./dds.js');
+    const isPot = (x) => x && !(x & (x - 1));
     const refs = [];
     for (const m of ourText.matchAll(/<texture[^>]*>([^<]+)<\/texture>/g)) refs.push(m[1]);
-    let own = 0, logical = 0, missingTex = 0;
+    let own = 0, logical = 0, missingTex = 0, badTex = 0;
     const seen = new Set();
     for (const ref of refs) {
         const t = textureTarget(ref);
@@ -92,17 +94,36 @@ for (const p of PAIRS) {
         }
         if (seen.has(t)) continue;
         seen.add(t);
-        own++;
-        if (!fs.existsSync(path.join(ROOT, t))) {
+        const abs = path.join(ROOT, t);
+        if (!fs.existsSync(abs)) {
             err(`нет файла текстуры: ${t} (ссылка ui\\${ref.trim()})`);
             missingTex++;
+            continue;
+        }
+        own++;
+        // Размеры обязаны быть степенью двойки: в этой сборке все 285 UI-текстур
+        // POT, а движок в отчёте об ошибке прямо называет "Non-power-of-2
+        // texture dimensions" причиной отказа создать текстуру
+        // (Layers\xrRenderDX10\dx11Texture.cpp:83-92).
+        try {
+            const hdr = ddsCheck.readHeader(fs.readFileSync(abs));
+            if (!isPot(hdr.width) || !isPot(hdr.height)) {
+                err(`${path.basename(t)}: размер ${hdr.width}x${hdr.height} не степень двойки ` +
+                    `- движок может отказаться загрузить (пересобрать: node tools/ui_reskin.js extract)`);
+                badTex++;
+            }
+        } catch (e) {
+            err(`${path.basename(t)}: не читается как DDS (${e.message})`);
+            badTex++;
         }
     }
-    if (!missingTex) ok(`свои текстуры на месте: ${own} файлов, ссылок всего ${refs.length}`);
+    if (!missingTex && !badTex) ok(`свои текстуры на месте: ${own} файлов, ссылок всего ${refs.length}`);
     if (logical) ok(`ссылок на ванильные атласы (логические id): ${logical}`);
 
     // 4. Размеры текстур против размера элемента - предупреждение, если картинка
-    //    меньше элемента (будет растянута и размыта).
+    //    заметно мельче элемента (будет растянута и размыта). Небольшое расхождение
+    //    (в пределах ~25%) нормально: POT-размеры не могут точно совпасть с
+    //    произвольным прямоугольником интерфейса.
     const bad = [];
     for (const m of ourText.matchAll(/<([a-zA-Z0-9_]+)([^>]*)>\s*<texture[^>]*>([^<]+)<\/texture>/g)) {
         const attrs = m[2], ref = m[3].trim();
@@ -115,10 +136,11 @@ for (const p of PAIRS) {
         const dds = require('./dds.js');
         try {
             const hdr = dds.readHeader(fs.readFileSync(file));
-            if (hdr.width < +w[1] || hdr.height < +h[1]) {
-                bad.push(`${ref.trim()}: картинка ${hdr.width}x${hdr.height}, элемент ${w[1]}x${h[1]}`);
+            const scale = Math.min(hdr.width / +w[1], hdr.height / +h[1]);
+            if (scale < 0.75) {
+                bad.push(`${ref.trim()}: картинка ${hdr.width}x${hdr.height}, элемент ${w[1]}x${h[1]} (растяжение x${(1 / scale).toFixed(2)})`);
             }
-        } catch (e) { /* о проблемах чтения сообщит другой инструмент */ }
+        } catch (e) { /* о проблемах чтения сообщает проверка выше */ }
     }
     if (bad.length) warn(`картинка меньше элемента (будет растянута): ${bad.slice(0, 4).join('; ')}${bad.length > 4 ? ` и ещё ${bad.length - 4}` : ''}`);
 }
