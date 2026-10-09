@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<string_table>
+    <!-- Batteries for the artifact belt (plan item 1).
+         Temporary texts: the customer will replace them in item 7. -->
+
+    <string id="bq_battery_name">
+        <text>Accumulator</text>
+    </string>
+    <string id="bq_battery_descr">
+        <text>An accumulator for the artifact belt.</text>
+    </string>
+
+    <string id="bq_battery_1_name">
+        <text>Accumulator 1</text>
+    </string>
+    <string id="bq_battery_1_descr">
+        <text>This accumulator is good.</text>
+    </string>
+
+    <string id="bq_battery_2_name">
+        <text>Accumulator 2</text>
+    </string>
+    <string id="bq_battery_2_descr">
+        <text>This accumulator is average.</text>
+    </string>
+</string_table>

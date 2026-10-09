@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<string_table>
+    <!-- Аккумуляторы для пояса артефактов (пункт 1 плана).
+         Тексты временные: заказчик заменит их при полировке (пункт 7). -->
+
+    <string id="bq_battery_name">
+        <text>Аккумулятор</text>
+    </string>
+    <string id="bq_battery_descr">
+        <text>Аккумулятор для пояса артефактов.</text>
+    </string>
+
+    <string id="bq_battery_1_name">
+        <text>Аккумулятор 1</text>
+    </string>
+    <string id="bq_battery_1_descr">
+        <text>Этот аккумулятор — хороший.</text>
+    </string>
+
+    <string id="bq_battery_2_name">
+        <text>Аккумулятор 2</text>
+    </string>
+    <string id="bq_battery_2_descr">
+        <text>Этот аккумулятор — средний.</text>
+    </string>
+</string_table>

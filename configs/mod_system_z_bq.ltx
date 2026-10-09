@@ -21,6 +21,11 @@
 ; Поэтому mod_artefacts_z_bq.ltx движок не находил и наши секции не грузились.
 #include "misc\mod_artefacts_z_bq.ltx"
 
+; Аккумуляторы для пояса артефактов (пункт 1 плана). Отдельный файл, потому что
+; в пункте 5 вариаций станет больше; подключается #include по той же причине,
+; что и артефакты - см. комментарий выше.
+#include "misc\mod_batteries_z_bq.ltx"
+
 [bq_stash_box]:inventory_box
 visual = dynamics\box\box_1a
 fixed_bones = link

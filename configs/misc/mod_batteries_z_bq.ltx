@@ -1,0 +1,139 @@
+; ============================================================================
+; Аккумуляторы для пояса артефактов (пункт 1 плана).
+;
+; КАК ПОДКЛЮЧАЕТСЯ
+;   Явным "#include "misc\mod_batteries_z_bq.ltx"" из configs\mod_system_z_bq.ltx.
+;   Автоподхват "mod_<имя>_*.ltx" здесь не работает: движок ищет такие файлы
+;   только рядом с КОРНЕВЫМ файлом (Xr_ini.cpp:1138), а misc\items.ltx
+;   корневым не открывается - его включает system.ltx через #include.
+;
+; ЧТО ЭТО
+;   Обычный предмет (class = II_ATTCH), как ванильные гитара, гармошка и
+;   сканер B6. По задумке лежит в отдельном слоте и "включает" пояс
+;   артефактов. Слот, проверка наличия и разряд - пункты 2-4 плана.
+;
+; ПОЧЕМУ II_ATTCH
+;   CLSID_IITEM_ATTACH = MK_CLSID('I','I','_','A','T','T','C','H')
+;   зарегистрирован в игровой фабрике (object_factory_register.cpp:362).
+;   Брать класс "по аналогии" нельзя: например, у ванильного [device_pda]
+;   стоит class = S_PDA, а в игровой фабрике есть только D_PDA
+;   (clsid_game.h:168) - при неизвестном CLSID движок печатает
+;   "! [ERROR]: Invalid clsid!" и возвращает ЧУЖОЙ элемент фабрики
+;   (object_factory_inline.h:55-68).
+;
+; ПРОЧНОСТЬ (заряд)
+;   use_condition = true включает m_fCondition (0..1). У обычного предмета это
+;   работает так же, как у оружия: значение сохраняется в сейве
+;   (inventory_item.cpp:514, 825) и рисуется полоской в ячейке
+;   (UICellItem.cpp:304-330) и в окне предмета (UIItemInfo.cpp:375).
+;   Сам разряд - пункт 4.
+;
+; ЧТО ЛЕЖИТ В ФАЙЛЕ
+;   [bq_battery_base] - общая часть: класс, вес, цена, флаги, иконка;
+;   [bq_battery_1]    - конкретные аккумуляторы (модель, имена, цена);
+;   [bq_battery_2]
+;
+; ЗАГЛУШКИ ЭТОГО ЭТАПА (меняются в пунктах 5 и 6)
+;   * иконка - ячейка атласа контейнеров (свой атлас будет в пункте 6);
+;   * модели - свободные меши Anomaly, уже лежащие в аддоне;
+;   * описания - временные ("хороший"/"средний").
+;
+; ВАЖНО: пока у предметов НЕТ ключа slot. Его добавит пункт 2 вместе с
+;   slot_persistent_14 / slot_active_14 в [inventory] и ячейкой в
+;   actor_menu.xml. Если задать slot раньше, движок положит предмет в слот,
+;   а UI покажет его в рюкзаке (ячейки с таким номером ещё нет:
+;   UIActorMenuInventory.cpp:814-848).
+; ============================================================================
+
+; ---------------------------------------------------------------------------
+; Общая часть аккумулятора.
+; Родитель identity_immunities даёт строго читаемые ключи: immunities_sect,
+; slot = -1, description, default_to_ruck, sprint_allowed,
+; control_inertion_factor (defines.ltx:50-58, inventory_item.cpp:111-193).
+; ---------------------------------------------------------------------------
+[bq_battery_base]:identity_immunities
+; class обязателен: без него движок падает при спавне и при перечислении
+; секций в debug-спавнере (SpawnManager.cpp:137 -> pSettings->r_clsid).
+class                       = II_ATTCH
+$spawn                      = "devices\bq_battery"
+GroupControlSection         = spawn_group
+discovery_dependency        =
+cform                       = skeleton
+
+; ЗАГЛУШКА: своя модель будет в пункте 6. Меш обязан существовать, иначе
+; движок молча не покажет секцию в спавнере (SpawnManager.cpp:139-156).
+visual                      = dynamics\equipments\aa\cooler.ogf
+
+inv_name                    = bq_battery_name
+inv_name_short              = bq_battery_name
+description                 = bq_battery_descr
+
+inv_weight                  = 0.5
+cost                        = 5000
+
+; Аккумулятор нельзя продать и выбросить (решение заказчика).
+; Оба запрета даёт quest_item:
+;   * CanTrade() = FCanTrade && !IsQuestItem()  (inventory_item.cpp:1524);
+;   * пункт "Выбросить" для квестовых предметов не добавляется
+;     (UIActorMenuInventory.cpp:1296), как и перетаскивание
+;     (UIActorMenu_action.cpp:69, 132, 423).
+can_trade                   = false
+quest_item                  = true
+
+; Заряд аккумулятора. Полоска состояния видна сразу, механика - пункт 4.
+use_condition               = true
+
+; Складывать несколько штук в одну ячейку можно только при равном заряде
+; (решение заказчика, позже). Пока запрещено явно.
+can_stack                   = false
+
+; Аккумулятор носится в СВОЁМ слоте (пункт 2), а не на поясе артефактов.
+belt                        = false
+
+; ЗАГЛУШКА: иконка - ячейка атласа контейнеров (свой атлас будет в пункте 6).
+; Атлас и сетка 50x50 проверены на контейнерах: DXT5, inv_scale = 1.0.
+icons_texture               = ui\ui_bq_field_container
+
+; inv_grid_width/height = 0 прячет ШАБЛОН из debug-спавнера: движок считает
+; секцию фиктивной, если оба ключа есть и оба <= 0 (SpawnManager.cpp:160-161).
+; У настоящих аккумуляторов ключи заданы явно.
+inv_grid_width              = 0
+inv_grid_height             = 0
+inv_grid_x                  = 0
+inv_grid_y                  = 0
+
+; Позиция в руках - как у ванильных предметов класса II_ATTCH. Набор читается
+; только целиком: если есть attach_angle_offset, то attach_position_offset и
+; attach_bone_name читаются строго (attachable_item.cpp:51-64).
+attach_angle_offset         = -1.571,-1.308,-1.458
+attach_position_offset      = 0.105,-0.004,0.003
+attach_bone_name            = bip01_l_hand
+auto_attach                 = false
+
+; ---------------------------------------------------------------------------
+; Аккумулятор 1 - "хороший" (заглушка, характеристики в пункте 5).
+; ---------------------------------------------------------------------------
+[bq_battery_1]:bq_battery_base
+visual                      = dynamics\equipments\aa\cooler.ogf
+inv_name                    = bq_battery_1_name
+inv_name_short              = bq_battery_1_name
+description                 = bq_battery_1_descr
+cost                        = 5000
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 0
+
+; ---------------------------------------------------------------------------
+; Аккумулятор 2 - "средний" (заглушка, характеристики в пункте 5).
+; ---------------------------------------------------------------------------
+[bq_battery_2]:bq_battery_base
+visual                      = dynamics\equipments\aa\grid.ogf
+inv_name                    = bq_battery_2_name
+inv_name_short              = bq_battery_2_name
+description                 = bq_battery_2_descr
+cost                        = 8000
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 0
