@@ -28,7 +28,7 @@
 	<left_background x="0" y="0" width="375" height="768" stretch="1">
 		<texture>ui\ui_bq_left_side</texture>
 	    <auto_static x="0" y="0" width="104" height="768" stretch="1">
-		    <texture>ui\ui_bq_left_side</texture>
+		    <texture>ui\ui_bq_blank</texture>
 	    </auto_static>
 	</left_background>
 
