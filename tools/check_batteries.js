@@ -112,10 +112,11 @@ console.log('\n== 2. Шаблон ==');
     const want = {
         class: EXPECTED_CLASS,
         'can_trade': 'false',
-        'quest_item': 'true',
         'use_condition': 'true',
         'can_stack': 'false',
         'belt': 'false',
+        'default_to_ruck': 'true',
+        'bq_battery': 'true',
         'inv_grid_width': '0',
         'inv_grid_height': '0',
     };
@@ -124,7 +125,13 @@ console.log('\n== 2. Шаблон ==');
         const got = b.get(key);
         if (got !== value) { err(`[${BASE}] ${key} = '${got}', ожидалось '${value}'`); bad++; }
     }
-    if (!bad) ok('флаги шаблона верны (класс, запрет торговли/выброса, заряд, скрытие из спавнера)');
+    // quest_item убран специально: он запрещает и выброс, и перетаскивание.
+    if (b.get('quest_item') === 'true') {
+        err(`[${BASE}] quest_item = true: аккумулятор нельзя ни выбросить, ни перетащить - ` +
+            `а заказчик просил и то, и другое`);
+        bad++;
+    }
+    if (!bad) ok('флаги шаблона верны (класс, слот, ручное надевание, выброс разрешён, скрытие из спавнера)');
     if (!b.get('inv_name') || !b.get('description')) {
         err(`[${BASE}] без inv_name/description: если секцию всё же создадут, игра упадёт`);
     }
@@ -171,15 +178,23 @@ console.log('\n== 3. Предметы ==');
         const slot = r.get('slot');
         if (slot === undefined || slot === '') {
             err(`[${name}] не разрешается ключ slot - движок читает его строго ` +
-                `(inventory_item.cpp:165) и упадёт; до пункта 2 он должен приходить ` +
-                `из identity_immunities как -1`);
+                `(inventory_item.cpp:165) и упадёт`);
         } else if (slot === '-1') {
-            info(`[${name}] slot = -1 (нет слота) - это нормально до пункта 2`);
+            err(`[${name}] slot = -1: слот аккумулятора не подключён (пункт 2 плана). ` +
+                `Ожидалось ${FUTURE_SLOT} (CUSTOM_SLOT_1 = 14)`);
         } else if (slot !== FUTURE_SLOT) {
             err(`[${name}] slot = ${slot}, ожидалось ${FUTURE_SLOT} (CUSTOM_SLOT_1 = 14)`);
         } else {
-            info(`[${name}] slot = ${slot}: убедитесь, что пункт 2 сделан целиком - ` +
-                `slot_persistent_14/active_14 в [inventory] и 14-й <slot> в actor_menu.xml`);
+            ok(`[${name}] slot = ${slot} -> CUSTOM_SLOT_1 (14)`);
+        }
+
+        // Пока слот задан, движок читает эти три ключа СТРОГО
+        // (inventory_item.cpp:182-187). Их даёт identity_immunities, но проверить
+        // надо: если родителя когда-нибудь сменят, игра упадёт при спавне.
+        if (slot !== undefined && slot !== '-1') {
+            for (const k of ['default_to_ruck', 'sprint_allowed', 'control_inertion_factor']) {
+                if (!r.get(k)) err(`[${name}] не разрешается строгий ключ ${k} (inventory_item.cpp:182-187)`);
+            }
         }
     }
 }
@@ -322,14 +337,213 @@ console.log('\n== 7. Подключение и дубли ==');
     for (const f of others) {
         const text = fs.readFileSync(f).toString('latin1');
         for (const m of text.matchAll(/^!?\[(bq_battery[A-Za-z0-9_]*)\]/gm)) {
+            // Турер механики живёт рядом с турером радиации - это не предмет.
+            if (m[1] === 'bq_battery_tuner') continue;
             err(`секция [${m[1]}] объявлена ещё и в ${path.relative(ROOT, f)} - движок упадёт с "Duplicate section"`);
         }
     }
-    ok('дублей секций bq_battery_* в других конфигах нет');
+    ok('дублей секций предметов bq_battery_* в других конфигах нет');
+}
+
+// ---------------------------------------------------------------------------
+// 8. Слот аккумулятора (пункт 2 плана)
+//
+// Проверяем всё, что должно совпасть, чтобы «надеть» аккумулятор заработало:
+//   1) флаги предмета (маркер, default_to_ruck, запрет продажи, выброс разрешён);
+//   2) [inventory] в mod_system_z_bq.ltx (движок считает слоты до первого пропуска);
+//   3) [alife] start_game_callback - единственная точка загрузки механики;
+//   4) XML-оверрайды интерфейса: имя под маску автоподхвата, форма узла, текстуры;
+//   5) геометрия ячейки: не залезает на пояс, рюкзак и панель состояния;
+//   6) турер механики и резервные точки загрузки (callbacks).
+// ---------------------------------------------------------------------------
+console.log('\n== 8. Слот аккумулятора (пункт 2) ==');
+{
+    // --- 1. Флаги предметов
+    for (const name of ITEMS) {
+        const r = resolve(name);
+        if (r.get('bq_battery') !== 'true') {
+            err(`[${name}] нет маркера bq_battery = true - скрипт не поймёт, что это аккумулятор`);
+        }
+        if (r.get('default_to_ruck') !== 'true') {
+            err(`[${name}] default_to_ruck = '${r.get('default_to_ruck')}': аккумулятор надевался бы ` +
+                `автоматически при получении, а заказчик просил только вручную`);
+        }
+        if (r.get('can_trade') !== 'false') {
+            err(`[${name}] can_trade = '${r.get('can_trade')}': аккумулятор можно продать`);
+        }
+        const quest = r.get('quest_item');
+        if (quest === 'true') {
+            err(`[${name}] quest_item = true: движок запретит и выброс, и перетаскивание ` +
+                `(UIActorMenuInventory.cpp:1296, UIActorMenu_action.cpp:69)`);
+        }
+        if (r.get('belt') !== 'false') {
+            err(`[${name}] belt = '${r.get('belt')}': аккумулятор должен носиться в слоте, а не на поясе`);
+        }
+    }
+    ok('флаги предметов: маркер, ручное надевание, запрет продажи, выброс разрешён');
+
+    // --- 2. Состояние слота в [inventory]
+    const sysText = fs.readFileSync(SYS_FILE, 'utf8');
+    const sysIni = readLtx(SYS_FILE);
+    const inv = sysIni.get('inventory');
+    if (!inv || !inv.override) {
+        err('в mod_system_z_bq.ltx нет секции ![inventory] - слоты 13/14 не зарегистрированы');
+    } else {
+        const want = {
+            slot_persistent_13: 'false',
+            slot_active_13: 'true',
+            slot_persistent_14: 'false',
+            slot_active_14: 'false',
+        };
+        for (const [key, value] of Object.entries(want)) {
+            const got = inv.keys.get(key);
+            if (got !== value) err(`[inventory] ${key} = '${got}', ожидалось '${value}'`);
+        }
+        ok('слоты 13 (рюкзак) и 14 (аккумулятор) зарегистрированы');
+        if (want.slot_persistent_14 !== 'false') {
+            err('[inventory] slot_persistent_14 должен быть false, иначе не появится пункт «надеть»');
+        }
+    }
+    if (!sysText.includes('slot_persistent_13') || !sysText.includes('slot_persistent_14')) {
+        err('в [inventory] должны быть ОБА номера подряд (13 и 14): движок считает ' +
+            'last_slot циклом до первого пропуска (Inventory.cpp:66-78)');
+    }
+
+    // --- 3. Точка загрузки механики
+    const alife = sysIni.get('alife');
+    if (!alife || !alife.override) {
+        err('в mod_system_z_bq.ltx нет секции ![alife] - механика не загрузится на старте игры');
+    } else if (alife.keys.get('start_game_callback') !== 'bq_battery.on_game_start') {
+        err(`[alife] start_game_callback = '${alife.keys.get('start_game_callback')}', ` +
+            `ожидалось 'bq_battery.on_game_start'`);
+    } else ok('[alife] start_game_callback -> bq_battery.on_game_start');
+
+    // --- 4. XML-оверрайды интерфейса
+    const UI_DIR = path.join(ROOT, 'configs', 'ui');
+    const VARIANTS = [
+        { file: 'mod_actor_menu_z_bq.xml', base: 'actor_menu.xml', label: '4:3' },
+        { file: 'mod_actor_menu_16_z_bq.xml', base: 'actor_menu_16.xml', label: '16:9' },
+    ];
+    for (const v of VARIANTS) {
+        const p = path.join(UI_DIR, v.file);
+        if (!fs.existsSync(p)) { err(`нет файла ${v.file} (${v.label})`); continue; }
+        const text = fs.readFileSync(p, 'utf8');
+        const buf = fs.readFileSync(p);
+        if (buf[0] === 0xEF && buf[1] === 0xBB && buf[2] === 0xBF) err(`${v.file}: файл с BOM`);
+
+        // Имя обязано попадать под маску автоподхвата mod_<имя файла>_*.xml
+        // (AsureXML.cpp:203-224), иначе движок файл не увидит вообще.
+        const base = v.base.replace(/\.xml$/i, '');
+        if (!v.file.startsWith(`mod_${base}_`)) {
+            err(`${v.file}: имя не подходит под маску "mod_${base}_*.xml" - движок его не найдёт`);
+        }
+        if (!/override\s*=\s*"add"/.test(text)) {
+            err(`${v.file}: нет атрибута override="add" - узел не допишется в оригинал`);
+        }
+        for (const need of ['<inventory_slot_wnd', '<slot>', '<slot_dragdrop', '<slot_progress',
+            '<slot_highlight', '<background', '<progress']) {
+            if (!text.includes(need)) err(`${v.file}: нет узла ${need}`);
+        }
+        // Текстуры слота обязаны существовать.
+        for (const tex of [...text.matchAll(/<texture>\s*([^<\s]+)\s*<\/texture>/g)].map((m) => m[1])) {
+            if (!dds.findTexture(tex, TEXTURE_ROOTS)) {
+                err(`${v.file}: нет текстуры textures\\${tex.replace(/\\/g, '/')}.dds`);
+            }
+        }
+
+        // --- 5. Геометрия: ячейка не должна залезать на пояс, рюкзак и панель состояния.
+        const rect = (tag, src) => {
+            const m = src.match(new RegExp(`<${tag}\\s+([^>]*)`));
+            if (!m) return null;
+            const num = (n) => {
+                const mm = m[1].match(new RegExp(`\\b${n}="(-?\\d+)"`));
+                return mm ? parseInt(mm[1], 10) : null;
+            };
+            return { x: num('x'), y: num('y'), w: num('width'), h: num('height') };
+        };
+        const ours = rect('slot_dragdrop', text);
+        const basePath = path.join(GAME, 'ui', v.base);
+        if (!ours || ours.x === null || ours.w === null) {
+            err(`${v.file}: не разобран прямоугольник slot_dragdrop`);
+        } else if (!fs.existsSync(basePath)) {
+            err(`нет ванильного ${v.base} для сверки геометрии (${basePath})`);
+        } else {
+            const original = fs.readFileSync(basePath, 'utf8');
+            const belt = rect('dragdrop_belt', original);
+            const bag = rect('dragdrop_bag', original);
+            const state = rect('actor_state_info', original);
+            const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+            if (belt && overlaps(ours, belt)) err(`${v.file}: ячейка cлота перекрывает пояс (${JSON.stringify(belt)})`);
+            if (bag && overlaps(ours, bag)) err(`${v.file}: ячейка слота перекрывает рюкзак (${JSON.stringify(bag)})`);
+            if (state && overlaps(ours, state)) err(`${v.file}: ячейка слота перекрывает панель состояния (${JSON.stringify(state)})`);
+            if (belt && bag && ours.x >= belt.x + belt.w && ours.x + ours.w <= bag.x) {
+                ok(`${v.label}: ячейка ${ours.w}x${ours.h} на x=${ours.x} y=${ours.y} между поясом и рюкзаком`);
+            } else if (belt && bag) {
+                err(`${v.label}: ячейка (x=${ours.x}, w=${ours.w}) не помещается между поясом ` +
+                    `(до ${belt.x + belt.w}) и рюкзаком (с ${bag.x})`);
+            }
+        }
+    }
+
+    // --- 6. Турер механики
+    const arte = readLtx(path.join(ROOT, 'configs', 'misc', 'mod_artefacts_z_bq.ltx'));
+    const tuner = arte.get('bq_battery_tuner');
+    if (!tuner) {
+        err('нет секции [bq_battery_tuner] в mod_artefacts_z_bq.ltx - механика не получит кадровый вызов');
+    } else if (tuner.keys.get('script_binding') !== 'bq_battery.bind') {
+        err(`[bq_battery_tuner] script_binding = '${tuner.keys.get('script_binding')}', ` +
+            `ожидалось 'bq_battery.bind'`);
+    } else ok('[bq_battery_tuner] script_binding = bq_battery.bind');
+
+    // --- 7. Резервные точки загрузки и сам скрипт
+    const globals = readLtx(path.join(ROOT, 'configs', 'mod_game_global_z_bq.ltx'));
+    const cb = globals.get('callbacks');
+    const SCRIPT = path.join(ROOT, 'scripts', 'bq_battery.script');
+    if (!fs.existsSync(SCRIPT)) {
+        err('нет scripts\\bq_battery.script');
+    } else {
+        const src = fs.readFileSync(SCRIPT, 'utf8');
+        const sBuf = fs.readFileSync(SCRIPT);
+        if (sBuf[0] === 0xEF && sBuf[1] === 0xBB && sBuf[2] === 0xBF) err('bq_battery.script: файл с BOM');
+        for (const fn of ['on_game_start', 'on_load_trigger', 'bind', 'bq_battery_update']) {
+            if (!new RegExp(`function\\s+${fn}\\s*\\(`).test(src)) {
+                err(`bq_battery.script: нет функции ${fn}`);
+            }
+        }
+        // Слот и маркер должны совпадать со скриптом.
+        const slotNum = parseInt(FUTURE_SLOT, 10) + 1;   // slot = 13 -> CUSTOM_SLOT_1 = 14
+        const slotMatch = src.match(/BATTERY_SLOT\s*=\s*(\d+)/);
+        if (!slotMatch) {
+            err('bq_battery.script: не найдено значение BATTERY_SLOT');
+        } else if (parseInt(slotMatch[1], 10) !== slotNum) {
+            err(`bq_battery.script: BATTERY_SLOT = ${slotMatch[1]}, ожидалось ${slotNum} ` +
+                `(slot = ${FUTURE_SLOT} + 1)`);
+        }
+        if (!src.includes('ITEM_MARKER_KEY') && !src.includes('MARKER_KEY')) {
+            err('bq_battery.script: не упоминает ключ-маркер аккумулятора');
+        }
+        if (!src.includes('bq_battery_tuner')) err('bq_battery.script: не упоминает секцию турера');
+        if (!src.includes('start_game_callback')) {
+            err('bq_battery.script: не вызывает ванильный _G.start_game_callback - ' +
+                'игра останется без ванильной инициализации');
+        }
+        ok('bq_battery.script: точки входа на месте');
+    }
+    if (!cb) {
+        err('не разобрана секция [callbacks] в mod_game_global_z_bq.ltx');
+    } else {
+        for (const key of ['OnItemFocusLost', 'OnZoneTouch', 'OnBeforeHit']) {
+            const value = cb.keys.get(key);
+            if (value !== 'bq_battery.on_load_trigger') {
+                err(`[callbacks] ${key} = '${value}', ожидалось 'bq_battery.on_load_trigger'`);
+            }
+        }
+        ok('резервные точки загрузки (OnItemFocusLost/OnZoneTouch/OnBeforeHit) на месте');
+    }
 }
 
 if (errors === 0) {
-    console.log('\nOK: аккумуляторы описаны корректно.');
+    console.log('\nOK: аккумуляторы и слот описаны корректно.');
     process.exit(0);
 }
 console.error(`\nFAIL: ${errors} ошибок`);

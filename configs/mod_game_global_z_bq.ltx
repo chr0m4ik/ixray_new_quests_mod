@@ -32,3 +32,17 @@ OnItemDropped = bq_containers.on_item_dropped
 OnItemFocusReceive = bq_containers.on_item_focus
 OnKeyPress = bq_inv_rad.on_key_press
 OnCanMoveToPartner = bq_inv_rad.on_can_move_to_partner
+; Аккумулятор (пункт 2 плана): резервные точки загрузки bq_battery.script.
+; Основная точка входа - start_game_callback в [alife] (см. mod_system_z_bq.ltx):
+; движок зовёт её сам при старте игры и загрузке сейва. Эти три ключа нужны на
+; случай перехода на другую локацию: объект-турер механики при переходе
+; уничтожается движком, а тут механика снова попросит его создать (см. MEMO 33.7).
+;
+; Семантика возврата (все три требуют true, иначе сломается поведение игры):
+;   OnItemFocusLost - результат игнорируется (UIActorMenu_action.cpp:371-383);
+;   OnZoneTouch     - false ГЛУШИТ звук детектора зоны (UIHudStatesWnd.cpp:641-646);
+;   OnBeforeHit     - false ОТМЕНЯЕТ попадание по актору (Actor.cpp:769-772).
+; Поэтому одна функция on_load_trigger(...) возвращает true и ничего не читает.
+OnItemFocusLost = bq_battery.on_load_trigger
+OnZoneTouch = bq_battery.on_load_trigger
+OnBeforeHit = bq_battery.on_load_trigger

@@ -1,4 +1,4 @@
-﻿; ============================================================================
+; ============================================================================
 ; Artefact containers - sections for configs\misc\artefacts.ltx
 ;
 ; HOW THIS FILE IS LOADED (checked against the engine sources):
@@ -2901,6 +2901,27 @@ fire_wound_immunity        = 0
 
 [bq_rad_tuner]:space_restrictor
 script_binding              = bq_inv_rad.bind
+cost                        = 0
+inv_weight                  = 0
+inv_grid_width              = 0
+inv_grid_height             = 0
+
+; ---------------------------------------------------------------------------
+; Турер механики аккумулятора (пункт 2 плана).
+;
+; Зачем: штатная рассылка RegisterScriptCallback("update", ...) в этой сборке
+; теряется при пересоздании Lua-машины (MEMO 31.3, 35.1), а у обычного игрового
+; объекта есть свой Lua-биндер, и его метод update планировщик зовёт КАЖДЫЙ кадр
+; (CGameObject::shedule_Update -> CScriptBinder::shedule_Update, см. MEMO 35.2).
+; Так же устроена механика радиации в рюкзаке (bq_rad_tuner выше).
+;
+; Сам объект создаёт скрипт scripts\bq_battery.script рядом с актором и удаляет
+; предыдущий, чтобы они не копились. Класс space_restrictor (SPC_RS_S) выбран
+; потому, что это серверный класс, он создаётся alife():create, имеет $spawn и
+; свободный ключ script_binding (system.ltx:621-626); visual ему не нужен.
+; ---------------------------------------------------------------------------
+[bq_battery_tuner]:space_restrictor
+script_binding              = bq_battery.bind
 cost                        = 0
 inv_weight                  = 0
 inv_grid_width              = 0

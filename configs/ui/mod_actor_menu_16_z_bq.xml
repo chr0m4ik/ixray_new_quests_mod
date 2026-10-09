@@ -1,0 +1,36 @@
+<!--
+    XMLOverride для ui\actor_menu_16.xml (16:9). Движок сам выбирает файл с
+    суффиксом _16 на широком экране (ui_base.cpp:272-339), поэтому ячейку слота
+    аккумулятора нужно описать в обоих вариантах интерфейса.
+    См. подробные пояснения в mod_actor_menu_z_bq.xml.
+
+    ГЕОМЕТРИЯ 16:9 (замерено по ванильному файлу; в ixray-hd-hud такое же):
+      пояс:    dragdrop_belt x=390 y=480 width=240 (ячейки 33x41) -> 390..630
+      рюкзак:  dragdrop_bag  x=662 y=119
+      между поясом и рюкзаком 31 px, поэтому ячейка 30x41 без наложений.
+      Ширина 30 (а не 33) выбрана, чтобы не залезть на рюкзак.
+-->
+<w>
+    <inventory_slot_wnd override="add">
+        <slot> <!-- Аккумулятор (CUSTOM_SLOT_1 = 14) -->
+            <slot_progress x="632" y="480" width="30" height="41" horz="1" min="0" max="1" pos="0">
+                <background stretch="1">
+                    <texture>ui\ui_bq_battery_slot</texture>
+                </background>
+                <progress stretch="1">
+                    <texture>ui\ui_bq_battery_slot_prog</texture>
+                </progress>
+                <min_color r="196" g="18" b="18"/>
+                <middle_color r="255" g="255" b="118"/>
+                <max_color r="107" g="207" b="119"/>
+            </slot_progress>
+            <slot_highlight x="632" y="480" width="30" height="41" stretch="1">
+                <texture>ui\ui_bq_battery_slot_hl</texture>
+            </slot_highlight>
+            <slot_dragdrop x="632" y="480" width="30" height="41"
+                cell_width="30" cell_height="41" rows_num="1" cols_num="1"
+                custom_placement="0" a="0" virtual_cells="1"
+                vc_vert_align="c" vc_horiz_align="c"/>
+        </slot>
+    </inventory_slot_wnd>
+</w>

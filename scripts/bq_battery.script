@@ -1,0 +1,462 @@
+-- bq_battery.script
+-- Пояс артефактов работает ТОЛЬКО если в слоте аккумулятора лежит аккумулятор.
+--
+-- ЗАДАЧА (пункт 2 плана): без аккумулятора в слоте пояс не даёт ничего, при
+-- этом сам аккумулятор и броня (костюм) работают как обычно.
+--
+-- СЛОТ. Это CUSTOM_SLOT_1 = 14 (inventory_space.h:23-33). Предметы получают его
+-- ключом slot = 13 (inventory_item.cpp:165-166: base_slot_id = slot + 1).
+-- Состояние слота (slot_persistent_14 / slot_active_14) - в
+-- configs\mod_system_z_bq.ltx, ячейка интерфейса - в configs\ui\mod_actor_menu*_z_bq.xml.
+--
+-- ПОЧЕМУ ГЛУШИМ ЧЕРЕЗ condition, А НЕ ЧЕРЕЗ set_artefact_*.
+-- Движок умножает ВСЕ вклады артефакта с пояса на его condition:
+--   * эффекты:      Actor.cpp:2608-2630 (здоровье, силы, сытость, жажда,
+--                   кровотечение, радиация), ActorCondition.cpp:1190-1197,
+--                   CActor::GetRestoreSpeed Actor.cpp:2849-2943;
+--   * защиты:       CActor::HitArtefactsOnBelt Actor.cpp:2643-2654,
+--                   CActor::GetProtection_ArtefactsOnBelt Actor.cpp:2674-2687;
+--   * доп. вес:     Actor_Movement.cpp:771-777.
+-- Поэтому condition = 0 выключает пояс ЦЕЛИКОМ.
+--
+-- Lua-сеттеры set_artefact_health / radiation / satiety / thirst / power /
+-- bleeding (script_game_object_script3.cpp:267-279) закрывают только эффекты:
+-- сеттеров для иммунитетов и доп. веса в сборке НЕТ (проверено поиском по всем
+-- Lua-биндингам). Поэтому выбран condition - одна ручка на всё.
+--
+-- ПОЧЕМУ ЭТО НЕЗАМЕТНО И БЕЗОПАСНО:
+--   * у артефактов нет ключа use_condition, значит полоски состояния в ячейке
+--     нет (inventory_item.cpp:178, UICellItem.cpp:312);
+--   * у артефактов нет ключа degrade_rate, значит строка "состояние" в окне
+--     артефакта не показывается (ui_af_params.cpp:215) и износа нет
+--     (Actor.cpp:1878, 1979);
+--   * костюм (броня) - ОТДЕЛЬНЫЙ объект и отдельная ветка кода, к нему мы не
+--     прикасаемся вообще: глушим только артефакты, лежащие НА ПОЯСЕ.
+-- Настоящее значение запоминаем (в _G и в pstor) и возвращаем, как только
+-- аккумулятор вставлен или артефакт ушёл с пояса.
+--
+-- КАК МЕХАНИКА ЗАГРУЖАЕТСЯ И ТИКАЕТ.
+--   1. Загрузка: ключ start_game_callback в [alife] (alife_simulator.cpp:81-84) -
+--      движок сам зовёт нашу функцию при старте игры и загрузке сейва. Это
+--      обязательно: scripts\*.script в этой сборке исполняются только при
+--      обращении по имени (MEMO 33.7). Внутри сначала вызывается ВАНИЛЬНЫЙ
+--      _G.start_game_callback (_g.script:514), иначе игра останется без неё.
+--   2. Кадры: свой объект-турер [bq_battery_tuner] со своим script_binding.
+--      Метод update биндера зовёт ПЛАНИРОВЩИК каждый кадр
+--      (CGameObject::shedule_Update -> CScriptBinder::shedule_Update, MEMO 35.2),
+--      это не зависит от реестра колбэков, который теряется при пересоздании
+--      Lua-машины (MEMO 31.3, 35.1). Так же сделана радиация в рюкзаке.
+--   3. Резерв: свободные ключи [callbacks] OnItemFocusLost / OnZoneTouch /
+--      OnBeforeHit (mod_game_global_z_bq.ltx) снова создают турер после перехода
+--      на другую локацию - при переходе движок уничтожает все объекты уровня.
+--
+-- ОТЛАДКА: log() из скриптов аддона в игровой лог не попадает (MEMO 13.5),
+-- поэтому пишем в bq_battery.log в корне игры. Лог включён на время проверки
+-- механики в игре (пункт 2), перед релизом его надо выключить (DEBUG = false).
+
+-- Отладочный лог. При DEBUG = false dbg не делает ничего.
+local DEBUG = true
+local LOG_FILE = "bq_battery.log"
+
+-- Периодичность проверки, мс (решение заказчика: 300 мс).
+local PERIOD_MS = 300
+
+-- Секция турера (см. configs\misc\mod_artefacts_z_bq.ltx).
+local TUNER_SECTION = "bq_battery_tuner"
+
+-- Слот аккумулятора: CUSTOM_SLOT_1 = 14 (первый кастомный слот движка).
+local BATTERY_SLOT = 14
+
+-- Ключ-маркер аккумулятора в его секции (configs\misc\mod_batteries_z_bq.ltx).
+local MARKER_KEY = "bq_battery"
+
+-- Префикс ключа pstor, в котором лежит настоящее состояние артефакта.
+local PSTOR_PREFIX = "bq_batt_cond_"
+
+----------------------------------------------------------------------------
+-- Отладка: пишем в файл в корне игры (log() в игровой лог не попадает).
+----------------------------------------------------------------------------
+local function dbg(msg)
+    if not DEBUG then return end
+    local f = io.open(LOG_FILE, "a")
+    if f then
+        f:write(os.date("%H:%M:%S") .. "  " .. msg .. "\n")
+        f:close()
+    end
+end
+
+----------------------------------------------------------------------------
+-- Состояние механизма. Живёт в _G: движок исполняет .script повторно (новый
+-- экземпляр модуля), а таблица _G при этом сохраняется, поэтому локальные
+-- переменные модуля для разделяемого состояния не годятся (MEMO 31.2, 35.1).
+--
+-- Поля нельзя считать созданными: старая таблица переживает обновление скрипта,
+-- поэтому normalize_state явно выставляет всё нужное (иначе вылет вида
+-- "attempt to perform arithmetic on field 'cycles'", MEMO 35.1).
+----------------------------------------------------------------------------
+_G.bq_battery = _G.bq_battery or {}
+
+local function normalize_state()
+    local st = _G.bq_battery
+    st.tuner_id     = st.tuner_id     or nil
+    st.next_tick    = st.next_tick    or nil
+    st.cycles       = st.cycles       or 0
+    st.last_log     = st.last_log     or 0
+    st.hidden       = st.hidden       or {}      -- id -> настоящее condition
+    st.powered      = st.powered                       -- nil = ещё не знаем
+    st.logged_power = st.logged_power
+    st.last_status  = st.last_status  or 0
+    return st
+end
+
+normalize_state()
+
+----------------------------------------------------------------------------
+-- Чтение конфига. СТРОГО: section_exist -> line_exist -> r_*.
+-- Без проверок r_string/r_bool делает VERIFY3, а это Debug.fatal - мгновенное
+-- завершение игры, которое pcall НЕ ловит (MEMO 35.3, проверено вылетом).
+----------------------------------------------------------------------------
+local section_cache = {}
+
+local function section_class(section)
+    if not section then return nil end
+    local cached = section_cache[section]
+    if cached ~= nil then return cached or nil end
+
+    local value = false
+    local ok, res = pcall(function()
+        local ini = system_ini()
+        if not ini:section_exist(section) then return false end
+        if not ini:line_exist(section, "class") then return false end
+        return ini:r_string(section, "class")
+    end)
+    if ok and type(res) == "string" then value = res end
+
+    section_cache[section] = value
+    return value or nil
+end
+
+local function is_artefact(section)
+    local class = section_class(section)
+    return class == "ARTEFACT" or class == "SCRPTART"
+end
+
+-- Аккумулятор определяем по маркеру bq_battery в его секции. Это надёжнее, чем
+-- сравнение имён секций: в пункте 5 аккумуляторов станет несколько.
+local function is_battery(section)
+    if not section then return false end
+    local cached = section_cache["battery:" .. section]
+    if cached ~= nil then return cached == true end
+
+    local value = false
+    local ok, res = pcall(function()
+        local ini = system_ini()
+        if not ini:section_exist(section) then return false end
+        if not ini:line_exist(section, MARKER_KEY) then return false end
+        return ini:r_bool(section, MARKER_KEY)
+    end)
+    if ok and res == true then value = true end
+
+    section_cache["battery:" .. section] = value
+    return value
+end
+
+----------------------------------------------------------------------------
+-- Настоящее состояние артефакта: храним в _G и в pstor актора.
+-- pstor (xr_logic.pstor_store/retrieve) сохраняется в сейве, поэтому состояние
+-- не потеряется, если игрок сохранится без аккумулятора. Ключ на каждый предмет
+-- свой, снимаем его сразу после возврата состояния.
+----------------------------------------------------------------------------
+local function pstor_key(id)
+    return PSTOR_PREFIX .. tostring(id)
+end
+
+local function remember_condition(id, value)
+    local st = normalize_state()
+    st.hidden[id] = value
+    if db.actor then xr_logic.pstor_store(db.actor, pstor_key(id), value) end
+end
+
+local function saved_condition(id)
+    local st = normalize_state()
+    local value = st.hidden[id]
+    if value == nil and db.actor then
+        local stored = xr_logic.pstor_retrieve(db.actor, pstor_key(id), nil)
+        if type(stored) == "number" then value = stored end
+    end
+    return value
+end
+
+local function forget_condition(id)
+    local st = normalize_state()
+    st.hidden[id] = nil
+    if db.actor then xr_logic.pstor_store(db.actor, pstor_key(id), nil) end
+end
+
+----------------------------------------------------------------------------
+-- Сам механизм.
+----------------------------------------------------------------------------
+local function battery_in_slot(actor)
+    local item = actor:item_in_slot(BATTERY_SLOT)
+    if not item then return false, nil end
+    local section = item:section()
+    if not is_battery(section) then return false, section end
+    return true, section
+end
+
+local function get_condition(item)
+    local ok, value = pcall(function() return item:condition() end)
+    if ok and type(value) == "number" then return value end
+    return nil
+end
+
+local function set_condition(item, value)
+    pcall(function() item:set_condition(value) end)
+end
+
+-- Один проход по инвентарю актора.
+-- ВАЖНО: колбэк iterate_inventory НЕ должен вернуть true - это немедленно
+-- оборвёт перебор (script_game_object_inventory_owner.cpp:276-279).
+local function apply_gate(actor, powered)
+    local st = normalize_state()
+    local stats = { belt = 0, artefacts = 0, hidden = 0, restored = 0 }
+    local seen = {}      -- id предметов, которые сейчас у актора
+
+    actor:iterate_inventory(function(owner, item)
+        if not item then return end
+
+        local section = item:section()
+        if not is_artefact(section) then return end
+
+        local id = item:id()
+        seen[id] = true
+        local on_belt = owner:is_on_belt(item)
+        stats.artefacts = stats.artefacts + 1
+        if on_belt then stats.belt = stats.belt + 1 end
+
+        if (not powered) and on_belt then
+            -- Пояс выключен: прячем вклад артефакта.
+            local current = get_condition(item)
+            if current and current > 0 then
+                remember_condition(id, current)
+                set_condition(item, 0)
+                stats.hidden = stats.hidden + 1
+                dbg(string.format("спрятал состояние %s (id=%d), было %.3f", section, id, current))
+            elseif current == 0 and saved_condition(id) == nil then
+                -- Так бывает, если сейв сделан нашей прошлой версией или сейв
+                -- чужой: состояние 0, а записи о настоящем значении нет.
+                remember_condition(id, 1.0)
+            end
+        else
+            -- Пояс включён или предмет не на поясе: возвращаем настоящее значение.
+            local real = saved_condition(id)
+            if real ~= nil and real > 0 then
+                if get_condition(item) ~= real then
+                    set_condition(item, real)
+                    stats.restored = stats.restored + 1
+                    dbg(string.format("вернул состояние %s (id=%d) = %.3f", section, id, real))
+                end
+                forget_condition(id)
+            end
+        end
+    end, actor)
+
+    return stats, seen
+end
+
+-- Если игрок выбросил артефакт, пока пояс был выключен, объект остался с
+-- нулевым состоянием. Возвращаем ему настоящее значение и убираем запись.
+--
+-- ВАЖНО: предметы, которые всё ещё у актора (seen), пропускаем - иначе мы
+-- вернули бы состояние только что спрятанному артефакту на поясе (у предметов
+-- в инвентаре тоже есть клиентский объект, и level.object_by_id его находит).
+--
+-- Достать выброшенный предмет можно только клиентским объектом:
+-- level.object_by_id(id) (level_script.cpp:201,1501). Если предмет ушёл в
+-- офлайн (далеко или на другой локации), клиентского объекта нет - тогда запись
+-- НЕ удаляем: состояние вернётся, когда предмет снова попадёт в инвентарь
+-- актора (ветка возврата в apply_gate).
+local function restore_orphans(seen)
+    local st = normalize_state()
+    for id, value in pairs(st.hidden) do
+        if not seen[id] then
+            local object = level.object_by_id(id)
+            if object then
+                pcall(function() object:set_condition(value) end)
+                st.hidden[id] = nil
+                if db.actor then xr_logic.pstor_store(db.actor, pstor_key(id), nil) end
+                dbg(string.format("вернул состояние выброшенному предмету id=%d = %.3f", id, value))
+            end
+        end
+    end
+end
+
+----------------------------------------------------------------------------
+-- Турер: объект-ограничитель со своим биндером (кадровый источник).
+----------------------------------------------------------------------------
+local function tuner_object()
+    local id = _G.bq_battery.tuner_id
+    if not id then return nil end
+    local object = alife() and alife():object(id)
+    if not object or object:section_name() ~= TUNER_SECTION then return nil end
+    return object
+end
+
+local function ensure_tuner()
+    local actor = db.actor
+    if not actor or not alife() then return end
+    if tuner_object() then return end
+
+    local ok, err = pcall(function()
+        local created = alife():create(TUNER_SECTION, actor:position(),
+            actor:level_vertex_id(), actor:game_vertex_id())
+        if created then
+            local st = normalize_state()
+            st.tuner_id  = created.id
+            st.next_tick = time_global() + PERIOD_MS
+            dbg("==== турер аккумулятора создан, id=" .. tostring(created.id) .. " ====")
+        else
+            dbg("ОШИБКА: турер не создался")
+        end
+    end)
+    if not ok then
+        dbg("ОШИБКА при создании турера: " .. tostring(err))
+    end
+end
+
+class "bq_battery_tuner_binder" (object_binder)
+
+function bq_battery_tuner_binder:__init(obj)
+    super(obj)
+end
+
+function bq_battery_tuner_binder:net_spawn(server_object)
+    if not object_binder.net_spawn(self, server_object) then
+        return false
+    end
+    local st = normalize_state()
+    st.tuner_id  = self.object:id()
+    st.next_tick = time_global() + PERIOD_MS
+    dbg("==== турер аккумулятора появился, id=" .. tostring(self.object:id()) .. " ====")
+    return true
+end
+
+function bq_battery_tuner_binder:net_destroy()
+    if _G.bq_battery.tuner_id == self.object:id() then
+        _G.bq_battery.tuner_id = nil
+    end
+    dbg("турер аккумулятора уничтожен")
+    object_binder.net_destroy(self)
+end
+
+-- Кадровый обработчик: раз в PERIOD_MS проверяем слот и состояние пояса.
+function bq_battery_tuner_binder:update(delta)
+    object_binder.update(self, delta)
+
+    local actor = db.actor
+    if not actor then return end
+
+    local st  = normalize_state()
+    local now = time_global()
+    if now < (st.next_tick or 0) then return end
+    st.next_tick = now + PERIOD_MS
+    st.cycles = st.cycles + 1
+
+    local ok, err = pcall(function()
+        local powered, section = battery_in_slot(actor)
+
+        -- Сообщаем об изменении состояния пояса сразу (важно для проверки в игре).
+        if st.powered ~= powered then
+            st.powered = powered
+            dbg(string.format("ПОЯС %s (в слоте %d: %s)",
+                powered and "ВКЛЮЧЁН" or "ВЫКЛЮЧЕН", BATTERY_SLOT,
+                section or "пусто"))
+        end
+
+        local stats, seen = apply_gate(actor, powered)
+        restore_orphans(seen)
+
+        -- Диагностика раз в 5 секунд.
+        if now >= (st.last_status or 0) + 5000 then
+            st.last_status = now
+            dbg(string.format("цикл=%d пояс=%s | артефактов=%d на поясе=%d спрятано=%d возвращено=%d (в памяти %d)",
+                st.cycles, powered and "вкл" or "выкл", stats.artefacts, stats.belt,
+                stats.hidden, stats.restored, (function()
+                    local n = 0
+                    for _ in pairs(st.hidden) do n = n + 1 end
+                    return n
+                end)()))
+        end
+    end)
+
+    if not ok then
+        dbg("ОШИБКА в update турера: " .. tostring(err))
+    end
+end
+
+function bind(obj)
+    obj:bind_object(bq_battery_tuner_binder(obj))
+end
+
+----------------------------------------------------------------------------
+-- Точки входа.
+----------------------------------------------------------------------------
+-- Главная: движок зовёт её сам (ключ start_game_callback в [alife],
+-- alife_simulator.cpp:81-84) при старте новой игры и при загрузке сохранения.
+-- Вызывается ДО загрузки уровня, поэтому актора ещё нет: здесь только
+-- переподписываемся и помечаем, что механику надо поднять.
+-- ОБЯЗАТЕЛЬНО вызываем ванильную функцию - её тоже ждёт движок.
+function on_game_start()
+    local vanilla = _G.start_game_callback
+    if type(vanilla) == "function" and vanilla ~= on_game_start then
+        local ok, err = pcall(vanilla)
+        if not ok then dbg("ОШИБКА в ванильном start_game_callback: " .. tostring(err)) end
+    end
+
+    normalize_state()
+    _G.bq_battery.hidden = _G.bq_battery.hidden or {}
+
+    -- Резервный кадровый источник: штатная рассылка update. В этой сборке она
+    -- может потеряться (MEMO 31.3), поэтому это именно резерв, а основной -
+    -- биндер турера.
+    pcall(function()
+        if type(RegisterScriptCallback) == "function" then
+            RegisterScriptCallback("update", bq_battery_update)
+        end
+    end)
+
+    dbg("==== механика аккумулятора загружена (on_game_start) ====")
+end
+
+-- Резервный тик (см. on_game_start). Идемпотентен, поэтому двойной вызов с
+-- биндером ничего не портит.
+function bq_battery_update(delta)
+    local actor = db.actor
+    if not actor then return end
+    local st = normalize_state()
+    local now = time_global()
+    if now < (st.next_tick or 0) then return end
+    st.next_tick = now + PERIOD_MS
+
+    local ok, err = pcall(function()
+        local powered = battery_in_slot(actor)
+        local stats, seen = apply_gate(actor, powered)
+        restore_orphans(seen)
+    end)
+    if not ok then dbg("ОШИБКА в резервном update: " .. tostring(err)) end
+end
+
+-- Резервные точки загрузки из [callbacks] (mod_game_global_z_bq.ltx).
+-- Здесь НЕЛЬЗЯ делать тяжёлую работу: повторный вход в Lua из C++ внутри уже
+-- исполняющегося Lua-колбэка валит игру (проверено в MEMO 33.7/сеансе 21).
+-- Возврат true безопасен для всех трёх ключей:
+--   OnItemFocusLost - результат игнорируется;
+--   OnZoneTouch     - false глушит звук детектора зоны;
+--   OnBeforeHit     - false отменяет попадание по актору.
+function on_load_trigger(...)
+    ensure_tuner()
+    return true
+end
+
+-- Если файл исполнился по другому поводу - тоже позаботимся о турере.
+ensure_tuner()
