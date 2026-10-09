@@ -446,6 +446,10 @@ console.log('\n== 8. Слот аккумулятора (пункт 2) ==');
         }
         // Текстуры слота обязаны существовать.
         for (const tex of [...text.matchAll(/<texture>\s*([^<\s]+)\s*<\/texture>/g)].map((m) => m[1])) {
+            // Логические id (например ui_inGame2_inventory_item_status_bar_16)
+            // движок разрешает через configs\ui\textures_descr, отдельного файла
+            // у них нет - проверяем только ссылки с путём (ui\имя).
+            if (!tex.includes('\\') && !tex.includes('/')) continue;
             if (!dds.findTexture(tex, TEXTURE_ROOTS)) {
                 err(`${v.file}: нет текстуры textures\\${tex.replace(/\\/g, '/')}.dds`);
             }

@@ -206,6 +206,15 @@ end
 ----------------------------------------------------------------------------
 -- Сам механизм.
 ----------------------------------------------------------------------------
+-- МЕХАНИКА РАЗРЯДА И ВЫПАДЕНИЯ (пункт 4-5). Параметры - в
+-- configs\misc\mod_battery_rules_z_bq.ltx.
+-- ВАЖНО: эти константы объявлены ЗДЕСЬ, выше cfg_float/discharge_mult, которые
+-- их используют. В Lua local виден только после объявления, иначе получается
+-- обращение к глобальной переменной = nil (на этом уже один раз сломалась
+-- механика: пояс не включался и заряд не убывал).
+local DISCHARGE_SECTION = "bq_battery_discharge"
+local DROP_SECTION = "bq_battery_drop"
+
 -- Читает число из конфига без риска Debug.fatal: сначала section_exist, потом
 -- line_exist, и только затем r_float (MEMO 35.3 - иначе движок падает).
 local function cfg_float(section, key, default)
@@ -231,8 +240,11 @@ local function battery_in_slot(actor)
     if not is_battery(section) then return false, section end
     -- Разряженный в ноль аккумулятор пояс не держит (решение заказчика):
     -- ведём себя так, будто его в слоте нет.
-    local charge = get_condition(item)
-    if charge ~= nil and charge <= 0 then return false, section end
+    -- ВАЖНО: состояние читаем ЗДЕСЬ напрямую, а не через local get_condition -
+    -- он объявлен ниже, и вызов до объявления уходил бы в глобальную (nil).
+    local charge
+    local ok = pcall(function() charge = item:condition() end)
+    if ok and type(charge) == "number" and charge <= 0 then return false, section end
     return true, section
 end
 
@@ -289,6 +301,14 @@ local function apply_gate(actor, powered)
                     dbg(string.format("вернул состояние %s (id=%d) = %.3f", section, id, real))
                 end
                 forget_condition(id)
+            elseif on_belt and get_condition(item) == 0 then
+                -- Артефакт на поясе, состояние 0, записи о нашем «прятании» нет.
+                -- Так бывает, если прошлая версия скрипта упала, не сохранив
+                -- значение (или сейв сделан промежуточной сборкой). Артефакты в
+                -- этой сборке НЕ изнашиваются (нет degrade_rate), поэтому 0 у них
+                -- может быть только нашей работой - возвращаем 1.0.
+                set_condition(item, 1.0)
+                dbg(string.format("восстановил потерянное состояние %s (id=%d) = 1.000", section, id))
             end
         end
     end, actor)
@@ -494,10 +514,8 @@ end
 --     идемпотентна, повторный вызов в том же кадре ничего не делает;
 --   * раз в PERIOD_MS (300 мс) делает полный проход и пишет лог.
 ----------------------------------------------------------------------------
--- МЕХАНИКА РАЗРЯДА И ВЫПАДЕНИЯ (пункт 4-5). Параметры - в
--- configs\misc\mod_battery_rules_z_bq.ltx.
-local DISCHARGE_SECTION = "bq_battery_discharge"
-local DROP_SECTION = "bq_battery_drop"
+-- МЕХАНИКА РАЗРЯДА И ВЫПАДЕНИЯ (пункт 4-5): см. константы DISCHARGE_SECTION и
+-- DROP_SECTION выше (они объявлены до cfg_float/discharge_mult).
 
 -- Сколько ИГРОВЫХ минут прошло с прошлого раза. Берём минуты, а не секунды:
 -- level.get_time_* отдаёт дни/часы/минуты, а шаг в одну игровую минуту для
