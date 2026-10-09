@@ -239,6 +239,18 @@ local function cfg_float(section, key, default)
     return default
 end
 
+-- То же, но строка (путь звука и т.п.).
+local function cfg_string(section, key, default)
+    local ok, value = pcall(function()
+        local ini = system_ini()
+        if not ini:section_exist(section) then return nil end
+        if not ini:line_exist(section, key) then return nil end
+        return ini:r_string(section, key)
+    end)
+    if ok and type(value) == "string" then return value end
+    return default
+end
+
 -- Множитель разряда по числу артефактов на поясе (0..5).
 local function discharge_mult(count)
     if count > 5 then count = 5 end
@@ -290,6 +302,50 @@ local function belt_factor()
     if weak < 0 then weak = 0 end
     if weak > 1 then weak = 1 end
     return weak + (1 - weak) * charge
+end
+
+-- ОБНОВЛЕНИЕ ПОЛОСОК В ОТКРЫТОМ ОКНЕ АКТОРА.
+-- Движок пересчитывает полоски состояния слотов только при своих действиях
+-- (CUIActorMenu::UpdateConditionProgressBars, UIActorMenu.cpp:1018-1025: вызов
+-- из SetMenuMode и обработчиков мыши), поэтому после нашего set_condition
+-- значение в интерфейсе остаётся старым до переоткрытия инвентаря - это и видел
+-- заказчик. Метод отдан в Lua (UIActorMenu_script.cpp:464), зовём его сами.
+local function refresh_ui()
+    if type(get_actor_menu) ~= "function" then return end
+    pcall(function()
+        local menu = get_actor_menu()
+        if menu and menu.UpdateConditionProgressBars then
+            menu:UpdateConditionProgressBars()
+        end
+    end)
+end
+
+-- ЗВУК ПДА ПРИ ПОЛНОМ РАЗРЯДЕ. Файл: sounds\device\bq_pda_alarm.ogg (из Anomaly),
+-- путь к нему - ключ alarm_sound в configs\misc\mod_battery_rules_z_bq.ltx.
+local alarm_snd = nil
+local alarm_tried = false
+local function play_alarm()
+    local name = cfg_string(DISCHARGE_SECTION, "alarm_sound", "device\\bq_pda_alarm")
+    if name == nil or name == "" then return end
+
+    if not alarm_tried then
+        alarm_tried = true
+        local ok, snd = pcall(function() return sound_object(name) end)
+        if not ok or not snd then
+            ok, snd = pcall(function() return xr_sound.get_safe_sound_object(name) end)
+        end
+        if ok and snd then alarm_snd = snd else dbg("не смог загрузить звук " .. tostring(name)) end
+    end
+    if not alarm_snd then return end
+
+    pcall(function()
+        local flag = sound_object and sound_object.s2d
+        if flag ~= nil then
+            alarm_snd:play(db.actor, 0, flag)
+        else
+            alarm_snd:play(db.actor)
+        end
+    end)
 end
 
 -- Один проход по инвентарю актора.
@@ -635,6 +691,7 @@ local function discharge_step(actor, battery)
         if new_charge == 0 then
             dbg(string.format("аккумулятор %s полностью разряжен (артефактов на поясе: %d)",
                 battery:section(), count))
+            play_alarm()
         end
     end
 end
@@ -763,6 +820,10 @@ local function tick()
         end
         local ok_drop, err_drop = pcall(function() drop_step(actor) end)
         if not ok_drop then dbg("ОШИБКА в выпадении: " .. tostring(err_drop)) end
+
+        -- Полоски состояния в открытом окне: без этого заряд в интерфейсе виден
+        -- только после переоткрытия инвентаря (см. refresh_ui).
+        refresh_ui()
 
         -- Диагностика раз в 5 секунд.
         if now >= (st.last_status or 0) + 5000 then
