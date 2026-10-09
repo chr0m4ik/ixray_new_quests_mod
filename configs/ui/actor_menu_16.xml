@@ -114,7 +114,7 @@
 				<texture>ui\ui_bq_weapon_highlighter</texture>
 			</slot_highlight>
 			<slot_dragdrop x="383" y="74" width="76" height="233"
-				cell_width="33" cell_height="41" rows_num="6" cols_num="2"
+				cell_width="38" cell_height="38" rows_num="6" cols_num="2"
 				custom_placement="0" vertical_placement="1" a="0"
 				virtual_cells="1" vc_vert_align="c" vc_horiz_align="c"/>
     		<slot_progress x="396" y="308" width="48" height="6" horz="1" min="0" max="1" pos="0">
@@ -131,7 +131,7 @@
 				<texture>ui\ui_bq_weapon_highlighter</texture>
 			</slot_highlight>
 			<slot_dragdrop x="562" y="74" width="78" height="233"
-				cell_width="33" cell_height="41" rows_num="6" cols_num="2"
+				cell_width="39" cell_height="38" rows_num="6" cols_num="2"
 				custom_placement="0" vertical_placement="1" a="0"
 				virtual_cells="1" vc_vert_align="c" vc_horiz_align="c" />
     		<slot_progress x="576" y="308" width="48" height="6" horz="1" min="0" max="1" pos="0">
@@ -169,11 +169,11 @@
 		<slot> <!-- PDA -->
 		</slot>
 		<slot> <!-- Detector -->
-			<slot_dragdrop x="466" y="322" width="89" height="91"
-				cell_width="33" cell_height="41" rows_num="2" cols_num="2"
+			<slot_dragdrop x="565" y="376" width="73" height="36"
+				cell_width="36" cell_height="36" rows_num="1" cols_num="2"
 				custom_placement="0" a="0" virtual_cells="1" vc_vert_align="c"
 				vc_horiz_align="c"/>
-			<slot_highlight x="466" y="322" width="89" height="91" stretch="1">
+			<slot_highlight x="565" y="376" width="73" height="36" stretch="1">
 				<texture>ui\ui_bq_detector_highlighter</texture>
 			</slot_highlight>
 		</slot>
@@ -201,10 +201,10 @@
 		</slot>
 	</inventory_slot_wnd>
 
-	<quick_slot_highlight x="396" y="430" width="52" height="52" dx="62" stretch="1">
+	<quick_slot_highlight x="411" y="435" width="33" height="41" dx="62" stretch="1">
 		<texture>ui\ui_bq_quick_item_highlighter</texture>
 	</quick_slot_highlight>
-	<artefact_slot_highlight x="387" y="506" width="41" height="52" dx="52" stretch="1">
+	<artefact_slot_highlight x="390" y="510" width="33" height="41" dx="40" stretch="1">
 		<texture>ui\ui_bq_artefakt_highlighter</texture>
 	</artefact_slot_highlight>
 
@@ -265,7 +265,7 @@
 	    </trade_weight_max>
 	</right_delimiter>
 
-	<belt_list_over x="382" y="500" width="48" height="61" dx="52" stretch="1">
+	<belt_list_over x="390" y="510" width="33" height="41" dx="40" stretch="1">
 		<texture >ui\ui_bq_artefact_blocker</texture>
 	</belt_list_over>
 
@@ -280,9 +280,9 @@
     	cell_width="29" cell_height="36" rows_num="16" cols_num="11"
 		unlimited="1" group_similar="1" always_show_scroll="1" condition_progress_bar="1"/>
 
-	<dragdrop_belt x="390" y="510" width="240" height="41"
+	<dragdrop_belt x="390" y="510" width="193" height="41"
 		cell_width="33" cell_height="41" rows_num="1" cols_num="5"
-		cell_sp_x="19" cell_sp_y="0" a="0"/>
+		cell_sp_x="7" cell_sp_y="0" a="0"/>
 
 	<dragdrop_actor_trade x="662" y="114" width="346" height="164"
 		cell_width="29" cell_height="36" rows_num="4" cols_num="11"
@@ -304,9 +304,9 @@
 	    cell_width="29" cell_height="36" rows_num="16" cols_num="11"
 	    unlimited="1" group_similar="1" always_show_scroll="1" condition_progress_bar="1"/>
 
-	<dragdrop_quick_slots x="396" y="430" width="238" height="52"
-	    cell_width="52" cell_height="52" a="0" rows_num="1"	cols_num="4"
-		cell_sp_x="10" cell_sp_y="0" custom_placement="1"/>
+	<dragdrop_quick_slots x="411" y="435" width="219" height="41"
+	    cell_width="33" cell_height="41" a="0" rows_num="1"	cols_num="4"
+		cell_sp_x="29" cell_sp_y="0" custom_placement="1"/>
 
 	<trade_buy_button x="11" y="294" width="107" height="26" stretch="1" hint="ui_st_buy_hint">
 	    <window_name>trade_buy_button</window_name>

@@ -13,7 +13,7 @@
 <w>
     <inventory_slot_wnd override="add">
         <slot> <!-- Аккумулятор (CUSTOM_SLOT_1 = 14) -->
-            <slot_progress x="632" y="510" width="30" height="41" horz="1" min="0" max="1" pos="0">
+            <slot_progress x="598" y="510" width="33" height="41" horz="1" min="0" max="1" pos="0">
                 <background stretch="1">
                     <texture>ui\ui_bq_battery_slot</texture>
                 </background>
@@ -24,11 +24,11 @@
                 <middle_color r="255" g="255" b="118"/>
                 <max_color r="107" g="207" b="119"/>
             </slot_progress>
-            <slot_highlight x="632" y="510" width="30" height="41" stretch="1">
+            <slot_highlight x="598" y="510" width="33" height="41" stretch="1">
                 <texture>ui\ui_bq_battery_slot_hl</texture>
             </slot_highlight>
-            <slot_dragdrop x="632" y="510" width="30" height="41"
-                cell_width="30" cell_height="41" rows_num="1" cols_num="1"
+            <slot_dragdrop x="598" y="510" width="33" height="41"
+                cell_width="33" cell_height="41" rows_num="1" cols_num="1"
                 custom_placement="0" a="0" virtual_cells="1"
                 vc_vert_align="c" vc_horiz_align="c"/>
         </slot>
