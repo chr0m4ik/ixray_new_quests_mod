@@ -19,7 +19,7 @@
 <w>
     <inventory_slot_wnd override="add">
         <slot> <!-- Аккумулятор (CUSTOM_SLOT_1 = 14) -->
-            <slot_progress x="598" y="510" width="33" height="41" horz="1" min="0" max="1" pos="0">
+            <slot_progress x="600" y="542" width="29" height="6" horz="1" min="0" max="1" pos="0">
                 <progress stretch="1">
                     <texture>ui_inGame2_inventory_item_status_bar_16</texture>
                 </progress>

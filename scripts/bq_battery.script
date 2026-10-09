@@ -517,30 +517,40 @@ end
 -- МЕХАНИКА РАЗРЯДА И ВЫПАДЕНИЯ (пункт 4-5): см. константы DISCHARGE_SECTION и
 -- DROP_SECTION выше (они объявлены до cfg_float/discharge_mult).
 
--- Сколько ИГРОВЫХ минут прошло с прошлого раза. Берём минуты, а не секунды:
--- level.get_time_* отдаёт дни/часы/минуты, а шаг в одну игровую минуту для
--- заряда (0.25 суток = 360 минут) вполне достаточен.
-local function game_minutes()
-    local d = level.get_time_days()
-    local h = level.get_time_hours()
-    local m = level.get_time_minutes()
-    return ((d * 24) + h) * 60 + m
+-- Игровое время в СЕКУНДАХ. В API есть только дни/часы/минуты (level_script.cpp
+-- 1539-1541, get_time_seconds не зарегистрирован), поэтому секунды идут шагом
+-- игровой минуты. Этого мало для тика раз в секунду, поэтому ниже берём ещё и
+-- реальное время - см. discharge_step.
+local function game_seconds()
+    return ((level.get_time_days() * 24 + level.get_time_hours()) * 60 + level.get_time_minutes()) * 60
 end
 
 -- Разряд аккумулятора, который лежит в своём слоте. Вне слота (рюкзак, земля,
 -- чужой инвентарь) заряд НЕ меняется - мы просто не трогаем такие предметы.
 local function discharge_step(actor, battery)
     local st = normalize_state()
-    local now = game_minutes()
-    if st.game_minutes == nil then
+    local gnow = game_seconds()
+    local rnow = time_global() / 1000
+    if st.game_seconds == nil or st.real_seconds == nil then
         -- первый тик после старта или загрузки: запоминаем время, не разряжаем
-        st.game_minutes = now
+        st.game_seconds = gnow
+        st.real_seconds = rnow
         return
     end
-    local delta = now - st.game_minutes
-    st.game_minutes = now
+    local dg = gnow - st.game_seconds
+    local dr = rnow - st.real_seconds
+    st.game_seconds = gnow
+    st.real_seconds = rnow
 
-    -- отрицательный или нулевой шаг (переход на другую локацию, откат времени)
+    -- Отрицательный шаг - переход на другую локацию или откат часов, пропускаем.
+    if dg < 0 then dg = 0 end
+    if dr < 0 then dr = 0 end
+
+    -- Берём БОЛЬШИЙ из двух шагов:
+    --   * игровой больше - значит шло игровое время (сон, переход, time_factor);
+    --   * реальный больше - игровые часы стоят или идут минутными шагами,
+    --     тогда считаем по реальному времени, иначе механика «не разряжается».
+    local delta = dg > dr and dg or dr
     if delta <= 0 then return end
 
     local days = cfg_float(battery:section(), "discharge_days", 0)
@@ -555,11 +565,20 @@ local function discharge_step(actor, battery)
     end
 
     local charge = get_condition(battery) or 1.0
-    local drain = (delta / (days * 24 * 60)) * discharge_mult(count)
+    local drain = (delta / (days * 86400)) * discharge_mult(count)
     local new_charge = charge - drain
     if new_charge < 0 then new_charge = 0 end
     if new_charge ~= charge then
         set_condition(battery, new_charge)
+        -- Пишем в лог раз в 10 секунд, чтобы разряд было видно и в игре, и в
+        -- bq_battery.log (заказчик проверяет именно так).
+        local now = time_global()
+        if now >= (st.discharge_log or 0) + 10000 then
+            st.discharge_log = now
+            dbg(string.format("%s: заряд %.1f%% -> %.1f%% (шаг %.0f с, множитель %.2f, артефактов %d)",
+                battery:section(), charge * 100, new_charge * 100, delta,
+                discharge_mult(count), count))
+        end
         if new_charge == 0 then
             dbg(string.format("аккумулятор %s полностью разряжен (артефактов на поясе: %d)",
                 battery:section(), count))
@@ -684,7 +703,9 @@ local function tick()
             local ok_d, err_d = pcall(function() discharge_step(actor, slot_item) end)
             if not ok_d then dbg("ОШИБКА в разряде: " .. tostring(err_d)) end
         else
-            normalize_state().game_minutes = game_minutes()
+            local st_reset = normalize_state()
+            st_reset.game_seconds = game_seconds()
+            st_reset.real_seconds = time_global() / 1000
         end
         local ok_drop, err_drop = pcall(function() drop_step(actor) end)
         if not ok_drop then dbg("ОШИБКА в выпадении: " .. tostring(err_drop)) end
