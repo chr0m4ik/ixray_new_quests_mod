@@ -46,6 +46,15 @@
 --      (CGameObject::shedule_Update -> CScriptBinder::shedule_Update, MEMO 35.2),
 --      это не зависит от реестра колбэков, который теряется при пересоздании
 --      Lua-машины (MEMO 31.3, 35.1). Так же сделана радиация в рюкзаке.
+--      Внутри update две скорости:
+--        * КАЖДЫЙ КАДР - fast_belt_check: обход только пояса (<= 5 предметов),
+--          гасит/возвращает состояние сразу. Это убирает видимый «скачок статов»,
+--          который получался, пока реакция была только раз в 300 мс: движок
+--          применяет пояс раз в 100 мс (Actor.cpp:2589-2607) и успевал отдать
+--          статы артефакта до нашего пересчёта;
+--        * раз в PERIOD_MS (300 мс) - полный проход по инвентарю: возврат
+--          состояния предметам не на поясе (нужно для радиации в рюкзаке),
+--          выброшенные предметы, диагностика в лог.
 --   3. Резерв: свободные ключи [callbacks] OnItemFocusLost / OnZoneTouch /
 --      OnBeforeHit (mod_game_global_z_bq.ltx) снова создают турер после перехода
 --      на другую локацию - при переходе движок уничтожает все объекты уровня.
@@ -106,6 +115,7 @@ local function normalize_state()
     st.powered      = st.powered                       -- nil = ещё не знаем
     st.logged_power = st.logged_power
     st.last_status  = st.last_status  or 0
+    st.last_error   = st.last_error   or 0
     return st
 end
 
@@ -292,6 +302,101 @@ local function restore_orphans(seen)
 end
 
 ----------------------------------------------------------------------------
+-- БЫСТРАЯ проверка пояса - вызывается КАЖДЫЙ КАДР из update биндера.
+--
+-- ЗАЧЕМ. Движок применяет статы пояса раз в 100 мс
+-- (ARTEFACTS_UPDATE_TIME = 0.100f, Actor.cpp:2589-2607), а полный проход у нас
+-- раз в PERIOD_MS (300 мс). Из-за этого артефакт, только что положенный на пояс
+-- без аккумулятора, успевал отдать свои статы, и лишь потом мы гасили их -
+-- в интерфейсе это видно как «статы подскочили и вернулись назад» (замечание
+-- заказчика 09.10.2026). Здесь состояние гасится в ТОМ ЖЕ кадре, когда артефакт
+-- появился на поясе, поэтому до следующего пересчёта движка вклад уже нулевой.
+--
+-- Что делает:
+--   1. пояс без аккумулятора  -> condition артефактов на поясе в 0;
+--   2. пояс с аккумулятором   -> возврат настоящего condition;
+--   3. предмет убрали с пояса -> состояние возвращается сразу же (чтобы предмет
+--      не остался «пустым» в рюкзаке/на продаже). Для этого используется запись
+--      из hidden: объект достаётся клиентским level.object_by_id(id), а если
+--      объекта уже нет (вложили в контейнер - вместо него создано комбо),
+--      запись просто убирается.
+--
+-- ПОЧЕМУ ЭТО ДЕШЕВО. Перебирается только пояс (максимум 5 предметов, размер
+-- пояса задаёт костюм) плюс несколько записей в hidden - не весь инвентарь.
+--
+-- ВАЖНО: обход пояса идёт индексами 0..belt_count()-1. У item_on_belt
+-- проверка границы написана как "belt.size() < item_id"
+-- (script_game_object_inventory_owner.cpp:2066), поэтому индекс, равный размеру,
+-- уже выбросил бы ошибку - так делать нельзя.
+----------------------------------------------------------------------------
+local function fast_belt_check(actor, powered)
+    local st = normalize_state()
+
+    -- Собираем предметы, которые сейчас лежат на поясе (максимум 5).
+    local on_belt = {}
+    local count = actor:belt_count()
+    if count then
+        for i = 0, count - 1 do
+            local item = actor:item_on_belt(i)
+            if item then on_belt[item:id()] = item end
+        end
+    end
+
+    local changes = 0
+
+    -- 1. Пояс: гасим вклад артефактов, если аккумулятора нет, или возвращаем,
+    --    если он появился.
+    for id, item in pairs(on_belt) do
+        local section = item:section()
+        if is_artefact(section) then
+            if powered then
+                local real = saved_condition(id)
+                if real ~= nil and real > 0 then
+                    if get_condition(item) ~= real then
+                        set_condition(item, real)
+                        dbg(string.format("быстро вернул состояние %s (id=%d) = %.3f", section, id, real))
+                    end
+                    forget_condition(id)
+                    changes = changes + 1
+                end
+            else
+                local current = get_condition(item)
+                if current and current > 0 then
+                    remember_condition(id, current)
+                    set_condition(item, 0)
+                    changes = changes + 1
+                    dbg(string.format("быстро спрятал состояние %s (id=%d), было %.3f", section, id, current))
+                end
+            end
+        end
+    end
+
+    -- 2. Всё, что мы спрятали, но чего больше нет на поясе: сняли в рюкзак,
+    --    выбросили, отдали. Возвращаем состояние сразу, чтобы предмет не остался
+    --    «пустым» (и чтобы в окне торговли не было нулевой прочности).
+    --    Удалять ключ во время pairs можно: стирается текущий ключ.
+    for id, real in pairs(st.hidden) do
+        if not on_belt[id] then
+            local object = level.object_by_id(id)          -- клиентский объект, если он онлайн
+            if object then
+                if get_condition(object) ~= real then set_condition(object, real) end
+                forget_condition(id)
+                changes = changes + 1
+                dbg(string.format("вернул состояние снятому предмету id=%d = %.3f", id, real))
+            elseif not (alife() and alife():object(id)) then
+                -- Объекта больше нет (например, артефакт вложили в контейнер и
+                -- вместо него создали комбо) - запись просто убираем.
+                forget_condition(id)
+            end
+            -- Если объект существует, но в офлайне, запись оставляем: состояние
+            -- вернётся, когда предмет снова попадёт в инвентарь актора.
+        end
+    end
+
+    return changes
+end
+
+----------------------------------------------------------------------------
 -- Турер: объект-ограничитель со своим биндером (кадровый источник).
 ----------------------------------------------------------------------------
 local function tuner_object()
@@ -358,6 +463,20 @@ function bq_battery_tuner_binder:update(delta)
 
     local st  = normalize_state()
     local now = time_global()
+
+    -- 1. КАЖДЫЙ КАДР: быстрая проверка пояса (см. fast_belt_check). Именно она
+    -- убирает «скачок статов»: артефакт, положенный на пояс без аккумулятора,
+    -- гасится в том же кадре, до следующего пересчёта пояса движком (100 мс).
+    local ok_fast, err_fast = pcall(function()
+        fast_belt_check(actor, battery_in_slot(actor))
+    end)
+    if not ok_fast and now >= (st.last_error or 0) + 1000 then
+        st.last_error = now
+        dbg("ОШИБКА в быстрой проверке пояса: " .. tostring(err_fast))
+    end
+
+    -- 2. Раз в PERIOD_MS: полный проход по инвентарю (возврат состояния
+    -- предметам не на поясе, выброшенные предметы, диагностика).
     if now < (st.next_tick or 0) then return end
     st.next_tick = now + PERIOD_MS
     st.cycles = st.cycles + 1
@@ -389,7 +508,8 @@ function bq_battery_tuner_binder:update(delta)
         end
     end)
 
-    if not ok then
+    if not ok and now >= (st.last_error or 0) + 1000 then
+        st.last_error = now
         dbg("ОШИБКА в update турера: " .. tostring(err))
     end
 end

@@ -527,6 +527,21 @@ console.log('\n== 8. Слот аккумулятора (пункт 2) ==');
             err('bq_battery.script: не вызывает ванильный _G.start_game_callback - ' +
                 'игра останется без ванильной инициализации');
         }
+
+        // Покадровая быстрая проверка пояса. Без неё артефакт, положенный на пояс
+        // без аккумулятора, успевает отдать статы (движок считает пояс раз в 100 мс),
+        // и в интерфейсе видно «скачок статов» - заказчик это заметил.
+        if (!/function\s+fast_belt_check\s*\(/.test(src)) {
+            err('bq_battery.script: нет fast_belt_check - вернётся видимый «скачок статов»');
+        }
+        if (!src.includes('belt_count') || !src.includes('item_on_belt')) {
+            err('bq_battery.script: быстрая проверка должна обходить пояс через ' +
+                'belt_count/item_on_belt (инвентарь целиком каждый кадр - дорого)');
+        }
+        if (!/bq_battery_tuner_binder:update[\s\S]{0,900}fast_belt_check/.test(src)) {
+            err('bq_battery.script: fast_belt_check не вызывается из update биндера - ' +
+                'реакция снова станет раз в 300 мс');
+        }
         ok('bq_battery.script: точки входа на месте');
     }
     if (!cb) {
