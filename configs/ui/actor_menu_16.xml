@@ -17,24 +17,24 @@
 	</properties_box>
 
 	<main x="0" y="0" width="1280" height="768">
-	    <auto_static x="375" y="0" width="546" height="768" stretch="1">
+	    <auto_static x="375" y="0" width="273" height="768" stretch="1">
 		    <texture>ui\ui_bq_inventory_back</texture>
 	    </auto_static>
-	    <auto_static x="920" y="0" width="104" height="768" stretch="1">
-		    <texture>ui\ui_bq_widescreen_sidepanels_right</texture>
+	    <auto_static x="648" y="0" width="377" height="768" stretch="1">
+		    <texture>ui\ui_bq_bag_panel</texture>
 	    </auto_static>
 	</main>
 
-	<left_background x="102" y="0" width="273" height="768" stretch="1">
+	<left_background x="0" y="0" width="375" height="768" stretch="1">
 		<texture>ui\ui_bq_left_side</texture>
-	    <auto_static x="-102" y="0" width="104" height="768" stretch="1">
-		    <texture>ui\ui_bq_widescreen_sidepanels_left</texture>
+	    <auto_static x="0" y="0" width="104" height="768" stretch="1">
+		    <texture>ui\ui_bq_left_side</texture>
 	    </auto_static>
 	</left_background>
 
     <!-- Player Information -->
     <!-- Start -->
-    <actor_ch_info x="657" y="10" width="257" height="89">
+    <actor_ch_info x="657" y="10" width="357" height="89">
         <name_static x="5" y="1" width="145" height="16">
             <text align="l" font="letterica16" color="ui_2"/>
         </name_static>
@@ -56,7 +56,7 @@
         <reputation_static x="5" y="36" width="145" height="14">
             <text align="r" vert_align="c" font="arial_14" color="ui_3"/>
         </reputation_static>
-        <icon x="158" y="1" width="99" height="87" stretch="1">
+        <icon x="260" y="6" width="99" height="87" stretch="1">
             <deadbody r="255" g="160" b="160" a="205"/>
         </icon>
     </actor_ch_info>
@@ -64,7 +64,7 @@
 
     <!-- NPC Information -->
     <!-- Start -->
-    <partner_ch_info x="111" y="10" width="257" height="89">
+    <partner_ch_info x="10" y="10" width="357" height="89">
         <name_static x="5" y="1" width="145" height="16">
             <text align="l" font="letterica16" color="ui_2"/>
         </name_static>
@@ -92,17 +92,17 @@
         <relation_static x="5" y="47" width="145" height="14">
             <text align="r" vert_align="c" font="arial_14" color="ui_3"/>
         </relation_static>
-        <icon x="158" y="1" width="99" height="87" stretch="1">
+        <icon x="260" y="6" width="99" height="87" stretch="1">
             <deadbody r="255" g="160" b="160" a="205"/>
         </icon>
     </partner_ch_info>
     <!-- Finish -->
 
-	<actor_money_static x="701" y="75" width="104" height="22">
+	<actor_money_static x="780" y="80" width="104" height="22">
 		<text align="r" font="graffiti22"/>
 	</actor_money_static>
 
-	<partner_money_static x="155" y="75" width="104" height="22">
+	<partner_money_static x="130" y="80" width="104" height="22">
 		<text align="r" font="graffiti22"/>
 	</partner_money_static>
 
@@ -110,14 +110,14 @@
 		<slot> <!-- Knife -->
 		</slot>
 		<slot> <!-- Pistol -->
-			<slot_highlight x="389" y="17" width="65" height="353" stretch="1">
+			<slot_highlight x="388" y="76" width="65" height="225" stretch="1">
 				<texture>ui\ui_bq_weapon_highlighter</texture>
 			</slot_highlight>
-			<slot_dragdrop x="384" y="14" width="74" height="368"
+			<slot_dragdrop x="388" y="60" width="65" height="246"
 				cell_width="33" cell_height="41" rows_num="6" cols_num="2"
 				custom_placement="0" vertical_placement="1" a="0"
 				virtual_cells="1" vc_vert_align="c" vc_horiz_align="c"/>
-    		<slot_progress x="398" y="378" width="47" height="5" horz="1" min="0" max="1" pos="0">
+    		<slot_progress x="398" y="308" width="46" height="5" horz="1" min="0" max="1" pos="0">
     		    <progress stretch="1">
     		        <texture r="142" g="149" b="149">ui\ui_bq_inventory_status_bar</texture>
     		    </progress>
@@ -127,14 +127,14 @@
     		</slot_progress>
 		</slot>
 		<slot> <!-- Auto -->
-			<slot_highlight x="568" y="17" width="65" height="353" stretch="1">
+			<slot_highlight x="568" y="76" width="65" height="225" stretch="1">
 				<texture>ui\ui_bq_weapon_highlighter</texture>
 			</slot_highlight>
-			<slot_dragdrop x="563" y="14" width="74" height="370"
+			<slot_dragdrop x="568" y="60" width="65" height="246"
 				cell_width="33" cell_height="41" rows_num="6" cols_num="2"
 				custom_placement="0" vertical_placement="1" a="0"
 				virtual_cells="1" vc_vert_align="c" vc_horiz_align="c" />
-    		<slot_progress x="578" y="378" width="47" height="5" horz="1" min="0" max="1" pos="0">
+    		<slot_progress x="576" y="308" width="48" height="6" horz="1" min="0" max="1" pos="0">
     		    <progress stretch="1">
     		        <texture r="142" g="149" b="149">ui\ui_bq_inventory_status_bar</texture>
     		    </progress>
@@ -150,11 +150,11 @@
 		<slot> <!-- Bolt -->
 		</slot>
 		<slot> <!-- Outfit -->
-			<slot_dragdrop x="469" y="137" width="85" height="178"
+			<slot_dragdrop x="480" y="157" width="65" height="123"
 				cell_width="33" cell_height="41" rows_num="3" cols_num="2"
 				custom_placement="0" a="0" virtual_cells="1" vc_vert_align="c"
 				vc_horiz_align="c"/>
-    		<slot_progress x="488" y="309" width="47" height="5" horz="1" min="0" max="1" pos="0">
+    		<slot_progress x="485" y="308" width="48" height="6" horz="1" min="0" max="1" pos="0">
     		    <progress stretch="1">
     		        <texture r="142" g="149" b="149">ui\ui_bq_inventory_status_bar</texture>
     		    </progress>
@@ -162,18 +162,18 @@
 				<middle_color r="255" g="255" b="118"/>
 				<max_color r="107" g="207" b="119"/>
     		</slot_progress>
-			<slot_highlight x="472" y="142" width="76" height="161" stretch="1">
+			<slot_highlight x="472" y="137" width="78" height="164" stretch="1">
 				<texture>ui\ui_bq_armor_highlighter</texture>
 			</slot_highlight>
 		</slot>
 		<slot> <!-- PDA -->
 		</slot>
 		<slot> <!-- Detector -->
-			<slot_dragdrop x="469" y="328" width="85" height="55"
-				cell_width="33" cell_height="41" rows_num="1" cols_num="2"
+			<slot_dragdrop x="480" y="326" width="65" height="82"
+				cell_width="33" cell_height="41" rows_num="2" cols_num="2"
 				custom_placement="0" a="0" virtual_cells="1" vc_vert_align="c"
 				vc_horiz_align="c"/>
-			<slot_highlight x="472" y="330" width="76" height="48" stretch="1">
+			<slot_highlight x="472" y="326" width="78" height="85" stretch="1">
 				<texture>ui\ui_bq_detector_highlighter</texture>
 			</slot_highlight>
 		</slot>
@@ -182,10 +182,10 @@
 		<slot> <!-- Artfake -->
 		</slot>
 		<slot> <!-- Helmet -->
-			<slot_highlight x="472" y="17" width="76" height="98" stretch="1">
+			<slot_highlight x="472" y="15" width="78" height="99" stretch="1">
 				<texture>ui\ui_bq_helmet_highlighter</texture>
 			</slot_highlight>
-    		<slot_progress x="488" y="118" width="47" height="5" horz="1" min="0" max="1" pos="0">
+    		<slot_progress x="485" y="118" width="48" height="6" horz="1" min="0" max="1" pos="0">
     		    <progress stretch="1">
     		        <texture r="142" g="149" b="149">ui\ui_bq_inventory_status_bar</texture>
     		    </progress>
@@ -193,7 +193,7 @@
 				<middle_color r="255" g="255" b="118"/>
 				<max_color r="107" g="207" b="119"/>
     		</slot_progress>
-			<slot_dragdrop x="469" y="14" width="85" height="110" 
+			<slot_dragdrop x="480" y="23" width="65" height="82" 
 				cell_width="33" cell_height="41" rows_num="2" cols_num="2" custom_placement="0" a="0" virtual_cells="1" 
 				vc_vert_align="c" vc_horiz_align="c" />
 		</slot>
@@ -201,114 +201,114 @@
 		</slot>
 	</inventory_slot_wnd>
 
-	<quick_slot_highlight x="387" y="398" width="52" height="59" dx="64" stretch="1">
+	<quick_slot_highlight x="387" y="428" width="52" height="59" dx="64" stretch="1">
 		<texture>ui\ui_bq_quick_item_highlighter</texture>
 	</quick_slot_highlight>
-	<artefact_slot_highlight x="387" y="476" width="41" height="52" dx="52" stretch="1">
+	<artefact_slot_highlight x="387" y="506" width="41" height="52" dx="52" stretch="1">
 		<texture>ui\ui_bq_artefakt_highlighter</texture>
 	</artefact_slot_highlight>
 
-	<quick_slot1_text x="386" y="446" width="14" height="13">
+	<quick_slot1_text x="386" y="471" width="14" height="13">
 		<text align="c" font="letterica16">quick_use_str_1</text>
 	</quick_slot1_text>
-	<quick_slot2_text x="451" y="446" width="14" height="13">
+	<quick_slot2_text x="451" y="471" width="14" height="13">
 		<text align="c" font="letterica16">quick_use_str_2</text>
 	</quick_slot2_text>
-	<quick_slot3_text x="516" y="446" width="14" height="13">
+	<quick_slot3_text x="516" y="471" width="14" height="13">
 		<text align="c" font="letterica16">quick_use_str_3</text>
 	</quick_slot3_text>
-	<quick_slot4_text x="580" y="446" width="14" height="13">
+	<quick_slot4_text x="580" y="471" width="14" height="13">
 		<text align="c" font="letterica16">quick_use_str_4</text>
 	</quick_slot4_text>
 
-	<actor_weight_caption x="750" y="736" width="57" height="16">
+	<actor_weight_caption x="859" y="742" width="57" height="16">
 		<text align="r" font="letterica16" color="ui_3">ui_total_weight</text>
 	</actor_weight_caption>
-	<actor_weight x="807" y="736" width="35" height="16">
+	<actor_weight x="913" y="742" width="35" height="16">
 		<text align="c" font="letterica16"/>
 	</actor_weight>
-	<actor_weight_max x="842" y="736" width="68" height="16">
+	<actor_weight_max x="940" y="742" width="68" height="16">
 		<text align="l" font="letterica16" color="ui_3"/>
 	</actor_weight_max>
 
-	<partner_weight_caption x="174" y="738" width="68" height="14">
+	<partner_weight_caption x="180" y="742" width="68" height="14">
 		<text align="r" font="letterica16" color="ui_3">ui_total_weight</text>
 	</partner_weight_caption>
-	<partner_weight x="342" y="738" width="36" height="14">
+	<partner_weight x="348" y="742" width="36" height="14">
 		<text align="l" font="letterica16" color="ui_7"/>
 	</partner_weight>
 
 	<!-- partner  -->
-	<left_delimiter x="102" y="226" width="273" height="163" stretch="1">
+	<left_delimiter x="0" y="226" width="375" height="163" stretch="1">
 		<texture>ui\ui_bq_center_trade_devider</texture>
 		<!--trade_caption x="123" y="74" width="48" height="16">
 			<text align="l" font="letterica16" color="ui_3">ui_total_price</text>
 		</trade_caption-->
-		<trade_price x="166" y="74" width="13" height="16">
+		<trade_price x="166" y="82" width="13" height="16">
 			<text align="l" font="letterica16"/>
 		</trade_price>
-		<trade_weight_max x="206" y="74" width="40" height="16">
+		<trade_weight_max x="206" y="82" width="40" height="16">
 			<text align="l" font="letterica16" color="ui_3"/>
 		</trade_weight_max>
 	</left_delimiter>
 	<!-- actor -->
-	<right_delimiter x="648" y="226" width="273" height="163" stretch="1">
+	<right_delimiter x="648" y="226" width="375" height="163" stretch="1">
 	    <texture>ui\ui_bq_center_trade_devider</texture>
 	    <!--trade_caption x="123" y="74" width="48" height="16">
 	    	<text align="r" font="letterica16" color="ui_3">ui_total_price</text>
 	    </trade_caption-->
-	    <trade_price x="166" y="74" width="40" height="16">
+	    <trade_price x="166" y="82" width="40" height="16">
 		    <text align="c" font="letterica16"/>
 	    </trade_price>
-	    <trade_weight_max x="206" y="74" width="40" height="16">
+	    <trade_weight_max x="206" y="82" width="40" height="16">
 		    <text align="l" font="letterica16" color="ui_3"/>
 	    </trade_weight_max>
 	</right_delimiter>
 
-	<belt_list_over x="384" y="472" width="47" height="59" dx="52" stretch="1">
+	<belt_list_over x="382" y="500" width="48" height="61" dx="52" stretch="1">
 		<texture >ui\ui_bq_artefact_blocker</texture>
 	</belt_list_over>
 
-	<helmet_over x="467" y="11" width="89" height="115" stretch="1">
+	<helmet_over x="465" y="10" width="91" height="115" stretch="1">
 		<texture >ui\ui_bq_helmet_blocker</texture>
 	</helmet_over>
 
   <dragdrop_trash x="0" y="0" width="375" height="768"
     	cell_width="375" cell_height="768" rows_num="1" cols_num="1" a="0"/>
 
-  <dragdrop_bag x="662" y="119" width="247" height="574"
-    	cell_width="33" cell_height="41" rows_num="14" cols_num="7"
+  <dragdrop_bag x="662" y="119" width="346" height="575"
+    	cell_width="29" cell_height="36" rows_num="16" cols_num="11"
 		unlimited="1" group_similar="1" always_show_scroll="1" condition_progress_bar="1"/>
 
-	<dragdrop_belt x="390" y="480" width="240" height="41"
+	<dragdrop_belt x="390" y="510" width="240" height="41"
 		cell_width="33" cell_height="41" rows_num="1" cols_num="5"
 		cell_sp_x="19" cell_sp_y="0" a="0"/>
 
-	<dragdrop_actor_trade x="662" y="114" width="247" height="164"
-		cell_width="33" cell_height="41" rows_num="4" cols_num="7"
+	<dragdrop_actor_trade x="662" y="114" width="346" height="164"
+		cell_width="29" cell_height="36" rows_num="4" cols_num="11"
 		unlimited="1" group_similar="1" always_show_scroll="1" condition_progress_bar="1"/>
 
-	<dragdrop_actor_trade_bag x="662" y="340" width="247" height="369"
-		cell_width="33" cell_height="41" rows_num="9" cols_num="7"
+	<dragdrop_actor_trade_bag x="662" y="340" width="346" height="369"
+		cell_width="29" cell_height="36" rows_num="10" cols_num="11"
 		unlimited="1" group_similar="1" always_show_scroll="1" condition_progress_bar="1"/>
 
-	<dragdrop_partner_trade x="117" y="114" width="247" height="164"
-	    cell_width="33" cell_height="41" rows_num="4" cols_num="7"
+	<dragdrop_partner_trade x="16" y="114" width="346" height="164"
+	    cell_width="29" cell_height="36" rows_num="4" cols_num="11"
 	    unlimited="1" group_similar="1" always_show_scroll="1" condition_progress_bar="1"/>
 
-	<dragdrop_partner_bag x="117" y="340" width="247" height="369"
-	    cell_width="33" cell_height="41" rows_num="9" cols_num="7"
+	<dragdrop_partner_bag x="16" y="340" width="346" height="369"
+	    cell_width="29" cell_height="36" rows_num="10" cols_num="11"
 	    unlimited="1" group_similar="1" always_show_scroll="1" condition_progress_bar="1"/>
 
-	<dragdrop_deadbody_bag x="117" y="119" width="247" height="574"
-	    cell_width="33" cell_height="41" rows_num="14" cols_num="7"
+	<dragdrop_deadbody_bag x="16" y="119" width="346" height="574"
+	    cell_width="29" cell_height="36" rows_num="16" cols_num="11"
 	    unlimited="1" group_similar="1" always_show_scroll="1" condition_progress_bar="1"/>
 
-	<dragdrop_quick_slots x="398" y="407" width="227" height="41"
+	<dragdrop_quick_slots x="398" y="437" width="227" height="41"
 	    cell_width="33" cell_height="41" a="0" rows_num="1"	cols_num="4"
 		cell_sp_x="32" cell_sp_y="0" custom_placement="1"/>
 
-	<trade_buy_button x="113" y="295" width="107" height="26" stretch="1" hint="ui_st_buy_hint">
+	<trade_buy_button x="10" y="284" width="107" height="26" stretch="1" hint="ui_st_buy_hint">
 	    <window_name>trade_buy_button</window_name>
 	    <texture>ui_inGame2_inventory_button</texture>
 	    <text font="graffiti22" align="c">ui_st_buy</text>
@@ -320,7 +320,7 @@
 	    </text_color>
 	</trade_buy_button>
 
-	<trade_sell_button x="660" y="295" width="107" height="26" stretch="1" hint="ui_st_sell_hint">
+	<trade_sell_button x="659" y="284" width="107" height="26" stretch="1" hint="ui_st_sell_hint">
 	    <window_name>trade_sell_button</window_name>
 	    <texture>ui_inGame2_inventory_button</texture>
 	    <text font="graffiti22" align="c">ui_st_sell</text>
@@ -332,7 +332,7 @@
 	    </text_color>
 	</trade_sell_button>
 
-	<takeall_button x="116" y="694" width="248" height="24" stretch="1" hint="ui_st_take_all_hint">
+	<takeall_button x="11" y="736" width="140" height="24" stretch="1" hint="ui_st_take_all_hint">
 	    <window_name>takeall_button</window_name>
 	    <texture>ui_inGame2_big_inventory_button</texture>
 	    <text font="graffiti22" align="c">ui_st_take_all</text>
@@ -344,7 +344,7 @@
 	    </text_color>
 	</takeall_button>
 
-	<putall_button x="662" y="694" width="248" height="24" stretch="1" hint="ui_st_put_all_hint">
+	<putall_button x="658" y="736" width="140" height="24" stretch="1" hint="ui_st_put_all_hint">
 	    <window_name>putall_button</window_name>
 	    <texture>ui_inGame2_big_inventory_button</texture>
 	    <text font="graffiti22" align="c">ui_st_put_all</text>

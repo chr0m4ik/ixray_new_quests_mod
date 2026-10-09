@@ -462,20 +462,31 @@ console.log('\n== 8. Слот аккумулятора (пункт 2) ==');
             return { x: num('x'), y: num('y'), w: num('width'), h: num('height') };
         };
         const ours = rect('slot_dragdrop', text);
-        const basePath = path.join(GAME, 'ui', v.base);
+        // Сверяем с ТЕМ ЖЕ файлом, который грузит игра: с 10.10.2026 раскладка
+        // взята у Anomaly (tools/ui_layout.js), поэтому пояс и рюкзак стоят не
+        // там, где в ванильном файле. Если своего файла нет - берём ванильный.
+        const ourMenu = path.join(ROOT, 'configs', 'ui', v.base);
+        const basePath = fs.existsSync(ourMenu) ? ourMenu : path.join(GAME, 'ui', v.base);
         if (!ours || ours.x === null || ours.w === null) {
             err(`${v.file}: не разобран прямоугольник slot_dragdrop`);
         } else if (!fs.existsSync(basePath)) {
-            err(`нет ванильного ${v.base} для сверки геометрии (${basePath})`);
+            err(`нет ${v.base} для сверки геометрии (${basePath})`);
         } else {
             const original = fs.readFileSync(basePath, 'utf8');
             const belt = rect('dragdrop_belt', original);
             const bag = rect('dragdrop_bag', original);
             const state = rect('actor_state_info', original);
+            // Верх панели состояния - пустой фон: её содержимое (полоса здоровья)
+            // по раскладке лежит на 42 пикселя ниже, поэтому ячейка может заходить
+            // на верх фона, но не на содержимое.
+            const stateContent = state ? { x: state.x, y: state.y + 42, w: state.w, h: state.h - 42 } : null;
             const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
             if (belt && overlaps(ours, belt)) err(`${v.file}: ячейка cлота перекрывает пояс (${JSON.stringify(belt)})`);
             if (bag && overlaps(ours, bag)) err(`${v.file}: ячейка слота перекрывает рюкзак (${JSON.stringify(bag)})`);
-            if (state && overlaps(ours, state)) err(`${v.file}: ячейка слота перекрывает панель состояния (${JSON.stringify(state)})`);
+            if (stateContent && overlaps(ours, stateContent)) {
+                err(`${v.file}: ячейка слота перекрывает содержимое панели состояния ` +
+                    `(${JSON.stringify(stateContent)}, содержимое начинается ниже ${state.y + 42})`);
+            }
             if (belt && bag && ours.x >= belt.x + belt.w && ours.x + ours.w <= bag.x) {
                 ok(`${v.label}: ячейка ${ours.w}x${ours.h} на x=${ours.x} y=${ours.y} между поясом и рюкзаком`);
             } else if (belt && bag) {
