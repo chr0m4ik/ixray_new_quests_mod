@@ -1,0 +1,430 @@
+{
+  "_как_пользоваться": [
+    "Это единственный файл, где заданы все расположения элементов окна актора (16:9).",
+    "Порядок работы: правите числа здесь -> node tools/ui_layout.js apply -> node tools/check_ui.js.",
+    "apply перезаписывает геометрию в configs/ui/actor_menu_16.xml и в mod_actor_menu_16_z_bq.xml",
+    "(слот аккумулятора). Если правите XML руками, apply больше не запускайте - он вернёт числа отсюда.",
+    "Координаты в единицах интерфейса: база 1024x768, слева вверху (0,0)."
+  ],
+  "_пояснения": {
+    "backPanel": "панель в середине (под слотами), текстура ui_bq_inventory_back",
+    "rightPanel": "правая панель с рюкзаком, текстура ui_bq_bag_panel",
+    "leftBackground": "левая половина (торговля и обыск трупа), ui_bq_left_side",
+    "leftStrip": "полоса у левого края, ссылается на прозрачную ui_bq_blank",
+    "leftDelimiter / rightDelimiter": "разделители половин в торговле",
+    "bag": "рюкзак: 8 столбцов x 10 строк, ячейка 43x53",
+    "belt": "пояс артефактов: 5 ячеек 33x41, шаг 40 (cell_sp_x=7)",
+    "quickSlots": "быстрые слоты F1..F4: ячейки 33x41, шаг 62 (cell_sp_x=29)",
+    "quickHighlight / artefactHighlight / beltOver": "подсветки и блокировщики",
+    "actorTrade / actorTradeBag / partnerTrade / partnerBag / deadbodyBag": "списки в торговле и при обыске",
+    "buyButton / sellButton / takeall / putall": "кнопки",
+    "actorInfo / partnerInfo / infoName / infoLine / infoIcon": "блоки информации: имя, группировка, ранг, портрет",
+    "actorMoney / partnerMoney": "деньги",
+    "actorWeightCaption / actorWeight / actorWeightMax / partnerWeightCaption / partnerWeight": "вес",
+    "healthState / healthProgress": "полоса здоровья в панели состояния"
+  },
+  "_слоты_по_номерам_движка": {
+    "1": "Knife (в CoP без интерфейса)",
+    "2": "Pistol",
+    "3": "Auto",
+    "4": "Grenade (без интерфейса)",
+    "5": "Binoc (без интерфейса)",
+    "6": "Bolt (без интерфейса)",
+    "7": "Outfit",
+    "8": "PDA (без интерфейса)",
+    "9": "Detector",
+    "10": "Torch (без интерфейса)",
+    "11": "Artefact (без интерфейса)",
+    "12": "Helmet",
+    "13": "Backpack (без интерфейса)"
+  },
+  "QUICK_TEXT_X": [
+    386,
+    448,
+    511,
+    574
+  ],
+  "G": {
+    "backPanel": {
+      "x": 375,
+      "y": 0,
+      "width": 273,
+      "height": 768
+    },
+    "rightPanel": {
+      "x": 648,
+      "y": 0,
+      "width": 377,
+      "height": 768
+    },
+    "leftBackground": {
+      "x": 0,
+      "y": 0,
+      "width": 375,
+      "height": 768
+    },
+    "leftStrip": {
+      "x": 0,
+      "y": 0,
+      "width": 104,
+      "height": 768
+    },
+    "leftDelimiter": {
+      "x": 0,
+      "y": 226,
+      "width": 375,
+      "height": 163
+    },
+    "rightDelimiter": {
+      "x": 648,
+      "y": 226,
+      "width": 375,
+      "height": 163
+    },
+    "bag": {
+      "x": 662,
+      "y": 119,
+      "width": 346,
+      "height": 575,
+      "cell_width": 43,
+      "cell_height": 53,
+      "rows_num": 10,
+      "cols_num": 8
+    },
+    "belt": {
+      "x": 390,
+      "y": 510,
+      "width": 193,
+      "height": 41,
+      "cell_width": 33,
+      "cell_height": 41,
+      "cols_num": 5,
+      "rows_num": 1,
+      "cell_sp_x": 7,
+      "cell_sp_y": 0
+    },
+    "quickSlots": {
+      "x": 394,
+      "y": 435,
+      "width": 219,
+      "height": 41,
+      "cell_width": 33,
+      "cell_height": 41,
+      "cols_num": 4,
+      "rows_num": 1,
+      "cell_sp_x": 29,
+      "cell_sp_y": 0
+    },
+    "actorTrade": {
+      "x": 662,
+      "y": 114,
+      "width": 346,
+      "height": 164,
+      "cell_width": 43,
+      "cell_height": 53,
+      "rows_num": 3,
+      "cols_num": 8
+    },
+    "actorTradeBag": {
+      "x": 662,
+      "y": 340,
+      "width": 346,
+      "height": 369,
+      "cell_width": 43,
+      "cell_height": 53,
+      "rows_num": 6,
+      "cols_num": 8
+    },
+    "partnerTrade": {
+      "x": 16,
+      "y": 114,
+      "width": 346,
+      "height": 164,
+      "cell_width": 43,
+      "cell_height": 53,
+      "rows_num": 3,
+      "cols_num": 8
+    },
+    "partnerBag": {
+      "x": 16,
+      "y": 340,
+      "width": 346,
+      "height": 369,
+      "cell_width": 43,
+      "cell_height": 53,
+      "rows_num": 6,
+      "cols_num": 8
+    },
+    "deadbodyBag": {
+      "x": 16,
+      "y": 119,
+      "width": 346,
+      "height": 574,
+      "cell_width": 43,
+      "cell_height": 53,
+      "rows_num": 10,
+      "cols_num": 8
+    },
+    "quickHighlight": {
+      "x": 394,
+      "y": 435,
+      "width": 33,
+      "height": 41,
+      "dx": 62
+    },
+    "artefactHighlight": {
+      "x": 390,
+      "y": 510,
+      "width": 33,
+      "height": 41,
+      "dx": 40
+    },
+    "beltOver": {
+      "x": 381,
+      "y": 499,
+      "width": 50,
+      "height": 62,
+      "dx": 40
+    },
+    "helmetOver": {
+      "x": 465,
+      "y": 10,
+      "width": 91,
+      "height": 115
+    },
+    "quickTextY": 469,
+    "healthState": {
+      "x": 12,
+      "y": 42,
+      "width": 225,
+      "height": 18
+    },
+    "healthProgress": {
+      "x": 19,
+      "y": 0,
+      "width": 225,
+      "height": 18
+    },
+    "buyButton": {
+      "x": 11,
+      "y": 294,
+      "width": 107,
+      "height": 26
+    },
+    "sellButton": {
+      "x": 659,
+      "y": 294,
+      "width": 107,
+      "height": 26
+    },
+    "takeall": {
+      "x": 11,
+      "y": 736,
+      "width": 140,
+      "height": 24
+    },
+    "putall": {
+      "x": 658,
+      "y": 736,
+      "width": 140,
+      "height": 24
+    },
+    "tradePrice": {
+      "x": 186,
+      "y": 70,
+      "width": 40,
+      "height": 16
+    },
+    "tradeWeightMax": {
+      "x": 206,
+      "y": 70,
+      "width": 40,
+      "height": 16
+    },
+    "actorInfo": {
+      "x": 657,
+      "y": 10,
+      "width": 357,
+      "height": 89
+    },
+    "partnerInfo": {
+      "x": 10,
+      "y": 10,
+      "width": 357,
+      "height": 89
+    },
+    "infoName": {
+      "x": 8,
+      "y": 18,
+      "width": 217,
+      "height": 16
+    },
+    "infoLine": {
+      "x": 8,
+      "width": 217,
+      "height": 14
+    },
+    "infoIcon": {
+      "x": 260,
+      "y": 6,
+      "width": 99,
+      "height": 87
+    },
+    "actorMoney": {
+      "x": 788,
+      "y": 80,
+      "width": 104,
+      "height": 22
+    },
+    "partnerMoney": {
+      "x": 140,
+      "y": 80,
+      "width": 104,
+      "height": 22
+    },
+    "actorWeightCaption": {
+      "x": 848,
+      "y": 742,
+      "width": 57,
+      "height": 16
+    },
+    "actorWeight": {
+      "x": 908,
+      "y": 742,
+      "width": 35,
+      "height": 16
+    },
+    "actorWeightMax": {
+      "x": 950,
+      "y": 742,
+      "width": 68,
+      "height": 16
+    },
+    "partnerWeightCaption": {
+      "x": 200,
+      "y": 742,
+      "width": 57,
+      "height": 16
+    },
+    "partnerWeight": {
+      "x": 260,
+      "y": 742,
+      "width": 35,
+      "height": 16
+    }
+  },
+  "SLOTS": {
+    "2": {
+      "dragdrop": {
+        "x": 383,
+        "y": 74,
+        "width": 76,
+        "height": 233,
+        "cell_width": 38,
+        "cell_height": 38,
+        "rows_num": 6,
+        "cols_num": 2
+      },
+      "highlight": {
+        "x": 383,
+        "y": 74,
+        "width": 76,
+        "height": 233
+      },
+      "progress": {
+        "x": 396,
+        "y": 308,
+        "width": 48,
+        "height": 6
+      }
+    },
+    "3": {
+      "dragdrop": {
+        "x": 562,
+        "y": 74,
+        "width": 78,
+        "height": 233,
+        "cell_width": 39,
+        "cell_height": 38,
+        "rows_num": 6,
+        "cols_num": 2
+      },
+      "highlight": {
+        "x": 562,
+        "y": 74,
+        "width": 78,
+        "height": 233
+      },
+      "progress": {
+        "x": 576,
+        "y": 308,
+        "width": 48,
+        "height": 6
+      }
+    },
+    "7": {
+      "dragdrop": {
+        "x": 466,
+        "y": 132,
+        "width": 89,
+        "height": 173
+      },
+      "highlight": {
+        "x": 466,
+        "y": 132,
+        "width": 89,
+        "height": 173
+      },
+      "progress": {
+        "x": 485,
+        "y": 308,
+        "width": 48,
+        "height": 6
+      }
+    },
+    "9": {
+      "dragdrop": {
+        "x": 565,
+        "y": 376,
+        "width": 73,
+        "height": 36,
+        "cell_width": 36,
+        "cell_height": 36,
+        "rows_num": 1,
+        "cols_num": 2
+      },
+      "highlight": {
+        "x": 565,
+        "y": 376,
+        "width": 73,
+        "height": 36
+      },
+      "progress": {
+        "x": 576,
+        "y": 416,
+        "width": 48,
+        "height": 6
+      }
+    },
+    "12": {
+      "dragdrop": {
+        "x": 466,
+        "y": 11,
+        "width": 89,
+        "height": 104
+      },
+      "highlight": {
+        "x": 466,
+        "y": 11,
+        "width": 89,
+        "height": 104
+      },
+      "progress": {
+        "x": 485,
+        "y": 118,
+        "width": 48,
+        "height": 6
+      }
+    }
+  }
+}
