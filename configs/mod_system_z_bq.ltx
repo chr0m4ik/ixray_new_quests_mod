@@ -66,6 +66,9 @@ start_game_callback         = bq_battery.on_game_start
 ; в пункте 5 вариаций станет больше; подключается #include по той же причине,
 ; что и артефакты - см. комментарий выше.
 #include "misc\mod_batteries_z_bq.ltx"
+; Правила механики аккумуляторов (множители разряда, шансы выпадения из трупов).
+; Их читает только scripts\bq_battery.script.
+#include "misc\mod_battery_rules_z_bq.ltx"
 
 [bq_stash_box]:inventory_box
 visual = dynamics\box\box_1a

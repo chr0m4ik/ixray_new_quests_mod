@@ -88,26 +88,32 @@ slot                        = 13
 ; Решение заказчика: аккумулятор дорогой, пусть игрок надевает его сам.
 default_to_ruck             = true
 
-; Продать нельзя, выбросить можно. quest_item убран намеренно: он запрещает и
-; выброс, и перетаскивание (UIActorMenuInventory.cpp:1296,
-; UIActorMenu_action.cpp:69), а нам нужны и то, и другое. Запрет продажи даёт
-; can_trade = false: CanTrade() = FCanTrade && !IsQuestItem()
-; (inventory_item.cpp:1524).
-can_trade                   = false
+; Продавать МОЖНО (решение заказчика 10.10.2026): покупает и продаёт только Сыч,
+; см. configs\misc\trade\mod_trade_zat_b30_stalker_trader_z_bq.ltx. В остальных
+; торговых файлах аккумуляторы не перечислены, поэтому другие торговцы их не берут.
+can_trade                   = true
 
-; Заряд аккумулятора. Полоска состояния видна сразу, механика - пункт 4.
+; Заряд аккумулятора. Полоска состояния видна сразу (use_condition = true), а
+; механика разряда - в scripts\bq_battery.script, параметры в
+; configs\misc\mod_battery_rules_z_bq.ltx.
 use_condition               = true
 
-; Складывать несколько штук в одну ячейку можно только при равном заряде
-; (решение заказчика, позже). Пока запрещено явно.
-can_stack                   = false
+; СКЛАДЫВАНИЕ РАЗРЕШЕНО, но только при одинаковом заряде: движок сравнивает у
+; предметов инвентаря имя секции и состояние с допуском 1%
+; (CUIInventoryCellItem::EqualTo, UICellCustomItems.cpp:146-162). То есть
+; батарейка 50% складывается с 50%, но не с 40% - как у оружия.
+can_stack                   = true
 
 ; Аккумулятор носится в СВОЁМ слоте, а не на поясе артефактов.
 belt                        = false
 
-; ЗАГЛУШКА: иконка - ячейка атласа контейнеров (свой атлас будет в пункте 6).
-; Атлас и сетка 50x50 проверены на контейнерах: DXT5, inv_scale = 1.0.
-icons_texture               = ui\ui_bq_field_container
+
+; ---------------------------------------------------------------------------
+; ИКОНКИ. Свой атлас textures\ui\ui_bq_batteries.dds: 5 ячеек 50x50 слева
+; направо по классам (0 - батарейка, 1 - аккумулятор, 2 - тяжелый аккумулятор,
+; 3 - научный блок питания, 4 - экспериментальный блок питания).
+; ---------------------------------------------------------------------------
+icons_texture               = ui\ui_bq_batteries
 
 ; inv_grid_width/height = 0 прячет ШАБЛОН из debug-спавнера: движок считает
 ; секцию фиктивной, если оба ключа есть и оба <= 0 (SpawnManager.cpp:160-161).
@@ -125,30 +131,88 @@ attach_position_offset      = 0.105,-0.004,0.003
 attach_bone_name            = bip01_l_hand
 auto_attach                 = false
 
-; ---------------------------------------------------------------------------
-; Аккумулятор 1 - "хороший" (заглушка, характеристики в пункте 5).
-; ---------------------------------------------------------------------------
+; ===========================================================================
+; ПЯТЬ КЛАССОВ АККУМУЛЯТОРОВ (пункт 5 плана).
+;
+; discharge_days - НАШ собственный ключ (движок незнакомые ключи игнорирует,
+; читает его только scripts\bq_battery.script): за сколько ИГРОВЫХ суток заряд
+; падает с 100% до 0 при ОДНОМ артефакте на поясе. Множители по числу
+; артефактов заданы в configs\misc\mod_battery_rules_z_bq.ltx.
+;   батарейка                 0.25 суток, 0.1 кг, 3000
+;   аккумулятор               0.5  суток, 0.5 кг, 6000
+;   тяжелый аккумулятор       1.5  суток, 2.5 кг, 12000
+;   научный блок питания      1.5  суток, 1.0 кг, 20000
+;   экспериментальный блок    3.0  суток, 0.5 кг, 70000
+; Модели пока заглушки из Anomaly (свои - в пункте 6), но у каждого класса
+; своя, чтобы версии отличались и на земле.
+; ===========================================================================
+
+; --- 1. Батарейка ---------------------------------------------------------
 [bq_battery_1]:bq_battery_base
-visual                      = dynamics\equipments\aa\cooler.ogf
+visual                      = dynamics\equipments\aa\aac.ogf
 inv_name                    = bq_battery_1_name
 inv_name_short              = bq_battery_1_name
 description                 = bq_battery_1_descr
-cost                        = 5000
+cost                        = 3000
+inv_weight                  = 0.1
+discharge_days              = 0.25
 inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 0
 inv_grid_y                  = 0
 
-; ---------------------------------------------------------------------------
-; Аккумулятор 2 - "средний" (заглушка, характеристики в пункте 5).
-; ---------------------------------------------------------------------------
+; --- 2. Аккумулятор -------------------------------------------------------
 [bq_battery_2]:bq_battery_base
-visual                      = dynamics\equipments\aa\grid.ogf
+visual                      = dynamics\equipments\aa\cooler.ogf
 inv_name                    = bq_battery_2_name
 inv_name_short              = bq_battery_2_name
 description                 = bq_battery_2_descr
-cost                        = 8000
+cost                        = 6000
+inv_weight                  = 0.5
+discharge_days              = 0.5
 inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 1
+inv_grid_y                  = 0
+
+; --- 3. Тяжелый аккумулятор ----------------------------------------------
+[bq_battery_3]:bq_battery_base
+visual                      = dynamics\equipments\aa\grid.ogf
+inv_name                    = bq_battery_3_name
+inv_name_short              = bq_battery_3_name
+description                 = bq_battery_3_descr
+cost                        = 12000
+inv_weight                  = 2.5
+discharge_days              = 1.5
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 0
+
+; --- 4. Научный блок питания ---------------------------------------------
+[bq_battery_4]:bq_battery_base
+visual                      = dynamics\equipments\aa\freon.ogf
+inv_name                    = bq_battery_4_name
+inv_name_short              = bq_battery_4_name
+description                 = bq_battery_4_descr
+cost                        = 20000
+inv_weight                  = 1.0
+discharge_days              = 1.5
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 3
+inv_grid_y                  = 0
+
+; --- 5. Экспериментальный блок питания -----------------------------------
+[bq_battery_5]:bq_battery_base
+visual                      = dynamics\equipments\aa\surge.ogf
+inv_name                    = bq_battery_5_name
+inv_name_short              = bq_battery_5_name
+description                 = bq_battery_5_descr
+cost                        = 70000
+inv_weight                  = 0.5
+discharge_days              = 3.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 4
 inv_grid_y                  = 0

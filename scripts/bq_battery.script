@@ -206,11 +206,33 @@ end
 ----------------------------------------------------------------------------
 -- Сам механизм.
 ----------------------------------------------------------------------------
+-- Читает число из конфига без риска Debug.fatal: сначала section_exist, потом
+-- line_exist, и только затем r_float (MEMO 35.3 - иначе движок падает).
+local function cfg_float(section, key, default)
+    local ok, value = pcall(function()
+        if not ini:section_exist(section) then return nil end
+        if not ini:line_exist(section, key) then return nil end
+        return ini:r_float(section, key)
+    end)
+    if ok and type(value) == "number" then return value end
+    return default
+end
+
+-- Множитель разряда по числу артефактов на поясе (0..5).
+local function discharge_mult(count)
+    if count > 5 then count = 5 end
+    return cfg_float(DISCHARGE_SECTION, "mult_" .. count, 1.0)
+end
+
 local function battery_in_slot(actor)
     local item = actor:item_in_slot(BATTERY_SLOT)
     if not item then return false, nil end
     local section = item:section()
     if not is_battery(section) then return false, section end
+    -- Разряженный в ноль аккумулятор пояс не держит (решение заказчика):
+    -- ведём себя так, будто его в слоте нет.
+    local charge = get_condition(item)
+    if charge ~= nil and charge <= 0 then return false, section end
     return true, section
 end
 
@@ -472,6 +494,130 @@ end
 --     идемпотентна, повторный вызов в том же кадре ничего не делает;
 --   * раз в PERIOD_MS (300 мс) делает полный проход и пишет лог.
 ----------------------------------------------------------------------------
+-- МЕХАНИКА РАЗРЯДА И ВЫПАДЕНИЯ (пункт 4-5). Параметры - в
+-- configs\misc\mod_battery_rules_z_bq.ltx.
+local DISCHARGE_SECTION = "bq_battery_discharge"
+local DROP_SECTION = "bq_battery_drop"
+
+-- Сколько ИГРОВЫХ минут прошло с прошлого раза. Берём минуты, а не секунды:
+-- level.get_time_* отдаёт дни/часы/минуты, а шаг в одну игровую минуту для
+-- заряда (0.25 суток = 360 минут) вполне достаточен.
+local function game_minutes()
+    local d = level.get_time_days()
+    local h = level.get_time_hours()
+    local m = level.get_time_minutes()
+    return ((d * 24) + h) * 60 + m
+end
+
+-- Разряд аккумулятора, который лежит в своём слоте. Вне слота (рюкзак, земля,
+-- чужой инвентарь) заряд НЕ меняется - мы просто не трогаем такие предметы.
+local function discharge_step(actor, battery)
+    local st = normalize_state()
+    local now = game_minutes()
+    if st.game_minutes == nil then
+        -- первый тик после старта или загрузки: запоминаем время, не разряжаем
+        st.game_minutes = now
+        return
+    end
+    local delta = now - st.game_minutes
+    st.game_minutes = now
+
+    -- отрицательный или нулевой шаг (переход на другую локацию, откат времени)
+    if delta <= 0 then return end
+
+    local days = cfg_float(battery:section(), "discharge_days", 0)
+    if days <= 0 then return end
+
+    -- считаем артефакты на поясе (наши комбо-контейнеры тоже class = ARTEFACT)
+    local count = 0
+    local belt = actor:belt_count() or 0
+    for i = 0, belt - 1 do
+        local item = actor:item_on_belt(i)
+        if item and is_artefact(item:section()) then count = count + 1 end
+    end
+
+    local charge = get_condition(battery) or 1.0
+    local drain = (delta / (days * 24 * 60)) * discharge_mult(count)
+    local new_charge = charge - drain
+    if new_charge < 0 then new_charge = 0 end
+    if new_charge ~= charge then
+        set_condition(battery, new_charge)
+        if new_charge == 0 then
+            dbg(string.format("аккумулятор %s полностью разряжен (артефактов на поясе: %d)",
+                battery:section(), count))
+        end
+    end
+end
+
+-- Выпадение аккумулятора из трупа человека. Движок не даёт колбэка смерти
+-- (проверены все ключи LoadCallbackGlobals), поэтому раз в period_ms смотрим
+-- объекты рядом (nearest.set/size/get - уровень) и ловим переход "жив -> мёртв".
+-- Достаём предмет трупу через transfer_item: часть события SELL для предмета с
+-- земли движок игнорирует, а BUY добавляет его в инвентарь трупа.
+local function drop_step(actor)
+    local st = normalize_state()
+    local now = time_global()
+    local period = cfg_float(DROP_SECTION, "period_ms", 1000)
+    if now < (st.drop_next or 0) then return end
+    st.drop_next = now + period
+
+    local radius = cfg_float(DROP_SECTION, "radius", 60)
+    local cmin = cfg_float(DROP_SECTION, "condition_min", 0.0)
+    local cmax = cfg_float(DROP_SECTION, "condition_max", 1.0)
+    local communities = ""
+    pcall(function()
+        if ini:section_exist(DROP_SECTION) and ini:line_exist(DROP_SECTION, "communities") then
+            communities = ini:r_string(DROP_SECTION, "communities")
+        end
+    end)
+
+    if not st.drop_seen then st.drop_seen = {} end
+
+    local ok = pcall(function()
+        nearest.set(radius, actor:position())
+        local n = nearest.size()
+        for i = 0, n - 1 do
+            local obj = nearest.get(i)
+            if obj and obj:id() then
+                local id = obj:id()
+                local seen = st.drop_seen[id]
+                if not seen then
+                    st.drop_seen[id] = obj:alive() and "alive" or "dead"
+                elseif seen == "alive" and not obj:alive() then
+                    st.drop_seen[id] = "dead"
+                    -- проверяем сообщество: только люди из списка
+                    local community = nil
+                    pcall(function() community = obj:character_community() end)
+                    if community and communities ~= "" and string.find(communities, community, 1, true) then
+                        for section, chance in pairs({
+                            bq_battery_1 = cfg_float(DROP_SECTION, "chance_bq_battery_1", 0),
+                            bq_battery_2 = cfg_float(DROP_SECTION, "chance_bq_battery_2", 0),
+                            bq_battery_3 = cfg_float(DROP_SECTION, "chance_bq_battery_3", 0),
+                        }) do
+                            if math.random() < chance then
+                                local item = alife():create(section, obj:position(),
+                                    obj:level_vertex_id(), obj:game_vertex_id())
+                                if item then
+                                    local client = level.object_by_id(item.id)
+                                    if client then
+                                        local cond = cmin + math.random() * (cmax - cmin)
+                                        pcall(function() client:set_condition(cond) end)
+                                        pcall(function() obj:transfer_item(client, obj) end)
+                                        dbg(string.format("из трупа id=%d выпал %s (заряд %.0f%%)",
+                                            id, section, cond * 100))
+                                    end
+                                end
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    if not ok then dbg("ОШИБКА в drop_step") end
+end
+
 local function tick()
     local actor = db.actor
     if not actor then return end
@@ -513,6 +659,17 @@ local function tick()
 
         local stats, seen = apply_gate(actor, powered)
         restore_orphans(seen)
+
+        -- Пункт 4-5: разряд аккумулятора в слоте и выпадение из трупов.
+        local slot_item = actor:item_in_slot(BATTERY_SLOT)
+        if slot_item and is_battery(slot_item:section()) then
+            local ok_d, err_d = pcall(function() discharge_step(actor, slot_item) end)
+            if not ok_d then dbg("ОШИБКА в разряде: " .. tostring(err_d)) end
+        else
+            normalize_state().game_minutes = game_minutes()
+        end
+        local ok_drop, err_drop = pcall(function() drop_step(actor) end)
+        if not ok_drop then dbg("ОШИБКА в выпадении: " .. tostring(err_drop)) end
 
         -- Диагностика раз в 5 секунд.
         if now >= (st.last_status or 0) + 5000 then

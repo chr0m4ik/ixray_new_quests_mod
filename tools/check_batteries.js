@@ -36,7 +36,7 @@ const TEXTURE_ROOTS = [
 ];
 
 const BASE = 'bq_battery_base';
-const ITEMS = ['bq_battery_1', 'bq_battery_2'];
+const ITEMS = ['bq_battery_1', 'bq_battery_2', 'bq_battery_3', 'bq_battery_4', 'bq_battery_5'];
 const EXPECTED_CLASS = 'II_ATTCH';
 const CELL = 50;
 // Слот под аккумулятор появится в пункте 2: CUSTOM_SLOT_1 = 14,
@@ -111,9 +111,9 @@ console.log('\n== 2. Шаблон ==');
     const b = resolve(BASE);
     const want = {
         class: EXPECTED_CLASS,
-        'can_trade': 'false',
+        'can_trade': 'true',
         'use_condition': 'true',
-        'can_stack': 'false',
+        'can_stack': 'true',
         'belt': 'false',
         'default_to_ruck': 'true',
         'bq_battery': 'true',
@@ -338,7 +338,7 @@ console.log('\n== 7. Подключение и дубли ==');
         const text = fs.readFileSync(f).toString('latin1');
         for (const m of text.matchAll(/^!?\[(bq_battery[A-Za-z0-9_]*)\]/gm)) {
             // Турер механики живёт рядом с турером радиации - это не предмет.
-            if (m[1] === 'bq_battery_tuner') continue;
+            if (m[1] === 'bq_battery_tuner' || m[1] === 'bq_battery_discharge' || m[1] === 'bq_battery_drop') continue;
             err(`секция [${m[1]}] объявлена ещё и в ${path.relative(ROOT, f)} - движок упадёт с "Duplicate section"`);
         }
     }
@@ -368,8 +368,8 @@ console.log('\n== 8. Слот аккумулятора (пункт 2) ==');
             err(`[${name}] default_to_ruck = '${r.get('default_to_ruck')}': аккумулятор надевался бы ` +
                 `автоматически при получении, а заказчик просил только вручную`);
         }
-        if (r.get('can_trade') !== 'false') {
-            err(`[${name}] can_trade = '${r.get('can_trade')}': аккумулятор можно продать`);
+        if (r.get('can_trade') !== 'true') {
+            err(`[${name}] can_trade = '${r.get('can_trade')}': аккумулятор должен продаваться у Сыча`);
         }
         const quest = r.get('quest_item');
         if (quest === 'true') {

@@ -1,26 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <string_table>
-    <!-- Batteries for the artifact belt (plan item 1).
-         Temporary texts: the customer will replace them in item 7. -->
+    <!-- Batteries for the artefact belt (plan items 1, 4-5).
+         Five classes: the charge is given in game days with ONE artefact on the
+         belt (more artefacts drain it faster - multipliers live in
+         configs\misc\mod_battery_rules_z_bq.ltx).
+         Texts may be reworded later (polish item 7). -->
 
     <string id="bq_battery_name">
         <text>Accumulator</text>
     </string>
     <string id="bq_battery_descr">
-        <text>An accumulator for the artifact belt.</text>
+        <text>Accumulator for the artefact belt.</text>
     </string>
 
     <string id="bq_battery_1_name">
-        <text>Accumulator 1</text>
+        <text>Battery</text>
     </string>
     <string id="bq_battery_1_descr">
-        <text>This accumulator is good.</text>
+        <text>An ordinary battery from portable gear. Keeps the artefact belt running for about 0.25 game days, then it dies and has to be replaced. Barely noticeable in your pack at 0.1 kg.</text>
     </string>
 
     <string id="bq_battery_2_name">
-        <text>Accumulator 2</text>
+        <text>Accumulator</text>
     </string>
     <string id="bq_battery_2_descr">
-        <text>This accumulator is average.</text>
+        <text>A standard stalker accumulator. The artefact belt runs for roughly 0.5 game days. Weighs 0.5 kg.</text>
+    </string>
+
+    <string id="bq_battery_3_name">
+        <text>Heavy accumulator</text>
+    </string>
+    <string id="bq_battery_3_descr">
+        <text>A heavy army can: keeps the artefact belt alive for up to 1.5 game days, but weighs 2.5 kg - that reserve has to be carried on your back.</text>
+    </string>
+
+    <string id="bq_battery_4_name">
+        <text>Scientific power supply</text>
+    </string>
+    <string id="bq_battery_4_descr">
+        <text>A laboratory power supply in a shielded case. Runs up to 1.5 game days and weighs only 1 kg - the scientists knew how to count energy.</text>
+    </string>
+
+    <string id="bq_battery_5_name">
+        <text>Experimental power supply</text>
+    </string>
+    <string id="bq_battery_5_descr">
+        <text>A prototype from a closed laboratory. Gives the artefact belt up to 3 game days and weighs next to nothing - 0.5 kg. Only a few exist.</text>
     </string>
 </string_table>
