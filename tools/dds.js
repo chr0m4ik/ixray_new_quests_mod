@@ -18,9 +18,10 @@ function readHeader(buf) {
     // из-за чего формат не опознавался.
     const fourCC = buf.toString('latin1', 84, 88).replace(/[^\x20-\x7E]/g, '');
     const expected = fourCC === 'DXT5' ? 128 + (width / 4) * (height / 4) * 16
-        : fourCC === 'DXT1' ? 128 + (width / 4) * (height / 4) * 8
-            : fourCC === '' ? 128 + width * height * 4
-                : null;
+        : fourCC === 'DXT3' ? 128 + (width / 4) * (height / 4) * 16
+            : fourCC === 'DXT1' ? 128 + (width / 4) * (height / 4) * 8
+                : fourCC === '' ? 128 + width * height * 4
+                    : null;
     return { width, height, fourCC, mipMaps, expected, actual: buf.length };
 }
 
@@ -101,6 +102,48 @@ function decodeDXT1(buf) {
     return { width: W, height: H, rgba };
 }
 
+// Декодирует DXT3/BC2 в RGBA.
+//
+// Нужен для атласа боковых панелей Anomaly (ui_actor_widescreen_sidepanels.dds
+// лежит в DXT3). Отличие от DXT5: альфа не интерполируется, а лежит явно, по
+// 4 бита на пиксель (8 байт на блок), цвета считаются всегда по 4-цветной
+// палитре (как в DXT1 при c0 > c1).
+function decodeDXT3(buf) {
+    const hdr = readHeader(buf);
+    if (hdr.fourCC !== 'DXT3') throw new Error('ожидался DXT3, а тут "' + hdr.fourCC + '"');
+    const W = hdr.width, H = hdr.height;
+    const rgba = new Uint8Array(W * H * 4);
+    let off = 128;
+    const c565 = (c) => [((c >> 11) & 31) * 255 / 31, ((c >> 5) & 63) * 255 / 63, (c & 31) * 255 / 31];
+    for (let by = 0; by < Math.ceil(H / 4); by++) {
+        for (let bx = 0; bx < Math.ceil(W / 4); bx++) {
+            // сначала 8 байт альфы: по 4 бита на пиксель
+            const alpha = new Uint8Array(16);
+            for (let i = 0; i < 8; i++) {
+                const b = buf[off + i];
+                alpha[i * 2] = (b & 0x0f) * 17;
+                alpha[i * 2 + 1] = ((b >> 4) & 0x0f) * 17;
+            }
+            const c0 = buf.readUInt16LE(off + 8), c1 = buf.readUInt16LE(off + 10);
+            const cb = buf.readUInt32LE(off + 12);
+            const e0 = c565(c0), e1 = c565(c1);
+            const cpal = [e0, e1,
+                [(2 * e0[0] + e1[0]) / 3, (2 * e0[1] + e1[1]) / 3, (2 * e0[2] + e1[2]) / 3],
+                [(e0[0] + 2 * e1[0]) / 3, (e0[1] + 2 * e1[1]) / 3, (e0[2] + 2 * e1[2]) / 3]];
+            for (let i = 0; i < 16; i++) {
+                const x = bx * 4 + (i % 4), y = by * 4 + Math.floor(i / 4);
+                if (x >= W || y >= H) continue;
+                const c = cpal[(cb >> (2 * i)) & 3];
+                const o = (y * W + x) * 4;
+                rgba[o] = c[0] | 0; rgba[o + 1] = c[1] | 0; rgba[o + 2] = c[2] | 0;
+                rgba[o + 3] = alpha[i];
+            }
+            off += 16;
+        }
+    }
+    return { width: W, height: H, rgba };
+}
+
 // Декодирует несжатый DDS (A8R8G8B8, он же BGRA с альфой).
 //
 // Нужен, потому что атлас HD-иконок в этой сборке НЕ сжат: dwFourCC пустой,
@@ -132,9 +175,10 @@ function decodeA8R8G8B8(buf) {
 function decodeAuto(buf) {
     const hdr = readHeader(buf);
     if (hdr.fourCC === 'DXT5') return decodeDXT5(buf);
+    if (hdr.fourCC === 'DXT3') return decodeDXT3(buf);
     if (hdr.fourCC === 'DXT1') return decodeDXT1(buf);
     if (hdr.fourCC === '' || hdr.fourCC === '    ') return decodeA8R8G8B8(buf);
-    throw new Error('поддерживаются DXT1, DXT5 и A8R8G8B8, а тут "' + hdr.fourCC + '"');
+    throw new Error('поддерживаются DXT1, DXT3, DXT5 и A8R8G8B8, а тут "' + hdr.fourCC + '"');
 }
 
 // Сколько пикселей в ячейке (x,y) размером cell x cell реально непрозрачны.
@@ -161,4 +205,4 @@ function findTexture(logicalName, roots) {
     return null;
 }
 
-module.exports = { readHeader, decodeDXT5, decodeDXT1, decodeA8R8G8B8, decodeAuto, countOpaqueInCell, findTexture };
+module.exports = { readHeader, decodeDXT5, decodeDXT3, decodeDXT1, decodeA8R8G8B8, decodeAuto, countOpaqueInCell, findTexture };
