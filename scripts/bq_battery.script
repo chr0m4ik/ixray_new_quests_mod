@@ -696,13 +696,32 @@ local function discharge_step(actor, battery)
     end
 end
 
+-- Состояние (заряд) предмету, который только что создан В ИНВЕНТАРЕ трупа,
+-- ставим, когда появится его клиентский объект: alife():create с родителем
+-- создаёт серверный объект, а клиентский появляется следующим кадром/проходом.
+local function apply_pending_conditions(st)
+    if not st.drop_pending then return end
+    for item_id, cond in pairs(st.drop_pending) do
+        local client = level.object_by_id(item_id)
+        if client then
+            pcall(function() client:set_condition(cond) end)
+            st.drop_pending[item_id] = nil
+            dbg(string.format("заряд выпавшему аккумулятору id=%d выставлен: %.0f%%", item_id, cond * 100))
+        end
+    end
+end
+
 -- Выпадение аккумулятора из трупа человека. Движок не даёт колбэка смерти
 -- (проверены все ключи LoadCallbackGlobals), поэтому раз в period_ms смотрим
 -- объекты рядом (nearest.set/size/get - уровень) и ловим переход "жив -> мёртв".
--- Достаём предмет трупу через transfer_item: часть события SELL для предмета с
--- земли движок игнорирует, а BUY добавляет его в инвентарь трупа.
+-- Достаём предмет трупу через перегрузку alife():create с родителем (см. ниже).
 local function drop_step(actor)
     local st = normalize_state()
+
+    -- Сначала доводим заряд до предметов, выданных в прошлые проходы (их
+    -- клиентский объект появляется не сразу после alife():create).
+    apply_pending_conditions(st)
+
     local now = time_global()
     local period = cfg_float(DROP_SECTION, "period_ms", 1000)
     if now < (st.drop_next or 0) then return end
@@ -743,17 +762,22 @@ local function drop_step(actor)
                             bq_battery_3 = cfg_float(DROP_SECTION, "chance_bq_battery_3", 0),
                         }) do
                             if math.random() < chance then
+                                -- Кладём предмет СРАЗУ В ИНВЕНТАРЬ ТРУПА: у alife():create
+                                -- есть перегрузка с id родителя (CALifeSimulator__spawn_item2,
+                                -- alife_simulator_script.cpp:496). Так делают и скрипты
+                                -- движка: alife():create(v, pos, lv_id, gv_id, npc_id)
+                                -- (xr_effects.script:453). Раньше мы спавнили предмет на
+                                -- землю и звали transfer_item - он создаёт события
+                                -- SELL/BUY, но предмет с земли в труп не перекладывает,
+                                -- поэтому заказчик и находил аккумулятор на земле.
                                 local item = alife():create(section, obj:position(),
-                                    obj:level_vertex_id(), obj:game_vertex_id())
+                                    obj:level_vertex_id(), obj:game_vertex_id(), id)
                                 if item then
-                                    local client = level.object_by_id(item.id)
-                                    if client then
-                                        local cond = cmin + math.random() * (cmax - cmin)
-                                        pcall(function() client:set_condition(cond) end)
-                                        pcall(function() obj:transfer_item(client, obj) end)
-                                        dbg(string.format("из трупа id=%d выпал %s (заряд %.0f%%)",
-                                            id, section, cond * 100))
-                                    end
+                                    local cond = cmin + math.random() * (cmax - cmin)
+                                    st.drop_pending = st.drop_pending or {}
+                                    st.drop_pending[item.id] = cond
+                                    dbg(string.format("в трупе id=%d оказался %s (заряд будет %.0f%%)",
+                                        id, section, cond * 100))
                                 end
                                 break
                             end
