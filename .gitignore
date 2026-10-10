@@ -44,6 +44,8 @@ textures/ui/ui_anomaly_icons.dds
 
 # Описание патча движка (локальный файл, не публикуем)
 ENGINE_PATCH_icon_layer.cpp.txt
+NOTES_inventory_radiation.md
+NOTES_radiation_research.md
 
 # Отладочные логи скриптов аддона. Скрипты пишут их через io.open: если игра
 # запущена из корня аддона, файл появляется здесь. В репозиторий не нужен.
