@@ -44,18 +44,41 @@
 
 ; ---------------------------------------------------------------------------
 ; Общая часть аккумулятора.
-; Родитель identity_immunities даёт строго читаемые ключи: immunities_sect,
-; slot = -1, description, default_to_ruck, sprint_allowed,
-; control_inertion_factor (defines.ltx:50-58, inventory_item.cpp:111-193).
+;
+; РОДИТЕЛЬ - [helmet] (configs\misc\outfit.ltx:1011). Это решение заказчика от
+; 11.10.2026: класс E_HLMET нужен, чтобы у техника работала кнопка "Починить".
+; В движке она включается ТОЛЬКО по классу:
+;   CanBeRepared = cast_weapon() || cast_outfit() || cast_helmet()
+;   (UIInventoryUpgradeWnd.cpp:282-283, другие условия отсутствуют).
+; Весь ремонт при этом универсален (gamedata\scripts\inventory_upgrades.script):
+;   how_much_repair = cost * (1 - состояние) * 0.6 * наценка_техника
+;   can_repair_item - запрещена только гаусс-винтовка и требует денег
+; - то есть класс и секция там не проверяются.
+;
+; ЧТО ДАЁТ [helmet]: class = E_HLMET, slot = 11 (мы переопределяем на 13),
+; default_to_ruck, sprint_allowed, control_inertion_factor (строгие ключи слота,
+; inventory_item.cpp:182-187), а также НУЛЕВУЮ защиту:
+;   burn_protection / shock_protection / chemical_burn_protection /
+;   radiation_protection / telepatic_protection / strike_protection /
+;   explosion_protection / wound_protection = 0.0 и hit_fraction_actor = 1.0,
+; поэтому аккумулятор брони не даёт (в шлемах 0 = бонуса нет, в отличие от
+; секций *_absorbation, где 0 = полная защита).
+;
+; СЛОТ берётся из конфига для любого класса: base_slot_id = slot + 1
+; (inventory_item.cpp:165-166), поэтому наш slot = 13 остаётся слотом 14, а в
+; ячейку шлема (base_slot_id = 12) предмет не попадёт.
+;
+; ЦЕНА РЕМОНТА - движковая и неизменяемая: cost * (1 - заряд) * 0.6 * наценка.
+; С 0% это 0.6 стоимости, то есть ДЕШЕВЛЕ нового (заказчик предупреждён).
 ; ---------------------------------------------------------------------------
-[bq_battery_base]:identity_immunities
-; class обязателен: без него движок падает при спавне и при перечислении
-; секций в debug-спавнере (SpawnManager.cpp:137 -> pSettings->r_clsid).
-class                       = II_ATTCH
+[bq_battery_base]:helmet
 $spawn                      = "devices\bq_battery"
 GroupControlSection         = spawn_group
 discovery_dependency        =
 cform                       = skeleton
+
+; class НЕ задаём: наследуется E_HLMET из [helmet].
+; Раньше здесь стоял class = II_ATTCH - он и мешал кнопке "Починить".
 
 ; ЗАГЛУШКА: своя модель будет в пункте 6. Меш обязан существовать, иначе
 ; движок молча не покажет секцию в спавнере (SpawnManager.cpp:139-156).

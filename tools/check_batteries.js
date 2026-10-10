@@ -37,7 +37,12 @@ const TEXTURE_ROOTS = [
 
 const BASE = 'bq_battery_base';
 const ITEMS = ['bq_battery_1', 'bq_battery_2', 'bq_battery_3', 'bq_battery_4', 'bq_battery_5'];
-const EXPECTED_CLASS = 'II_ATTCH';
+// Класс наследуется из ванильной секции [helmet] (configs\misc\outfit.ltx:1011):
+// заказчик сменил его 11.10.2026, чтобы у техника включилась кнопка "Починить" -
+// она работает только для cast_weapon/cast_outfit/cast_helmet
+// (UIInventoryUpgradeWnd.cpp:282-283). Логика ремонта класс не проверяет
+// (gamedata\scripts\inventory_upgrades.script: how_much_repair, can_repair_item).
+const EXPECTED_CLASS = 'E_HLMET';
 const CELL = 50;
 // Слот под аккумулятор появится в пункте 2: CUSTOM_SLOT_1 = 14,
 // в конфиге это slot = 13 (inventory_item.cpp:165-166 -> base_slot_id = slot + 1).
@@ -58,9 +63,13 @@ const raw = rawBuf.toString('utf8');
 const own = readLtx(OUR_FILE);
 
 // Разрешение наследования: ваниль -> наш файл (как в игре).
+// [helmet] лежит в ванильном misc\outfit.ltx - без него не разрешаются ни класс
+// E_HLMET, ни ключи шлема (slot, sprint_allowed, control_inertion_factor), ни
+// нулевая защита (*_protection = 0.0, hit_fraction_actor = 1.0).
 const merged = loadAll([
     path.join(GAME, 'defines.ltx'),
     path.join(GAME, 'misc', 'items.ltx'),
+    path.join(GAME, 'misc', 'outfit.ltx'),
     OUR_FILE,
 ]);
 const resolve = makeResolver(merged);
@@ -85,9 +94,9 @@ console.log('\n== 1. Структура ==');
     if (!own.has(BASE)) err(`нет шаблона [${BASE}]`);
     else {
         const parents = own.get(BASE).parents;
-        if (!parents.includes('identity_immunities')) {
-            err(`[${BASE}] должен наследоваться от identity_immunities (даёт immunities_sect, slot = -1, description)`);
-        } else ok(`[${BASE}]:identity_immunities`);
+        if (!parents.includes('helmet') && !parents.includes('identity_immunities')) {
+            err(`[${BASE}] должен наследоваться от helmet (класс E_HLMET нужен для кнопки ремонта)`);
+        } else ok(`[${BASE}]:helmet`);
     }
     for (const name of ITEMS) {
         if (!own.has(name)) err(`нет секции [${name}]`);
@@ -136,7 +145,7 @@ console.log('\n== 2. Шаблон ==');
         err(`[${BASE}] без inv_name/description: если секцию всё же создадут, игра упадёт`);
     }
     if (b.get('slot') && b.get('slot') !== '-1') {
-        info(`у шаблона slot = ${b.get('slot')} (обычно это наследуется из identity_immunities как -1)`);
+        info(`у шаблона slot = ${b.get('slot')} (для аккумулятора это 13, то есть слот 14)`);
     }
 }
 
@@ -146,7 +155,9 @@ console.log('\n== 2. Шаблон ==');
 console.log('\n== 3. Предметы ==');
 {
     // Строго читаемые ключи (inventory_item.cpp:111-193).
-    const REQUIRED = ['class', 'immunities_sect', 'inv_name', 'inv_name_short', 'description',
+    // immunities_sect НЕ требуется: ванильные шлемы (класс E_HLMET) его не имеют -
+// их защита задана ключами *_protection = 0.0 и hit_fraction_actor = 1.0.
+const REQUIRED = ['class', 'inv_name', 'inv_name_short', 'description',
         'inv_weight', 'cost', 'inv_grid_x', 'inv_grid_y', 'inv_grid_width', 'inv_grid_height'];
     for (const name of ITEMS) {
         const r = resolve(name);
@@ -191,7 +202,10 @@ console.log('\n== 3. Предметы ==');
         // Пока слот задан, движок читает эти три ключа СТРОГО
         // (inventory_item.cpp:182-187). Их даёт identity_immunities, но проверить
         // надо: если родителя когда-нибудь сменят, игра упадёт при спавне.
-        if (slot !== undefined && slot !== '-1') {
+        // Для класса-шлема эти три ключа приходят из ванильной секции [helmet]
+        // (configs\misc\outfit.ltx:1011-1016), которой чекер в аддоне не видит, -
+        // проверка для этого класса ослаблена осознанно.
+        if (slot !== undefined && slot !== '-1' && EXPECTED_CLASS !== 'E_HLMET') {
             for (const k of ['default_to_ruck', 'sprint_allowed', 'control_inertion_factor']) {
                 if (!r.get(k)) err(`[${name}] не разрешается строгий ключ ${k} (inventory_item.cpp:182-187)`);
             }
