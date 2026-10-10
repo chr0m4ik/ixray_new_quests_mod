@@ -51,4 +51,7 @@
     <string id="bq_battery_charge_fmt">
         <text>Заряд: %d%%</text>
     </string>
+    <string id="bq_battery_use_text">
+        <text>Зарядить аккумулятор</text>
+    </string>
 </string_table>

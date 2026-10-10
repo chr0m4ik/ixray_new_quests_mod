@@ -51,4 +51,7 @@
     <string id="bq_battery_charge_fmt">
         <text>Charge: %d%%</text>
     </string>
+    <string id="bq_battery_use_text">
+        <text>Charge the accumulator</text>
+    </string>
 </string_table>

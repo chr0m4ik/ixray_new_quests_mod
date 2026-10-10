@@ -1337,6 +1337,45 @@ function bq_battery_api.charge_all(actor, npc)
     refresh_ui()
 end
 
+-- ЗАРЯДКА ОДНОГО АККУМУЛЯТОРА (вариант B). Вызывается движком по ключу
+-- use1_functor = bq_battery_charge.recharge_one из секции предмета, когда игрок
+-- выбирает "Использовать" на конкретном аккумуляторе в инвентаре. Механика та же,
+-- что у наших контейнеров (use1_text/use1_functor, mod_artefacts_z_bq.ltx:389).
+-- Функция получает ПРЕДМЕТ (как bq_containers.take_artifact), актор - из db.actor.
+-- Цена наша: cost * recharge_factor(текущий заряд), таблица [bq_battery_recharge]
+-- (с 0% дороже нового, до 15% как новый, выше - дешевле).
+-- Описание с процентом обновится само в общем проходе (refresh_battery_desc).
+function bq_battery_api.recharge_one(item)
+    if not item then return false end
+    local actor = db.actor
+    if not actor then return false end
+    local section = item:section()
+    if not is_battery(section) then return false end
+
+    local charge = get_condition(item) or 0
+    if charge >= 0.999 then
+        dbg(string.format("зарядка %s: уже полный", section))
+        return false
+    end
+
+    local cost = 0
+    pcall(function() cost = item:cost() end)
+    local price = math.floor(cost * recharge_factor(charge))
+    local money = 0
+    pcall(function() money = actor:money() end)
+    if money < price then
+        dbg(string.format("зарядка %s: не хватает денег (нужно %d, есть %d)", section, price, money))
+        return false
+    end
+
+    actor:give_money(-price)
+    set_condition(item, 1.0)
+    forget_condition(item:id())
+    dbg(string.format("зарядил %s (id=%d): %.0f%% -> 100%% за %d RU",
+        section, item:id(), charge * 100, price))
+    refresh_ui()
+    return true
+end
 -- Резервные точки загрузки из [callbacks] (mod_game_global_z_bq.ltx).
 -- Здесь НЕЛЬЗЯ делать тяжёлую работу: повторный вход в Lua из C++ внутри уже
 -- исполняющегося Lua-колбэка валит игру (проверено в MEMO 33.7/сеансе 21).

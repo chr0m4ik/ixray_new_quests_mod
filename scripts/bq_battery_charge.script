@@ -36,3 +36,13 @@ function charge_all(actor, npc)
     end
     return ""
 end
+
+-- "Использовать" на конкретном аккумуляторе: ключ use1_functor в конфиге секции
+-- указывает на ЭТУ функцию (движок ищет <имя_файла>.<функция>).
+function recharge_one(item)
+    if type(bq_battery_api) == "table" and bq_battery_api.recharge_one then
+        local ok, res = pcall(bq_battery_api.recharge_one, item)
+        if ok then return res end
+    end
+    return false
+end
