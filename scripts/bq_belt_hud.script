@@ -58,6 +58,13 @@ local function cfg_value(section, key, default, is_string)
     return default
 end
 
+local logged = {}
+local function hud_log_once(msg)
+    if logged[msg] then return end
+    logged[msg] = true
+    dbg('HUD: ' .. msg)
+end
+
 -- get_hud() может быть недоступен (например, до загрузки уровня) - молча выходим.
 local function game_hud()
     local ok, h = pcall(function() return get_hud() end)
@@ -140,6 +147,10 @@ function update(actor, artefacts, battery, charge)
     if battery then items[#items + 1] = battery end
 
     local shown = 0
+    if not logged.update then
+        logged.update = true
+        dbg(string.format('HUD: первое обновление, предметов %d', #items))
+    end
     for index, item in ipairs(items) do
         if index > MAX_ICONS then break end
         local section = item:section()
@@ -151,7 +162,9 @@ function update(actor, artefacts, battery, charge)
                 local w = info.gw * ICON_W
                 local h = info.gh * ICON_H
                 local ok = pcall(function()
-                    wnd:Init(info.tex, x, base_y, w, h)
+                    wnd:InitTexture(info.tex)
+                    wnd:SetWndPos(vector2():set(x, base_y))
+                    wnd:SetWndSize(vector2():set(w, h))
                     wnd:SetTextureRect(info.x, info.y, info.w, info.h)
                     wnd:Show(true)
                 end)
@@ -163,7 +176,9 @@ function update(actor, artefacts, battery, charge)
                         if label then
                             local pct = math.floor((charge or 0) * 100 + 0.5)
                             pcall(function()
-                                label:Init("ui\\ui_bq_blank", x, base_y + h + 1, w, 12)
+                                label:InitTexture("ui\\ui_bq_blank")
+                                label:SetWndPos(vector2():set(x, base_y + h + 1))
+                                label:SetWndSize(vector2():set(w + 24, 14))
                                 label:SetText(string.format("%d%%", pct))
                                 label:Show(true)
                             end)
