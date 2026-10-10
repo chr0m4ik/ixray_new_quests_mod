@@ -378,7 +378,7 @@ local function apply_gate(actor, powered)
                     st.desc[id] = pct
                     local text
                     pcall(function()
-                        local fmt = game.translate_string("bq_battery_api_fmt")
+                        local fmt = game.translate_string("bq_battery_charge_fmt")
                         if type(fmt) ~= "string" or fmt == "" then fmt = "Заряд: %d%%" end
                         text = string.format(fmt, pct)
                     end)
