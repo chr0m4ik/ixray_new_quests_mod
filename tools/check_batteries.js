@@ -338,7 +338,7 @@ console.log('\n== 7. Подключение и дубли ==');
         const text = fs.readFileSync(f).toString('latin1');
         for (const m of text.matchAll(/^!?\[(bq_battery[A-Za-z0-9_]*)\]/gm)) {
             // Турер механики живёт рядом с турером радиации - это не предмет.
-            if (m[1] === 'bq_battery_tuner' || m[1] === 'bq_battery_discharge' || m[1] === 'bq_battery_drop') continue;
+            if (m[1] === 'bq_battery_tuner' || m[1] === 'bq_battery_discharge' || m[1] === 'bq_battery_drop' || m[1] === 'bq_battery_recharge') continue;
             err(`секция [${m[1]}] объявлена ещё и в ${path.relative(ROOT, f)} - движок упадёт с "Duplicate section"`);
         }
     }
