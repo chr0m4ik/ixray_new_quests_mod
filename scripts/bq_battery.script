@@ -378,7 +378,7 @@ local function apply_gate(actor, powered)
                     st.desc[id] = pct
                     local text
                     pcall(function()
-                        local fmt = game.translate_string("bq_battery_charge_fmt")
+                        local fmt = game.translate_string("bq_battery_api_fmt")
                         if type(fmt) ~= "string" or fmt == "" then fmt = "Заряд: %d%%" end
                         text = string.format(fmt, pct)
                     end)
@@ -893,6 +893,22 @@ local function tick()
         -- только после переоткрытия инвентаря (см. refresh_ui).
         refresh_ui()
 
+        -- HUD-панель пояса (scripts\bq_belt_hud.script): артефакты по порядку
+        -- ячеек, затем аккумулятор с числом заряда; пустые ячейки не рисуются.
+        pcall(function()
+            local belt_items = {}
+            local belt_n = actor:belt_count() or 0
+            for i = 0, belt_n - 1 do
+                local it = actor:item_on_belt(i)
+                if it and is_artefact(it:section()) then belt_items[#belt_items + 1] = it end
+            end
+            local batt = actor:item_in_slot(BATTERY_SLOT)
+            if batt and is_battery(batt:section()) then
+                bq_belt_hud.update(actor, belt_items, batt, get_condition(batt))
+            else
+                bq_belt_hud.update(actor, belt_items, nil, nil)
+            end
+        end)
         -- Диагностика раз в 5 секунд.
         if now >= (st.last_status or 0) + 5000 then
             st.last_status = now
@@ -966,8 +982,8 @@ end
 --
 -- Диалог bq_tech_charge (configs\gameplay\bq_dialogs.xml) привязан к технику
 -- Затона в нашем character_desc_zaton.xml и зовёт функции отсюда:
---   <precondition>bq_battery_charge.can_offer</precondition> - показывать ли фразу;
---   <action>bq_battery_charge.charge_all</action>           - зарядить всё.
+--   <precondition>bq_battery_api.can_offer</precondition> - показывать ли фразу;
+--   <action>bq_battery_api.charge_all</action>           - зарядить всё.
 -- Механизм вызова: движок ищет "таблица.функция" в глобальных таблицах Lua
 -- (так же работает bq_quest.give_task), поэтому таблица объявлена ГЛОБАЛЬНОЙ.
 --
@@ -994,24 +1010,31 @@ local function recharge_factor(charge)
     return factor
 end
 
--- Все аккумуляторы в инвентаре актора (в контейнерах их быть не может, но
--- перебираем инвентарь, а не слот: заряжать нужно и те, что в рюкзаке).
+-- Все аккумуляторы у актора. Перебор инвентаря может НЕ показать предмет,
+-- надетый в слот, поэтому слот проверяем отдельно - именно из-за этого заказчик
+-- не видел фразы у техника (аккумулятор был надет, счёт давал 0).
 local function actor_batteries(actor)
-    local list = {}
+    local list, seen = {}, {}
+    local function add(item)
+        if not item then return end
+        local id = item:id()
+        if seen[id] then return end
+        seen[id] = true
+        list[#list + 1] = item
+    end
     actor:iterate_inventory(function(owner, item)
         if not item then return end
-        local section = item:section()
-        if is_battery(section) then
-            list[#list + 1] = item
-        end
+        if is_battery(item:section()) then add(item) end
     end, actor)
+    local slot_item = actor:item_in_slot(BATTERY_SLOT)
+    if slot_item and is_battery(slot_item:section()) then add(slot_item) end
     return list
 end
 
-bq_battery_charge = {}
+bq_battery_api = {}
 
 -- Сколько аккумуляторов и сколько это будет стоить (для фразы диалога).
-function bq_battery_charge.total(actor)
+function bq_battery_api.total(actor)
     actor = actor or db.actor
     if not actor then return 0, 0 end
     local count, price = 0, 0
@@ -1026,17 +1049,17 @@ function bq_battery_charge.total(actor)
 end
 
 -- precondition диалога: показывать фразу, только если есть что заряжать.
-function bq_battery_charge.can_offer(actor, npc)
-    local count = bq_battery_charge.total(actor)
+function bq_battery_api.can_offer(actor, npc)
+    local count = bq_battery_api.total(actor)
     return count > 0
 end
 
 -- action диалога: списать деньги и зарядить ВСЕ аккумуляторы до 100%.
-function bq_battery_charge.charge_all(actor, npc)
+function bq_battery_api.charge_all(actor, npc)
     actor = actor or db.actor
     if not actor then return end
 
-    local count, price = bq_battery_charge.total(actor)
+    local count, price = bq_battery_api.total(actor)
     if count == 0 then
         dbg("техник: заряжать нечего")
         return
