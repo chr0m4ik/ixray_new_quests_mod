@@ -1053,6 +1053,34 @@ local function belt_hud_touch()
     end
     return true
 end
+-- ПРОЦЕНТ ЗАРЯДА В ОПИСАНИИ ПРЕДМЕТА (дополнительное описание).
+-- Сверяемся с ТЕКУЩИМ текстом на предмете, а не только с кэшем в Lua: поле
+-- m_AdditionalDescription НЕ сохраняется в сейве, а кэш переживает загрузку,
+-- поэтому после загрузки процент пропадал (жалоба заказчика 11.10.2026).
+-- Заодно покрываем аккумулятор, надетый В СЛОТ: перебор инвентаря его не видит.
+local function refresh_battery_desc(actor)
+    for _, item in ipairs(actor_batteries(actor)) do
+        local charge = get_condition(item)
+        if charge ~= nil then
+            local pct = math.floor(charge * 100 + 0.5)
+            local want
+            pcall(function()
+                local fmt = game.translate_string("bq_battery_charge_fmt")
+                if type(fmt) ~= "string" or fmt == "" then fmt = "Заряд: %d%%" end
+                want = string.format(fmt, pct)
+            end)
+            if want == nil then want = string.format("Заряд: %d%%", pct) end
+            local current = nil
+            pcall(function() current = item:get_item_additional_description() end)
+            if current ~= want then
+                pcall(function() item:set_item_additional_description(want) end)
+                local st = normalize_state()
+                st.desc = st.desc or {}
+                st.desc[item:id()] = pct
+            end
+        end
+    end
+end
 local function tick()
     local actor = db.actor
     if not actor then return end
@@ -1111,6 +1139,9 @@ local function tick()
         -- Полоски состояния в открытом окне: без этого заряд в интерфейсе виден
         -- только после переоткрытия инвентаря (см. refresh_ui).
         refresh_ui()
+
+        -- Описание с процентом заряда (в том числе для надетого в слот).
+        pcall(function() refresh_battery_desc(actor) end)
 
         -- HUD-панель пояса (scripts\bq_belt_hud.script): артефакты по порядку
         -- ячеек, затем аккумулятор с числом заряда; пустые ячейки не рисуются.
