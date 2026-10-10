@@ -1,52 +1,12 @@
-# Временный вспомогательный скрипт копирования
 copy_files.py
-
-# Файлы для нейросеток
 AGENTS.md
 CLAUDE.md
 lastest.md
 MEMO.md
 .dsh/
-
-# Инструменты. Версионируем то, что воспроизводимо и нужно для работы над
-# модом (проверки, разбор конфигов, сборка атласа, разбор DDS). Локальной
-# остаётся разовая утилита extract_icon.js (работа с чужим атласом Anomaly).
-tools/*
-!tools/check_*.js
-!tools/dds.js
-!tools/ini_resolver.js
-!tools/atlas_cells.js
-!tools/point_combos_to_atlas.js
-!tools/dump_resolved.js
-!tools/dump_section.js
-!tools/add_artifact_combos.js
-!tools/recompute_combos.js
-!tools/check_trade.js
-!tools/dds_encode.js
-!tools/build_combo_icons.js
-!tools/png.js
-!tools/test_dds_encode.js
-!tools/downscale.js
-!tools/compare_artifact_quality.js
-!tools/compare_artifact_sizes.js
-!tools/fix_rus_localization.js
-!tools/check_artifact_bleed.js
-
-# Проверка механики радиации в рюкзаке БЕЗ запуска игры: исполняет скрипт
-# настоящим LuaJIT из bin\lua51.dll с заглушками движка. Версионируем вместе с
-# кодом: тест ловит регрессы (персистентность _G, чтение конфига без line_exist,
-# вызов несуществующего метода change_radiation), без него их не видно.
-!tools/test_inv_rad.lua
-!tools/test_inv_rad.ps1
-
-# Атлас иконок из аномали (33 МБ, используется только как источник картинок)
+tools/
 textures/ui/ui_anomaly_icons.dds
-
-# Описание патча движка (локальный файл, не публикуем)
 ENGINE_PATCH_icon_layer.cpp.txt
 NOTES_inventory_radiation.md
 NOTES_radiation_research.md
-
-# Отладочные логи скриптов аддона. Скрипты пишут их через io.open: если игра
-# запущена из корня аддона, файл появляется здесь. В репозиторий не нужен.
 bq_*.log
