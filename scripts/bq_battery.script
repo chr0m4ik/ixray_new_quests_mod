@@ -361,9 +361,36 @@ local function apply_gate(actor, powered)
         if not item then return end
 
         local section = item:section()
+        local id = item:id()
+
+        -- АККУМУЛЯТОР: обновляем его ОПИСАНИЕ с процентом заряда. Окно предмета
+        -- показывает GetExtendedUnionDescription, если у предмета включено
+        -- additional_description, а из Lua это доступно через
+        -- set_item_additional_description (script_game_object_script2.cpp:151-153).
+        -- Поэтому процент виден ровно там, где заказчик и просил - при наведении
+        -- на предмет в инвентаре. Обновляем только при смене целых процентов.
+        if is_battery(section) then
+            local charge = get_condition(item)
+            if charge ~= nil then
+                local pct = math.floor(charge * 100 + 0.5)
+                st.desc = st.desc or {}
+                if st.desc[id] ~= pct then
+                    st.desc[id] = pct
+                    local text
+                    pcall(function()
+                        local fmt = game.translate_string("bq_battery_charge_fmt")
+                        if type(fmt) ~= "string" or fmt == "" then fmt = "Заряд: %d%%" end
+                        text = string.format(fmt, pct)
+                    end)
+                    if text == nil then text = string.format("Заряд: %d%%", pct) end
+                    pcall(function() item:set_item_additional_description(text) end)
+                end
+            end
+            return
+        end
+
         if not is_artefact(section) then return end
 
-        local id = item:id()
         seen[id] = true
         local on_belt = owner:is_on_belt(item)
         stats.artefacts = stats.artefacts + 1
@@ -748,7 +775,12 @@ local function drop_step(actor)
             if obj and obj:id() then
                 local id = obj:id()
                 local seen = st.drop_seen[id]
-                local dead = not obj:alive()
+                -- alive() есть не у каждого объекта, который отдаёт nearest.get -
+                -- на чужих сущностях движок сыпал "CSciptEntity : cannot access
+                -- class member Alive!" в лог (заказчик, 10.10.2026). Читаем через
+                -- pcall и такие объекты просто пропускаем.
+                local alive_ok, alive = pcall(function() return obj:alive() end)
+                local dead = alive_ok and (not alive) or false
                 if not seen then
                     st.drop_seen[id] = dead and "dead" or "alive"
                 end

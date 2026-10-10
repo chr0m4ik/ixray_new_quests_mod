@@ -47,4 +47,8 @@
     <string id="bq_battery_5_descr">
         <text>Опытный образец из закрытой лаборатории. Даёт поясу артефактов до 3 игровых суток и почти ничего не весит — 0.5 кг. Таких единицы.</text>
     </string>
+    <!-- Формат строки заряда в описании аккумулятора (set_item_additional_description). -->
+    <string id="bq_battery_charge_fmt">
+        <text>Заряд: %d%%</text>
+    </string>
 </string_table>

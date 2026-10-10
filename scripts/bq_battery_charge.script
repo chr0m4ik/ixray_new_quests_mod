@@ -1,0 +1,38 @@
+-- ============================================================================
+-- ЗАРЯДКА АККУМУЛЯТОРОВ У ТЕХНИКА (пункт 4 плана).
+--
+-- ЭТОТ ФАЙЛ - ТОЛЬКО ИНТЕРФЕЙС ДЛЯ ДИАЛОГА, и он назван так не случайно.
+-- Диалоги и [callbacks] в этой сборке ищут функцию как "<имя_скрипта>.<функция>"
+-- (так работают xr_effects.* и наш bq_quest.give_task), то есть по имени ФАЙЛА
+-- scripts\<имя>.script. Глобальная таблица Lua с таким именем НЕ подходит: движок
+-- печатает "Variable bq_battery_charge not found; No script by this name exists,
+-- either." и роняет игру при открытии диалога (вылет заказчика 10.10.2026,
+-- стек: CDialogHolder::StartMenu -> CUIDialogWnd::ShowDialog).
+--
+-- Вся логика лежит в scripts\bq_battery.script (там есть доступ к состоянию пояса,
+-- записям pstor и общей диагностике) и вызывается через глобальную таблицу
+-- bq_battery_charge. Здесь - тонкие обёртки с именами, которые ждёт диалог:
+--   configs\gameplay\bq_dialogs.xml:
+--     <precondition>bq_battery_charge.can_offer</precondition>
+--     <action>bq_battery_charge.charge_all</action>
+-- ============================================================================
+
+-- Показывать ли фразу в диалоге: заряжать есть что (хотя бы один аккумулятор).
+function can_offer(actor, npc)
+    if type(bq_battery_charge) == "table" and bq_battery_charge.can_offer then
+        local ok, res = pcall(bq_battery_charge.can_offer, actor, npc)
+        if ok then return res end
+    end
+    return false
+end
+
+-- Само действие: списать деньги и зарядить ВСЕ аккумуляторы игрока до 100%.
+function charge_all(actor, npc)
+    if type(bq_battery_charge) == "table" and bq_battery_charge.charge_all then
+        local ok, err = pcall(bq_battery_charge.charge_all, actor, npc)
+        if not ok then
+            return "bq_battery_charge: ошибка зарядки: " .. tostring(err)
+        end
+    end
+    return ""
+end

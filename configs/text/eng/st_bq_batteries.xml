@@ -47,4 +47,8 @@
     <string id="bq_battery_5_descr">
         <text>A prototype from a closed laboratory. Gives the artefact belt up to 3 game days and weighs next to nothing - 0.5 kg. Only a few exist.</text>
     </string>
+    <!-- Charge line format in the accumulator description. -->
+    <string id="bq_battery_charge_fmt">
+        <text>Charge: %d%%</text>
+    </string>
 </string_table>
