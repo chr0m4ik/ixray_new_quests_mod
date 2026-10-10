@@ -748,13 +748,25 @@ local function drop_step(actor)
             if obj and obj:id() then
                 local id = obj:id()
                 local seen = st.drop_seen[id]
+                local dead = not obj:alive()
                 if not seen then
-                    st.drop_seen[id] = obj:alive() and "alive" or "dead"
-                elseif seen == "alive" and not obj:alive() then
+                    st.drop_seen[id] = dead and "dead" or "alive"
+                end
+                -- Труп, который мы видим ВПЕРВЫЕ (NPC заспавнили и сразу убили, или
+                -- тело вошло в радиус позже), обрабатываем как смерть. Иначе такие
+                -- NPC не получали аккумулятор вообще: заказчик заспавнил 20
+                -- сталкеров и не увидел ни одного выпадения.
+                if seen == nil and dead then seen = "alive" end
+                if seen == "alive" and dead then
                     st.drop_seen[id] = "dead"
                     -- проверяем сообщество: только люди из списка
                     local community = nil
                     pcall(function() community = obj:character_community() end)
+                    -- Диагностика для проверки заказчика: видно КАЖДЫЙ труп и его
+                    -- сообщество, поэтому сразу понятно, почему нет выпадения.
+                    dbg(string.format("труп id=%d: сообщество '%s'%s", id, tostring(community),
+                        (community and communities ~= "" and string.find(communities, community, 1, true))
+                            and " - в списке, бросаю шанс" or " - НЕ в списке, пропускаю"))
                     if community and communities ~= "" and string.find(communities, community, 1, true) then
                         for section, chance in pairs({
                             bq_battery_1 = cfg_float(DROP_SECTION, "chance_bq_battery_1", 0),
