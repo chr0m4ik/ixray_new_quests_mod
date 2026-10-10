@@ -82,15 +82,14 @@ local TUNER_SECTION = "bq_rad_tuner"
 -- io.open внутри dbg.
 ---------------------------------------------------------------------------
 local function dbg(msg)
-    if not DEBUG then return end
-    --[[
-    local f = io.open(LOG_FILE, "a")
-    if f then
-        f:write(os.date("%H:%M:%S") .. "  " .. msg .. "\n")
-        f:close()
-    end
-    --]]
-    local _ = msg          -- аргумент оставлен, чтобы не менять вызовы dbg(...)
+    -- ОТКЛЮЧЕНО ДЛЯ РЕЛИЗА: запись во внешний лог-файл не нужна пользователю.
+    -- Чтобы включить отладку - поставьте DEBUG = true и раскомментируйте тело ниже.
+    -- if not DEBUG then return end
+    -- local f = io.open(LOG_FILE, "a")
+    -- if f then
+    --     f:write(os.date("%H:%M:%S") .. "  " .. tostring(msg) .. "\n")
+    --     f:close()
+    -- end
 end
 
 ----------------------------------------------------------------------------

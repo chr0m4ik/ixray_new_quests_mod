@@ -37,7 +37,7 @@ const TEXTURE_ROOTS = [
 
 const BASE = 'bq_battery_base';
 const ITEMS = ['bq_battery_1', 'bq_battery_2', 'bq_battery_3', 'bq_battery_4', 'bq_battery_5'];
-const EXPECTED_CLASS = 'II_ATTCH';
+const EXPECTED_CLASS = 'II_BATTY';
 const CELL = 50;
 // Слот под аккумулятор появится в пункте 2: CUSTOM_SLOT_1 = 14,
 // в конфиге это slot = 13 (inventory_item.cpp:165-166 -> base_slot_id = slot + 1).

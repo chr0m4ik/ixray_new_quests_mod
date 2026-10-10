@@ -51,7 +51,7 @@
 [bq_battery_base]:identity_immunities
 ; class обязателен: без него движок падает при спавне и при перечислении
 ; секций в debug-спавнере (SpawnManager.cpp:137 -> pSettings->r_clsid).
-class                       = II_ATTCH
+class                       = II_BATTY
 $spawn                      = "devices\bq_battery"
 GroupControlSection         = spawn_group
 discovery_dependency        =
@@ -59,7 +59,7 @@ cform                       = skeleton
 
 ; ЗАГЛУШКА: своя модель будет в пункте 6. Меш обязан существовать, иначе
 ; движок молча не покажет секцию в спавнере (SpawnManager.cpp:139-156).
-visual                      = dynamics\equipments\aa\cooler.ogf
+visual                      = dynamics\equipments\trade\battery.ogf
 
 ; Маркер "это аккумулятор": по нему скрипт bq_battery.script понимает, что в
 ; слоте лежит именно аккумулятор (ключ читается строго после section_exist и
@@ -159,13 +159,13 @@ auto_attach                 = false
 
 ; --- 1. Батарейка ---------------------------------------------------------
 [bq_battery_1]:bq_battery_base
-visual                      = dynamics\equipments\aa\aac.ogf
+visual                      = dynamics\equipments\trade\battery.ogf
 inv_name                    = bq_battery_1_name
 inv_name_short              = bq_battery_1_name
 description                 = bq_battery_1_descr
 cost                        = 3000
 inv_weight                  = 0.1
-discharge_days              = 0.25
+discharge_days              = 0.125
 inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 0
@@ -173,13 +173,13 @@ inv_grid_y                  = 0
 
 ; --- 2. Аккумулятор -------------------------------------------------------
 [bq_battery_2]:bq_battery_base
-visual                      = dynamics\equipments\aa\cooler.ogf
+visual                      = dynamics\equipments\trade\battery.ogf
 inv_name                    = bq_battery_2_name
 inv_name_short              = bq_battery_2_name
 description                 = bq_battery_2_descr
 cost                        = 6000
 inv_weight                  = 0.5
-discharge_days              = 0.5
+discharge_days              = 0.25
 inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 1
@@ -187,13 +187,13 @@ inv_grid_y                  = 0
 
 ; --- 3. Тяжелый аккумулятор ----------------------------------------------
 [bq_battery_3]:bq_battery_base
-visual                      = dynamics\equipments\aa\grid.ogf
+visual                      = dynamics\equipments\trade\battery.ogf
 inv_name                    = bq_battery_3_name
 inv_name_short              = bq_battery_3_name
 description                 = bq_battery_3_descr
 cost                        = 12000
 inv_weight                  = 2.5
-discharge_days              = 1.5
+discharge_days              = 0.75
 inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 2
@@ -201,13 +201,13 @@ inv_grid_y                  = 0
 
 ; --- 4. Научный блок питания ---------------------------------------------
 [bq_battery_4]:bq_battery_base
-visual                      = dynamics\equipments\aa\freon.ogf
+visual                      = dynamics\equipments\trade\battery.ogf
 inv_name                    = bq_battery_4_name
 inv_name_short              = bq_battery_4_name
 description                 = bq_battery_4_descr
 cost                        = 20000
 inv_weight                  = 1.0
-discharge_days              = 1.5
+discharge_days              = 0.75
 inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 3
@@ -215,13 +215,13 @@ inv_grid_y                  = 0
 
 ; --- 5. Экспериментальный блок питания -----------------------------------
 [bq_battery_5]:bq_battery_base
-visual                      = dynamics\equipments\aa\surge.ogf
+visual                      = dynamics\equipments\trade\battery.ogf
 inv_name                    = bq_battery_5_name
 inv_name_short              = bq_battery_5_name
 description                 = bq_battery_5_descr
 cost                        = 70000
 inv_weight                  = 0.5
-discharge_days              = 3.0
+discharge_days              = 1.5
 inv_grid_width              = 1
 inv_grid_height             = 1
 inv_grid_x                  = 4

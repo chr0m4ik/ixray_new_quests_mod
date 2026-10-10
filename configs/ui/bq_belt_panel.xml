@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Панель пояса артефактов на HUD (свой класс аккумулятора, движковая версия).
+
+    Читает её движок: CUIMainIngameWnd::Init() загружает этот файл и создаёт
+    статики icon0..icon5 и charge_text, а CUIMainIngameWnd::UpdateBQBeltPanel()
+    каждый кадр расставляет их: сначала артефакты по порядку ячеек пояса, затем
+    аккумулятор. ПУСТЫЕ ЯЧЕЙКИ НЕ РИСУЮТСЯ, поэтому панель всегда "слитная".
+
+    Здесь задаются только текстура-заглушка (прозрачная ui_bq_blank) и шрифт для
+    числа заряда; размер 33x41 (ячейка пояса в инвентаре) и координаты движок
+    пересчитывает сам, беря положение и зазор из configs\misc\mod_battery_rules_z_bq.ltx,
+    секция [bq_battery_hud]: hud_x, hud_y, icon_gap.
+-->
+<bq_belt_panel>
+    <icon0 x="0" y="0" width="33" height="41" stretch="1"><texture>ui\ui_bq_blank</texture></icon0>
+    <icon1 x="37" y="0" width="33" height="41" stretch="1"><texture>ui\ui_bq_blank</texture></icon1>
+    <icon2 x="74" y="0" width="33" height="41" stretch="1"><texture>ui\ui_bq_blank</texture></icon2>
+    <icon3 x="111" y="0" width="33" height="41" stretch="1"><texture>ui\ui_bq_blank</texture></icon3>
+    <icon4 x="148" y="0" width="33" height="41" stretch="1"><texture>ui\ui_bq_blank</texture></icon4>
+    <icon5 x="185" y="0" width="33" height="41" stretch="1"><texture>ui\ui_bq_blank</texture></icon5>
+    <charge_text x="0" y="42" width="60" height="14" stretch="1">
+        <texture>ui\ui_bq_blank</texture>
+        <text font="letterica16" align="c" vert_align="c" r="238" g="224" b="198"/>
+    </charge_text>
+</bq_belt_panel>

@@ -17,35 +17,35 @@
         <text>Battery</text>
     </string>
     <string id="bq_battery_1_descr">
-        <text>An ordinary battery from portable gear. Keeps the artefact belt running for about 0.25 game days, then it dies and has to be replaced. Barely noticeable in your pack at 0.1 kg.</text>
+        <text>An ordinary battery from portable gear.\nIf inserted into the belt, its energy charges the artefacts so that they start giving their useful properties.\nWith two artefacts on the belt it can work for 3 hours.\nDepending on the number of artefacts on the belt it may discharge faster or slower.</text>
     </string>
 
     <string id="bq_battery_2_name">
         <text>Accumulator</text>
     </string>
     <string id="bq_battery_2_descr">
-        <text>A standard stalker accumulator. The artefact belt runs for roughly 0.5 game days. Weighs 0.5 kg.</text>
+        <text>A standard stalker accumulator.\nIf inserted into the belt, its energy charges the artefacts so that they start giving their useful properties.\nWith two artefacts on the belt it can work for 6 hours.\nDepending on the number of artefacts on the belt it may discharge faster or slower.</text>
     </string>
 
     <string id="bq_battery_3_name">
         <text>Heavy accumulator</text>
     </string>
     <string id="bq_battery_3_descr">
-        <text>A heavy army can: keeps the artefact belt alive for up to 1.5 game days, but weighs 2.5 kg - that reserve has to be carried on your back.</text>
+        <text>A heavy army can: keeps the artefact belt alive for up to 1.\nIf inserted into the belt, its energy charges the artefacts so that they start giving their useful properties.\nWith two artefacts on the belt it can work for 18 hours.\nDepending on the number of artefacts on the belt it may discharge faster or slower.</text>
     </string>
 
     <string id="bq_battery_4_name">
         <text>Scientific power supply</text>
     </string>
     <string id="bq_battery_4_descr">
-        <text>A laboratory power supply in a shielded case. Runs up to 1.5 game days and weighs only 1 kg - the scientists knew how to count energy.</text>
+        <text>A laboratory power supply in a shielded case.\nIf inserted into the belt, its energy charges the artefacts so that they start giving their useful properties.\nWith two artefacts on the belt it can work for 18 hours.\nDepending on the number of artefacts on the belt it may discharge faster or slower.</text>
     </string>
 
     <string id="bq_battery_5_name">
         <text>Experimental power supply</text>
     </string>
     <string id="bq_battery_5_descr">
-        <text>A prototype from a closed laboratory. Gives the artefact belt up to 3 game days and weighs next to nothing - 0.5 kg. Only a few exist.</text>
+        <text>A prototype from a closed laboratory.\nIf inserted into the belt, its energy charges the artefacts so that they start giving their useful properties.\nWith two artefacts on the belt it can work for 36 hours.\nDepending on the number of artefacts on the belt it may discharge faster or slower.</text>
     </string>
     <!-- Charge line format in the accumulator description. -->
     <string id="bq_battery_charge_fmt">
@@ -54,4 +54,7 @@
     <string id="bq_battery_use_text">
         <text>Charge the accumulator</text>
     </string>
+    <string id="bq_battery_can_buy"><text>%c[255,0,255,0]Can be bought%c[default]</text></string>
+    <string id="bq_battery_drop_from_corpse"><text>%c[255,0,255,0]Can be found on a corpse%c[default]</text></string>
+    <string id="bq_container_full_name"><text>%s (%s)</text></string>
 </string_table>

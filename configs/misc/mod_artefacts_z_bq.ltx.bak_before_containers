@@ -1,0 +1,2928 @@
+; ============================================================================
+; Artefact containers - sections for configs\misc\artefacts.ltx
+;
+; HOW THIS FILE IS LOADED (checked against the engine sources):
+;   It is attached with "#include "misc\mod_artefacts_z_bq.ltx"" from
+;   configs\mod_system_z_bq.ltx. The name keeps the mod_ prefix only by habit;
+;   auto-discovery does NOT work here. The engine auto-loads
+;   "mod_<rootfile>_*.ltx" only where it OPENS a file as the root one
+;   (Xr_ini.cpp:1138, inside the bIsRootFile branch). misc\artefacts.ltx is
+;   never opened as a root file - it is #include'd by configs\system.ltx:16 -
+;   so a mod_artefacts_*.ltx is never found. That is why the sections are
+;   pulled in explicitly instead.
+;
+; WHY NO FULL COPY OF artefacts.ltx: the root file system.ltx includes both
+;   defines.ltx and misc\artefacts.ltx, so all their sections live in the same
+;   CInifile and parents resolve across files (Xr_ini.cpp:271-283). Duplicate
+;   checks happen inside a single file only (Xr_ini.cpp:1067-1077), so adding
+;   our own sections is safe and does not require copying the vanilla file.
+;
+; Sections:
+;   bq_container_base            - common part of an empty container
+;   bq_field_container           - field container, absorbs 4 radiation
+;   bq_uni_container             - universal container, absorbs 8
+;   bq_sci_container             - scientific container, absorbs 14
+;   <artefact>_<container>       - combo item (artefact inside a container)
+;
+; Combo section template: [<artefact>_bq_field_container]:<artefact>, bq_container_base
+;   First parent  - the artefact: brings protection (hit_absorbation_sect) and
+;                   all its stats.
+;   Second parent - our container: brings the class, the visual and the icon
+;                   atlas. It must be listed LAST because in a multiple
+;                   inheritance the last parent wins (CInifile::EvaluateSection).
+;
+; CRITICAL: a combo MUST set inv_grid_x / inv_grid_y / icons_texture itself.
+;   CInventoryItem::Load reads inv_grid_x/y from the section of the object
+;   itself (inventory_item.cpp:190-193). If a combo inherited them from the
+;   artefact (af_eye = 12,4) the icon was cut from the wrong atlas place and
+;   was drawn as 2x2.
+;
+; PROVISIONAL ICONS: empty containers currently reuse the vanilla
+;   ui\ui_icon_equipment atlas, so the combos use the same cells as their
+;   container. A dedicated container atlas and the contents layer icon come in
+;   a later step.
+; ============================================================================
+
+; ---------------------------------------------------------------------------
+; Common part of an empty container. Every key that the engine reads strictly
+; (Artefact.cpp:94-103, inventory_item.cpp:111-193) is listed here explicitly,
+; because the vanilla af_base does NOT provide all of them.
+; ---------------------------------------------------------------------------
+[bq_container_base]:af_base
+; class ОБЯЗАТЕЛЕН именно здесь: в оригинальном artefacts.ltx ключа class
+; НЕТ ни у af_base, ни у identity_immunities (его задаёт каждый конкретный
+; артефакт - af_eye, af_cristall и т.д.). Без этой строки пустые контейнеры
+; оставались без класса, и движок падал:
+;   CInifile::r_string: Can't find variable class in [bq_uni_container]
+; Вылет происходил дважды: при перечислении секций в debug-спавнере
+; (SpawnManager.cpp:137, pSettings->r_clsid) и при доставании артефакта,
+; когда скрипт создавал пустой контейнер (alife():create).
+class                       = ARTEFACT
+; af_actor_properties - по НАЛИЧИЮ этого ключа движок решает, показывать ли окно
+; характеристик артефакта: CUIArtefactParams::Check (ui_af_params.cpp:193-195)
+; это ровно "line_exist(section, "af_actor_properties")", значение НЕ читается
+; (ключ встречается в исходниках только в этой одной строке).
+; В af_base он есть, здесь задаём явно.
+;
+; ВАЖНО, ПРОВЕРЕНО В ИГРЕ (08.10.2026): этот ключ НЕ управляет видимостью окна
+; на практике. У СИМК он выставлен в "off" (см. bq_simk_container), но
+; статистика ВСЁ РАВНО показывалась. Поэтому единственный рабочий способ убрать
+; статы - ОБНУЛИТЬ их: SetInfo читает восстановление из секции предмета
+; (ui_af_params.cpp:256) и иммунитеты из hit_absorbation_sect (:231-232), а
+; строки с нулевыми значениями не добавляет (:233 и :257-260).
+; "off" у СИМК оставлен как безвредный, но полагаться на него НЕЛЬЗЯ.
+af_actor_properties         = on
+actor_properties            = on
+$spawn                      = "artefacts\bq_container"
+inv_name                    = bq_container_name
+inv_name_short              = bq_container_name
+description                 = bq_container_descr
+inv_weight                  = 2.0
+; Цена ПОЛЕВОГО контейнера. Она задана здесь, в шаблоне, потому что
+; bq_field_container своего cost не переопределяет - он наследует это значение.
+; Универсальный и научный задают свои цены в собственных секциях.
+cost                        = 20000
+can_trade                   = true
+af_rank                     = 0
+lights_enabled              = false
+; ВЫЛЕТ "Can't find particle bone [link]" - ИСПРАВЛЕНИЕ.
+;
+; Причина: ванильный af_base задаёт particles_bone = link, и комбо наследуют
+; этот ключ от артефакта. CArtefact::Load (Artefact.cpp:64-91) устроен так:
+;     if (line_exist(section, "particles_bones"))   // МНОЖЕСТВЕННОЕ число
+;         ... LoadParticles(...)                    // кости берутся из секции
+;     else if (line_exist(section, "particles_bone")) {   // единственное
+;         m_sParticlesBone = r_string(...);         // здесь и приходит "link"
+;         if (count > 1) ... else {
+;             bone_id = K->LL_BoneID("link");
+;             R_ASSERT2(bone_id != BI_NONE, "Can't find particle bone ...");
+;         }
+;     }
+; Все наши модели контейнеров (aac/iam/aam и lead_box_open/closed) - статические
+; меши БЕЗ костей (в файле нет блока BoneNames), поэтому кость не находится и
+; игра падает при получении предмета.
+;
+; Поэтому задаём ключ particles_bones (МНОЖЕСТВЕННОЕ число): он уводит движок в
+; первую ветку, и particles_bone = link из af_base уже НЕ ЧИТАЕТСЯ - ни проверки
+; кости, ни вылета. Секции с таким именем нет, поэтому список костей пуст, а
+; частиц у контейнеров и так нет: ключ particles не задан ни здесь, ни у комбо.
+;
+; Почему вылет не проявлялся раньше: у контейнеров стояла заглушка
+; dynamics\artefacts\af_eye.ogf, а у модели артефакта Глаз кость link ЕСТЬ. То
+; есть ошибка была заряжена и ждала настоящих моделей.
+particles_bones             =
+jump_height                 = 0
+; inv_scale = 1.0 ОБЯЗАТЕЛЕН. Мод ixray-hq-icons-v2.0 переопределяет секции
+; артефактов и задаёт им inv_scale = 2.0 (HD-атлас ui_icon_equipment_hd, там
+; клетка 100 px). Комбо наследует от артефакта, поэтому без этой строки
+; получало inv_scale = 2.0 и вырезало из нашего атласа область
+; 50 * 2 = 100 пикселей, то есть 2x2 ячейки (проверено в игре). Наш атлас
+; контейнеров - обычная сетка 50x50, ему нужен 1.0.
+inv_scale                   = 1.0
+; ВНИМАНИЕ: здесь НЕЛЬЗЯ задавать belt и *_restore_speed!
+; В множественном наследовании X-Ray важнее ПОСЛЕДНИЙ родитель, а этот шаблон
+; идёт вторым родителем комбо. Пока здесь стояли belt = false, все
+; *_restore_speed = 0 и additional_inventory_weight = 0, они перебивали статы
+; артефакта, и комбо теряло ВСЕ его эффекты: у Глаза пропадало замедление
+; кровотечения (0.004), а на пояс комбо вообще не надевалось.
+; Эти ключи теперь задают наследники: нули - пустые контейнеры, belt = true -
+; комбо. af_base уже даёт belt = true, дополнительный вес = 0 и все
+; *_restore_speed = 0.
+; inv_grid_width/height = 0 скрывает ШАБЛОН из debug-спавнера: он считает
+; секцию фиктивной, если оба ключа есть и оба <= 0
+; (SpawnManager.cpp:160-161: isFakeItem => isInvItem = false).
+inv_grid_width              = 0
+inv_grid_height             = 0
+; inv_grid_x/y ОБЯЗАТЕЛЬНЫ и на шаблоне: движок читает их строго, а не
+; "если есть" (inventory_item.cpp:190, UICellCustomItems.cpp:539). Без них
+; игра падала с "Can't find variable inv_grid_x in [bq_container_base]".
+inv_grid_x                  = 0
+inv_grid_y                  = 0
+
+; ---------------------------------------------------------------------------
+; Field container: absorbs 4 radiation (0.004 in config units, x1000 in UI).
+; ---------------------------------------------------------------------------
+[bq_field_container]:bq_container_base
+visual                      = dynamics\equipments\aa\aac.ogf
+; Свой атлас контейнеров: textures\ui\ui_bq_field_container.dds,
+; 256x128, DXT5, ячейки 50x50 без отступов. Верхний ряд - пустые контейнеры
+; (0,0) полевой, (1,0) универсальный, (2,0) научный; нижний ряд - те же
+; контейнеры с артефактом внутри (пока не используются, см. пункт 5 плана).
+icons_texture               = ui\ui_bq_field_container
+radiation_restore_speed     = -0.004
+hit_absorbation_sect        = bq_field_container_absorbation
+; Пустой контейнер сам по себе НЕ даёт ничего, кроме поглощения радиации,
+; и на пояс его надевать нельзя. Эти ключи заданы здесь, а не в шаблоне,
+; потому что шаблон идёт последним родителем комбо и перебил бы статы
+; артефакта (см. комментарий в bq_container_base).
+belt                        = false
+additional_inventory_weight = 0
+health_restore_speed        = 0
+satiety_restore_speed       = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 0
+
+[bq_field_container_absorbation]
+burn_immunity               = 0
+strike_immunity             = 0
+shock_immunity              = 0
+wound_immunity              = 0
+radiation_immunity          = 0
+telepatic_immunity          = 0
+chemical_burn_immunity      = 0
+explosion_immunity          = 0
+fire_wound_immunity         = 0
+
+; ---------------------------------------------------------------------------
+; Universal container: absorbs 8 radiation (0.008).
+; ---------------------------------------------------------------------------
+[bq_uni_container]:bq_container_base
+visual                      = dynamics\equipments\aa\iam.ogf
+description                 = bq_uni_container_descr
+inv_name                    = bq_uni_container_name
+inv_name_short              = bq_uni_container_name
+cost                        = 32000
+icons_texture               = ui\ui_bq_field_container
+radiation_restore_speed     = -0.008
+hit_absorbation_sect        = bq_uni_container_absorbation
+belt                        = false
+additional_inventory_weight = 0
+health_restore_speed        = 0
+satiety_restore_speed       = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 0
+
+[bq_uni_container_absorbation]
+burn_immunity               = 0
+strike_immunity             = 0
+shock_immunity              = 0
+wound_immunity              = 0
+radiation_immunity          = 0
+telepatic_immunity          = 0
+chemical_burn_immunity      = 0
+explosion_immunity          = 0
+fire_wound_immunity         = 0
+
+; ---------------------------------------------------------------------------
+; Scientific container: absorbs 14 radiation (0.014).
+; ---------------------------------------------------------------------------
+[bq_sci_container]:bq_container_base
+visual                      = dynamics\equipments\aa\aam.ogf
+description                 = bq_sci_container_descr
+inv_name                    = bq_sci_container_name
+inv_name_short              = bq_sci_container_name
+cost                        = 45000
+icons_texture               = ui\ui_bq_field_container
+radiation_restore_speed     = -0.014
+hit_absorbation_sect        = bq_sci_container_absorbation
+belt                        = false
+additional_inventory_weight = 0
+health_restore_speed        = 0
+satiety_restore_speed       = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 0
+
+[bq_sci_container_absorbation]
+burn_immunity               = 0
+strike_immunity             = 0
+shock_immunity              = 0
+wound_immunity              = 0
+radiation_immunity          = 0
+telepatic_immunity          = 0
+chemical_burn_immunity      = 0
+explosion_immunity          = 0
+fire_wound_immunity         = 0
+
+; ---------------------------------------------------------------------------
+; SIMK CONTAINER - holds ONE artefact and absorbs ALL of its radiation.
+;
+; Two things make it different from the other three containers:
+;
+; 1. IT CANNOT BE WORN ON THE BELT. Two separate places say so:
+;      * the container itself:  belt = false (cannot be put on the belt at all);
+;      * the combo:             belt = false as well (unlike the other combos,
+;                               which are belt = true).
+;    The engine gate is CInventory::CanPutInBelt (Inventory.cpp:1295-1303):
+;        if (!pIItem || !pIItem->Belt()) return false;
+;    and the flag comes straight from the section
+;    (inventory_item.cpp:170: r_bool, section, "belt", FALSE).
+;    So the combo physically cannot be equipped - no script needed.
+;
+; 2. IT ABSORBS EVERYTHING. Our backpack radiation mechanic IGNORES negative
+;    radiation_restore_speed values, so "absorb everything" is expressed as
+;    radiation_restore_speed = 0 on the combo: whatever the artefact emits, the
+;    combo contributes exactly zero to the backpack dose.
+;
+; radiation_restore_speed of the EMPTY container is also 0 (not a negative
+; "absorption" number like the other containers). That is deliberate: a negative
+; value would make an empty SIMK in the backpack REDUCE the actor's radiation
+; (the mechanic counts negative contributions only if we allowed them, and the
+; value would also show up in the tooltip as healing). The container is neutral
+; by itself and only cancels the radiation of the artefact inside it.
+;
+; Weight 3 kg and cost 13000: it is a portable container, not a premium one.
+; ---------------------------------------------------------------------------
+[bq_simk_container]:bq_container_base
+visual                      = dynamics\equipments\lead_box_open.ogf
+description                 = bq_simk_container_descr
+inv_name                    = bq_simk_container_name
+inv_name_short              = bq_simk_container_name
+cost                        = 13000
+icons_texture               = ui\ui_bq_field_container
+; af_actor_properties = off. ВНИМАНИЕ: на видимость окна статистики это НЕ
+; влияет - проверено в игре, статистика показывалась и с "off". Хотя
+; CUIArtefactParams::Check (ui_af_params.cpp:193-195) и смотрит на наличие
+; ключа, сам ключ унаследован от bq_container_base, и убрать его нельзя.
+; Ключ оставлен "off" как безвредный, но убрать статы из окна можно ТОЛЬКО
+; их обнулением - см. блок "СТАТЫ ОБНУЛЕНЫ" ниже.
+af_actor_properties         = off
+; Свой фон нулевой: контейнер нейтрален, он только снимает излучение того
+; артефакта, который в нём лежит.
+; ---- СТАТЫ ОБНУЛЕНЫ (решение заказчика) ----------------------------------
+; Окно характеристик артефакта читает статы ИЗ СЕКЦИИ ПРЕДМЕТА:
+;   ui_af_params.cpp:256  val = pSettings->r_float(af_section, af_restore_section_names[i]);
+; и НЕ показывает строку, если значение равно нулю (:257-260). Иммунитеты
+; читаются из hit_absorbation_sect (:231-232), там та же проверка на ноль (:233).
+; Поэтому все статы обнулены - тогда окно не показывает ни одной строки, и
+; остаются только название и описание. Раньше был обнулён только
+; radiation_restore_speed, а остальное комбо наследовало от артефакта
+; (af_eye: power 0.003, bleeding 0.005, burn_immunity 0.0267) - из-за этого
+; статы и продолжали показываться.
+; Ключ af_actor_properties на видимость НЕ влияет, хотя Check() смотрит на его
+; наличие: проверено в игре - статистика показывалась и с "off". Оставлен "off"
+; на всякий случай, но полагаться на него нельзя.
+health_restore_speed        = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+radiation_restore_speed     = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = bq_simk_container_absorbation
+belt                        = false
+inv_grid_width              = 1
+; СИМК занимает ДВЕ клетки в высоту - так нарисованы его текстуры
+; (открытый: крышка сверху, корпус снизу).
+inv_grid_height             = 2
+; Ячейка атласа (0,6)+(0,7). СИМК стоит отдельной строкой, а не четвёртым
+; столбцом: атлас 256 px = 5 ячеек по 50, и расширять его нельзя - от размеров
+; считаются UV-координаты (x / ширина), сдвиг сломал бы иконки в сейвах.
+inv_grid_x                  = 0
+inv_grid_y                  = 25
+
+[bq_simk_container_absorbation]
+burn_immunity               = 0
+strike_immunity             = 0
+shock_immunity              = 0
+wound_immunity              = 0
+radiation_immunity          = 0
+telepatic_immunity          = 0
+chemical_burn_immunity      = 0
+explosion_immunity          = 0
+fire_wound_immunity         = 0
+
+; ---------------------------------------------------------------------------
+; PROTOTYPE: combos for one artefact only - af_eye (Eye).
+;
+; RADIATION RULE (verified by the customer in game, see MEMO 13.2):
+;     combo radiation = artefact radiation + min(container absorption, artefact radiation)
+; The container absorbs NO MORE than the artefact emits, so the result can only
+; be the artefact's own radiation or zero - never a negative value.
+; For af_eye (vanilla radiation 0.002 = +2 in UI):
+;     field  +2 + min(-4, +2) = 0
+;     uni    +2 + min(-8, +2) = 0
+;     sci    +2 + min(-14, +2) = 0
+; Earlier the values here were computed as "artefact - absorption" without that
+; clamp, which produced a wrong -6 for the universal container.
+;
+; Other stats are NOT touched: protection (hit_absorbation_sect + immunity
+; table) and the restore speeds come from af_eye. The Eye has an all-zero
+; immunity table, but it does have bleeding_restore_speed = 0.004 - that is its
+; "slows bleeding" effect, and the combos inherit it.
+; ---------------------------------------------------------------------------
+; ==== BEGIN ARTIFACT COMBOS (генерируется tools/gen_artifacts.js) ====
+;
+; Комбо = артефакт, положенный в контейнер. Имя секции всегда
+; <артефакт>_<контейнер>, иначе скрипт bq_containers.script его не найдёт.
+;
+; Общее для всех комбо:
+;   * can_trade = false     - комбо не продаётся и не покупается;
+;   * belt = true           - носится на поясе как обычный артефакт;
+;   * radiation_restore_speed = max(0, радиация артефакта - поглощение
+;     контейнера). Считает этот же генератор, см. tools/artifact_balance.js.
+;   * hit_absorbation_sect  - таблица защиты АРТЕФАКТА (он же внутри),
+;     потому что свойства артефакта продолжают работать;
+;   * inv_scale = 1.0       - ОБЯЗАТЕЛЬНО: мод HQ Icons задаёт артефактам
+;     inv_scale = 2.0, и без сброса иконка вырезалась бы 2x2 клетки.
+;
+; СИМК - исключение: он на пояс НЕ надевается (belt = false), поглощает всю
+; радиацию (radiation_restore_speed = 0) и имеет свои модель и иконку.
+;
+; --- Светлячок и Пламя (af_fire), тир 1, в field ---
+[af_fire_bq_field_container]:af_fire, bq_container_base
+description                 = bq_fire_field_descr
+inv_name                    = bq_fire_field_name
+inv_name_short              = bq_fire_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 1
+radiation_restore_speed     = 0.005
+hit_absorbation_sect        = af_fire_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Светлячок и Пламя (af_fire), тир 1, в uni ---
+[af_fire_bq_uni_container]:af_fire, bq_container_base
+description                 = bq_fire_uni_descr
+inv_name                    = bq_fire_uni_name
+inv_name_short              = bq_fire_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 1
+radiation_restore_speed     = 0.001
+hit_absorbation_sect        = af_fire_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Светлячок и Пламя (af_fire), тир 1, в sci ---
+[af_fire_bq_sci_container]:af_fire, bq_container_base
+description                 = bq_fire_sci_descr
+inv_name                    = bq_fire_sci_name
+inv_name_short              = bq_fire_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 1
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_fire_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Светлячок и Пламя (af_fire), тир 1, в simk ---
+[af_fire_bq_simk_container]:af_fire, bq_container_base
+description                 = bq_fire_simk_descr
+inv_name                    = bq_fire_simk_name
+inv_name_short              = bq_fire_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 0
+inv_grid_y                  = 27
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_fire_absorbation
+1icon_layer                 = af_fire
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Пузырь (af_baloon), тир 1, в field ---
+[af_baloon_bq_field_container]:af_baloon, bq_container_base
+description                 = bq_baloon_field_descr
+inv_name                    = bq_baloon_field_name
+inv_name_short              = bq_baloon_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 2
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_baloon_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Пузырь (af_baloon), тир 1, в uni ---
+[af_baloon_bq_uni_container]:af_baloon, bq_container_base
+description                 = bq_baloon_uni_descr
+inv_name                    = bq_baloon_uni_name
+inv_name_short              = bq_baloon_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 2
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_baloon_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Пузырь (af_baloon), тир 1, в sci ---
+[af_baloon_bq_sci_container]:af_baloon, bq_container_base
+description                 = bq_baloon_sci_descr
+inv_name                    = bq_baloon_sci_name
+inv_name_short              = bq_baloon_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 2
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_baloon_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Пузырь (af_baloon), тир 1, в simk ---
+[af_baloon_bq_simk_container]:af_baloon, bq_container_base
+description                 = bq_baloon_simk_descr
+inv_name                    = bq_baloon_simk_name
+inv_name_short              = bq_baloon_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 1
+inv_grid_y                  = 27
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_baloon_absorbation
+1icon_layer                 = af_baloon
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Грави (af_gravi), тир 1, в field ---
+[af_gravi_bq_field_container]:af_gravi, bq_container_base
+description                 = bq_gravi_field_descr
+inv_name                    = bq_gravi_field_name
+inv_name_short              = bq_gravi_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 3
+radiation_restore_speed     = 0.006
+hit_absorbation_sect        = af_gravi_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Грави (af_gravi), тир 1, в uni ---
+[af_gravi_bq_uni_container]:af_gravi, bq_container_base
+description                 = bq_gravi_uni_descr
+inv_name                    = bq_gravi_uni_name
+inv_name_short              = bq_gravi_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 3
+radiation_restore_speed     = 0.002
+hit_absorbation_sect        = af_gravi_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Грави (af_gravi), тир 1, в sci ---
+[af_gravi_bq_sci_container]:af_gravi, bq_container_base
+description                 = bq_gravi_sci_descr
+inv_name                    = bq_gravi_sci_name
+inv_name_short              = bq_gravi_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 3
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_gravi_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Грави (af_gravi), тир 1, в simk ---
+[af_gravi_bq_simk_container]:af_gravi, bq_container_base
+description                 = bq_gravi_simk_descr
+inv_name                    = bq_gravi_simk_name
+inv_name_short              = bq_gravi_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 2
+inv_grid_y                  = 27
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_gravi_absorbation
+1icon_layer                 = af_gravi
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Золотая рыбка (af_gold_fish), тир 1, в field ---
+[af_gold_fish_bq_field_container]:af_gold_fish, bq_container_base
+description                 = bq_gold_fish_field_descr
+inv_name                    = bq_gold_fish_field_name
+inv_name_short              = bq_gold_fish_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 4
+radiation_restore_speed     = 0.01
+hit_absorbation_sect        = af_gold_fish_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Золотая рыбка (af_gold_fish), тир 1, в uni ---
+[af_gold_fish_bq_uni_container]:af_gold_fish, bq_container_base
+description                 = bq_gold_fish_uni_descr
+inv_name                    = bq_gold_fish_uni_name
+inv_name_short              = bq_gold_fish_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 4
+radiation_restore_speed     = 0.006
+hit_absorbation_sect        = af_gold_fish_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Золотая рыбка (af_gold_fish), тир 1, в sci ---
+[af_gold_fish_bq_sci_container]:af_gold_fish, bq_container_base
+description                 = bq_gold_fish_sci_descr
+inv_name                    = bq_gold_fish_sci_name
+inv_name_short              = bq_gold_fish_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 4
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_gold_fish_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Золотая рыбка (af_gold_fish), тир 1, в simk ---
+[af_gold_fish_bq_simk_container]:af_gold_fish, bq_container_base
+description                 = bq_gold_fish_simk_descr
+inv_name                    = bq_gold_fish_simk_name
+inv_name_short              = bq_gold_fish_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 3
+inv_grid_y                  = 27
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_gold_fish_absorbation
+1icon_layer                 = af_gold_fish
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Глаз (af_eye), тир 1, в field ---
+[af_eye_bq_field_container]:af_eye, bq_container_base
+description                 = bq_eye_field_descr
+inv_name                    = bq_eye_field_name
+inv_name_short              = bq_eye_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 5
+radiation_restore_speed     = 0.007
+hit_absorbation_sect        = af_eye_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Глаз (af_eye), тир 1, в uni ---
+[af_eye_bq_uni_container]:af_eye, bq_container_base
+description                 = bq_eye_uni_descr
+inv_name                    = bq_eye_uni_name
+inv_name_short              = bq_eye_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 5
+radiation_restore_speed     = 0.003
+hit_absorbation_sect        = af_eye_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Глаз (af_eye), тир 1, в sci ---
+[af_eye_bq_sci_container]:af_eye, bq_container_base
+description                 = bq_eye_sci_descr
+inv_name                    = bq_eye_sci_name
+inv_name_short              = bq_eye_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 5
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_eye_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Глаз (af_eye), тир 1, в simk ---
+[af_eye_bq_simk_container]:af_eye, bq_container_base
+description                 = bq_eye_simk_descr
+inv_name                    = bq_eye_simk_name
+inv_name_short              = bq_eye_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 4
+inv_grid_y                  = 27
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_eye_absorbation
+1icon_layer                 = af_eye
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Ракушка (af_ice), тир 1, в field ---
+[af_ice_bq_field_container]:af_ice, bq_container_base
+description                 = bq_ice_field_descr
+inv_name                    = bq_ice_field_name
+inv_name_short              = bq_ice_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 6
+radiation_restore_speed     = 0.008
+hit_absorbation_sect        = af_ice_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Ракушка (af_ice), тир 1, в uni ---
+[af_ice_bq_uni_container]:af_ice, bq_container_base
+description                 = bq_ice_uni_descr
+inv_name                    = bq_ice_uni_name
+inv_name_short              = bq_ice_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 6
+radiation_restore_speed     = 0.004
+hit_absorbation_sect        = af_ice_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Ракушка (af_ice), тир 1, в sci ---
+[af_ice_bq_sci_container]:af_ice, bq_container_base
+description                 = bq_ice_sci_descr
+inv_name                    = bq_ice_sci_name
+inv_name_short              = bq_ice_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 6
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_ice_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Ракушка (af_ice), тир 1, в simk ---
+[af_ice_bq_simk_container]:af_ice, bq_container_base
+description                 = bq_ice_simk_descr
+inv_name                    = bq_ice_simk_name
+inv_name_short              = bq_ice_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 0
+inv_grid_y                  = 29
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_ice_absorbation
+1icon_layer                 = af_ice
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Двойник (af_dummy_dummy), тир 1, в field ---
+[af_dummy_dummy_bq_field_container]:af_dummy_dummy, bq_container_base
+description                 = bq_dummy_dummy_field_descr
+inv_name                    = bq_dummy_dummy_field_name
+inv_name_short              = bq_dummy_dummy_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 7
+radiation_restore_speed     = 0.009
+hit_absorbation_sect        = af_dummy_dummy_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Двойник (af_dummy_dummy), тир 1, в uni ---
+[af_dummy_dummy_bq_uni_container]:af_dummy_dummy, bq_container_base
+description                 = bq_dummy_dummy_uni_descr
+inv_name                    = bq_dummy_dummy_uni_name
+inv_name_short              = bq_dummy_dummy_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 7
+radiation_restore_speed     = 0.005
+hit_absorbation_sect        = af_dummy_dummy_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Двойник (af_dummy_dummy), тир 1, в sci ---
+[af_dummy_dummy_bq_sci_container]:af_dummy_dummy, bq_container_base
+description                 = bq_dummy_dummy_sci_descr
+inv_name                    = bq_dummy_dummy_sci_name
+inv_name_short              = bq_dummy_dummy_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 7
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_dummy_dummy_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Двойник (af_dummy_dummy), тир 1, в simk ---
+[af_dummy_dummy_bq_simk_container]:af_dummy_dummy, bq_container_base
+description                 = bq_dummy_dummy_simk_descr
+inv_name                    = bq_dummy_dummy_simk_name
+inv_name_short              = bq_dummy_dummy_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 1
+inv_grid_y                  = 29
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_dummy_dummy_absorbation
+1icon_layer                 = af_dummy_dummy
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Душа (af_soul), тир 2, в field ---
+[af_soul_bq_field_container]:af_soul, bq_container_base
+description                 = bq_soul_field_descr
+inv_name                    = bq_soul_field_name
+inv_name_short              = bq_soul_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 8
+radiation_restore_speed     = 0.003
+hit_absorbation_sect        = af_soul_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Душа (af_soul), тир 2, в uni ---
+[af_soul_bq_uni_container]:af_soul, bq_container_base
+description                 = bq_soul_uni_descr
+inv_name                    = bq_soul_uni_name
+inv_name_short              = bq_soul_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 8
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_soul_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Душа (af_soul), тир 2, в sci ---
+[af_soul_bq_sci_container]:af_soul, bq_container_base
+description                 = bq_soul_sci_descr
+inv_name                    = bq_soul_sci_name
+inv_name_short              = bq_soul_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 8
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_soul_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Душа (af_soul), тир 2, в simk ---
+[af_soul_bq_simk_container]:af_soul, bq_container_base
+description                 = bq_soul_simk_descr
+inv_name                    = bq_soul_simk_name
+inv_name_short              = bq_soul_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 2
+inv_grid_y                  = 29
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_soul_absorbation
+1icon_layer                 = af_soul
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Колобок (af_fuzz_kolobok), тир 2, в field ---
+[af_fuzz_kolobok_bq_field_container]:af_fuzz_kolobok, bq_container_base
+description                 = bq_fuzz_kolobok_field_descr
+inv_name                    = bq_fuzz_kolobok_field_name
+inv_name_short              = bq_fuzz_kolobok_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 9
+radiation_restore_speed     = 0.004
+hit_absorbation_sect        = af_fuzz_kolobok_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Колобок (af_fuzz_kolobok), тир 2, в uni ---
+[af_fuzz_kolobok_bq_uni_container]:af_fuzz_kolobok, bq_container_base
+description                 = bq_fuzz_kolobok_uni_descr
+inv_name                    = bq_fuzz_kolobok_uni_name
+inv_name_short              = bq_fuzz_kolobok_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 9
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_fuzz_kolobok_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Колобок (af_fuzz_kolobok), тир 2, в sci ---
+[af_fuzz_kolobok_bq_sci_container]:af_fuzz_kolobok, bq_container_base
+description                 = bq_fuzz_kolobok_sci_descr
+inv_name                    = bq_fuzz_kolobok_sci_name
+inv_name_short              = bq_fuzz_kolobok_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 9
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_fuzz_kolobok_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Колобок (af_fuzz_kolobok), тир 2, в simk ---
+[af_fuzz_kolobok_bq_simk_container]:af_fuzz_kolobok, bq_container_base
+description                 = bq_fuzz_kolobok_simk_descr
+inv_name                    = bq_fuzz_kolobok_simk_name
+inv_name_short              = bq_fuzz_kolobok_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 3
+inv_grid_y                  = 29
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_fuzz_kolobok_absorbation
+1icon_layer                 = af_fuzz_kolobok
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Выверт (af_vyvert), тир 2, в field ---
+[af_vyvert_bq_field_container]:af_vyvert, bq_container_base
+description                 = bq_vyvert_field_descr
+inv_name                    = bq_vyvert_field_name
+inv_name_short              = bq_vyvert_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 10
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_vyvert_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Выверт (af_vyvert), тир 2, в uni ---
+[af_vyvert_bq_uni_container]:af_vyvert, bq_container_base
+description                 = bq_vyvert_uni_descr
+inv_name                    = bq_vyvert_uni_name
+inv_name_short              = bq_vyvert_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 10
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_vyvert_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Выверт (af_vyvert), тир 2, в sci ---
+[af_vyvert_bq_sci_container]:af_vyvert, bq_container_base
+description                 = bq_vyvert_sci_descr
+inv_name                    = bq_vyvert_sci_name
+inv_name_short              = bq_vyvert_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 10
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_vyvert_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Выверт (af_vyvert), тир 2, в simk ---
+[af_vyvert_bq_simk_container]:af_vyvert, bq_container_base
+description                 = bq_vyvert_simk_descr
+inv_name                    = bq_vyvert_simk_name
+inv_name_short              = bq_vyvert_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 4
+inv_grid_y                  = 29
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_vyvert_absorbation
+1icon_layer                 = af_vyvert
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Ночная звезда (af_night_star), тир 2, в field ---
+[af_night_star_bq_field_container]:af_night_star, bq_container_base
+description                 = bq_night_star_field_descr
+inv_name                    = bq_night_star_field_name
+inv_name_short              = bq_night_star_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 11
+radiation_restore_speed     = 0.005
+hit_absorbation_sect        = af_night_star_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Ночная звезда (af_night_star), тир 2, в uni ---
+[af_night_star_bq_uni_container]:af_night_star, bq_container_base
+description                 = bq_night_star_uni_descr
+inv_name                    = bq_night_star_uni_name
+inv_name_short              = bq_night_star_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 11
+radiation_restore_speed     = 0.001
+hit_absorbation_sect        = af_night_star_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Ночная звезда (af_night_star), тир 2, в sci ---
+[af_night_star_bq_sci_container]:af_night_star, bq_container_base
+description                 = bq_night_star_sci_descr
+inv_name                    = bq_night_star_sci_name
+inv_name_short              = bq_night_star_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 11
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_night_star_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Ночная звезда (af_night_star), тир 2, в simk ---
+[af_night_star_bq_simk_container]:af_night_star, bq_container_base
+description                 = bq_night_star_simk_descr
+inv_name                    = bq_night_star_simk_name
+inv_name_short              = bq_night_star_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 0
+inv_grid_y                  = 31
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_night_star_absorbation
+1icon_layer                 = af_night_star
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Бусы мамы (af_dummy_glassbeads), тир 2, в field ---
+[af_dummy_glassbeads_bq_field_container]:af_dummy_glassbeads, bq_container_base
+description                 = bq_dummy_glassbeads_field_descr
+inv_name                    = bq_dummy_glassbeads_field_name
+inv_name_short              = bq_dummy_glassbeads_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 12
+radiation_restore_speed     = 0.006
+hit_absorbation_sect        = af_dummy_glassbeads_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Бусы мамы (af_dummy_glassbeads), тир 2, в uni ---
+[af_dummy_glassbeads_bq_uni_container]:af_dummy_glassbeads, bq_container_base
+description                 = bq_dummy_glassbeads_uni_descr
+inv_name                    = bq_dummy_glassbeads_uni_name
+inv_name_short              = bq_dummy_glassbeads_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 12
+radiation_restore_speed     = 0.002
+hit_absorbation_sect        = af_dummy_glassbeads_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Бусы мамы (af_dummy_glassbeads), тир 2, в sci ---
+[af_dummy_glassbeads_bq_sci_container]:af_dummy_glassbeads, bq_container_base
+description                 = bq_dummy_glassbeads_sci_descr
+inv_name                    = bq_dummy_glassbeads_sci_name
+inv_name_short              = bq_dummy_glassbeads_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 12
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_dummy_glassbeads_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Бусы мамы (af_dummy_glassbeads), тир 2, в simk ---
+[af_dummy_glassbeads_bq_simk_container]:af_dummy_glassbeads, bq_container_base
+description                 = bq_dummy_glassbeads_simk_descr
+inv_name                    = bq_dummy_glassbeads_simk_name
+inv_name_short              = bq_dummy_glassbeads_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 1
+inv_grid_y                  = 31
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_dummy_glassbeads_absorbation
+1icon_layer                 = af_dummy_glassbeads
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Лунный свет (af_electra_moonlight), тир 2, в field ---
+[af_electra_moonlight_bq_field_container]:af_electra_moonlight, bq_container_base
+description                 = bq_electra_moonlight_field_descr
+inv_name                    = bq_electra_moonlight_field_name
+inv_name_short              = bq_electra_moonlight_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 13
+radiation_restore_speed     = 0.007
+hit_absorbation_sect        = af_electra_moonlight_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Лунный свет (af_electra_moonlight), тир 2, в uni ---
+[af_electra_moonlight_bq_uni_container]:af_electra_moonlight, bq_container_base
+description                 = bq_electra_moonlight_uni_descr
+inv_name                    = bq_electra_moonlight_uni_name
+inv_name_short              = bq_electra_moonlight_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 13
+radiation_restore_speed     = 0.003
+hit_absorbation_sect        = af_electra_moonlight_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Лунный свет (af_electra_moonlight), тир 2, в sci ---
+[af_electra_moonlight_bq_sci_container]:af_electra_moonlight, bq_container_base
+description                 = bq_electra_moonlight_sci_descr
+inv_name                    = bq_electra_moonlight_sci_name
+inv_name_short              = bq_electra_moonlight_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 13
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_electra_moonlight_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Лунный свет (af_electra_moonlight), тир 2, в simk ---
+[af_electra_moonlight_bq_simk_container]:af_electra_moonlight, bq_container_base
+description                 = bq_electra_moonlight_simk_descr
+inv_name                    = bq_electra_moonlight_simk_name
+inv_name_short              = bq_electra_moonlight_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 2
+inv_grid_y                  = 31
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_electra_moonlight_absorbation
+1icon_layer                 = af_electra_moonlight
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Батарея (af_dummy_battery), тир 2, в field ---
+[af_dummy_battery_bq_field_container]:af_dummy_battery, bq_container_base
+description                 = bq_dummy_battery_field_descr
+inv_name                    = bq_dummy_battery_field_name
+inv_name_short              = bq_dummy_battery_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 14
+radiation_restore_speed     = 0.008
+hit_absorbation_sect        = af_dummy_battery_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Батарея (af_dummy_battery), тир 2, в uni ---
+[af_dummy_battery_bq_uni_container]:af_dummy_battery, bq_container_base
+description                 = bq_dummy_battery_uni_descr
+inv_name                    = bq_dummy_battery_uni_name
+inv_name_short              = bq_dummy_battery_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 14
+radiation_restore_speed     = 0.004
+hit_absorbation_sect        = af_dummy_battery_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Батарея (af_dummy_battery), тир 2, в sci ---
+[af_dummy_battery_bq_sci_container]:af_dummy_battery, bq_container_base
+description                 = bq_dummy_battery_sci_descr
+inv_name                    = bq_dummy_battery_sci_name
+inv_name_short              = bq_dummy_battery_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 14
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_dummy_battery_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Батарея (af_dummy_battery), тир 2, в simk ---
+[af_dummy_battery_bq_simk_container]:af_dummy_battery, bq_container_base
+description                 = bq_dummy_battery_simk_descr
+inv_name                    = bq_dummy_battery_simk_name
+inv_name_short              = bq_dummy_battery_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 3
+inv_grid_y                  = 31
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_dummy_battery_absorbation
+1icon_layer                 = af_dummy_battery
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Каменная кровь (af_blood), тир 3, в field ---
+[af_blood_bq_field_container]:af_blood, bq_container_base
+description                 = bq_blood_field_descr
+inv_name                    = bq_blood_field_name
+inv_name_short              = bq_blood_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 15
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_blood_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Каменная кровь (af_blood), тир 3, в uni ---
+[af_blood_bq_uni_container]:af_blood, bq_container_base
+description                 = bq_blood_uni_descr
+inv_name                    = bq_blood_uni_name
+inv_name_short              = bq_blood_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 15
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_blood_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Каменная кровь (af_blood), тир 3, в sci ---
+[af_blood_bq_sci_container]:af_blood, bq_container_base
+description                 = bq_blood_sci_descr
+inv_name                    = bq_blood_sci_name
+inv_name_short              = bq_blood_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 15
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_blood_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Каменная кровь (af_blood), тир 3, в simk ---
+[af_blood_bq_simk_container]:af_blood, bq_container_base
+description                 = bq_blood_simk_descr
+inv_name                    = bq_blood_simk_name
+inv_name_short              = bq_blood_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 4
+inv_grid_y                  = 31
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_blood_absorbation
+1icon_layer                 = af_blood
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Кусок мяса (af_mincer_meat), тир 3, в field ---
+[af_mincer_meat_bq_field_container]:af_mincer_meat, bq_container_base
+description                 = bq_mincer_meat_field_descr
+inv_name                    = bq_mincer_meat_field_name
+inv_name_short              = bq_mincer_meat_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 16
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_mincer_meat_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Кусок мяса (af_mincer_meat), тир 3, в uni ---
+[af_mincer_meat_bq_uni_container]:af_mincer_meat, bq_container_base
+description                 = bq_mincer_meat_uni_descr
+inv_name                    = bq_mincer_meat_uni_name
+inv_name_short              = bq_mincer_meat_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 16
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_mincer_meat_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Кусок мяса (af_mincer_meat), тир 3, в sci ---
+[af_mincer_meat_bq_sci_container]:af_mincer_meat, bq_container_base
+description                 = bq_mincer_meat_sci_descr
+inv_name                    = bq_mincer_meat_sci_name
+inv_name_short              = bq_mincer_meat_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 16
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_mincer_meat_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Кусок мяса (af_mincer_meat), тир 3, в simk ---
+[af_mincer_meat_bq_simk_container]:af_mincer_meat, bq_container_base
+description                 = bq_mincer_meat_simk_descr
+inv_name                    = bq_mincer_meat_simk_name
+inv_name_short              = bq_mincer_meat_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 0
+inv_grid_y                  = 33
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_mincer_meat_absorbation
+1icon_layer                 = af_mincer_meat
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Каменный цветок (af_cristall_flower), тир 3, в field ---
+[af_cristall_flower_bq_field_container]:af_cristall_flower, bq_container_base
+description                 = bq_cristall_flower_field_descr
+inv_name                    = bq_cristall_flower_field_name
+inv_name_short              = bq_cristall_flower_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 17
+radiation_restore_speed     = 0.001
+hit_absorbation_sect        = af_cristall_flower_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Каменный цветок (af_cristall_flower), тир 3, в uni ---
+[af_cristall_flower_bq_uni_container]:af_cristall_flower, bq_container_base
+description                 = bq_cristall_flower_uni_descr
+inv_name                    = bq_cristall_flower_uni_name
+inv_name_short              = bq_cristall_flower_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 17
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_cristall_flower_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Каменный цветок (af_cristall_flower), тир 3, в sci ---
+[af_cristall_flower_bq_sci_container]:af_cristall_flower, bq_container_base
+description                 = bq_cristall_flower_sci_descr
+inv_name                    = bq_cristall_flower_sci_name
+inv_name_short              = bq_cristall_flower_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 17
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_cristall_flower_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Каменный цветок (af_cristall_flower), тир 3, в simk ---
+[af_cristall_flower_bq_simk_container]:af_cristall_flower, bq_container_base
+description                 = bq_cristall_flower_simk_descr
+inv_name                    = bq_cristall_flower_simk_name
+inv_name_short              = bq_cristall_flower_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 1
+inv_grid_y                  = 33
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_cristall_flower_absorbation
+1icon_layer                 = af_cristall_flower
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Медуза (af_medusa), тир 3, в field ---
+[af_medusa_bq_field_container]:af_medusa, bq_container_base
+description                 = bq_medusa_field_descr
+inv_name                    = bq_medusa_field_name
+inv_name_short              = bq_medusa_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 18
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_medusa_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Медуза (af_medusa), тир 3, в uni ---
+[af_medusa_bq_uni_container]:af_medusa, bq_container_base
+description                 = bq_medusa_uni_descr
+inv_name                    = bq_medusa_uni_name
+inv_name_short              = bq_medusa_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 18
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_medusa_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Медуза (af_medusa), тир 3, в sci ---
+[af_medusa_bq_sci_container]:af_medusa, bq_container_base
+description                 = bq_medusa_sci_descr
+inv_name                    = bq_medusa_sci_name
+inv_name_short              = bq_medusa_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 18
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_medusa_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Медуза (af_medusa), тир 3, в simk ---
+[af_medusa_bq_simk_container]:af_medusa, bq_container_base
+description                 = bq_medusa_simk_descr
+inv_name                    = bq_medusa_simk_name
+inv_name_short              = bq_medusa_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 2
+inv_grid_y                  = 33
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_medusa_absorbation
+1icon_layer                 = af_medusa
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Кристалл (af_cristall), тир 3, в field ---
+[af_cristall_bq_field_container]:af_cristall, bq_container_base
+description                 = bq_cristall_field_descr
+inv_name                    = bq_cristall_field_name
+inv_name_short              = bq_cristall_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 19
+radiation_restore_speed     = 0.002
+hit_absorbation_sect        = af_cristall_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Кристалл (af_cristall), тир 3, в uni ---
+[af_cristall_bq_uni_container]:af_cristall, bq_container_base
+description                 = bq_cristall_uni_descr
+inv_name                    = bq_cristall_uni_name
+inv_name_short              = bq_cristall_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 19
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_cristall_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Кристалл (af_cristall), тир 3, в sci ---
+[af_cristall_bq_sci_container]:af_cristall, bq_container_base
+description                 = bq_cristall_sci_descr
+inv_name                    = bq_cristall_sci_name
+inv_name_short              = bq_cristall_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 19
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_cristall_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Кристалл (af_cristall), тир 3, в simk ---
+[af_cristall_bq_simk_container]:af_cristall, bq_container_base
+description                 = bq_cristall_simk_descr
+inv_name                    = bq_cristall_simk_name
+inv_name_short              = bq_cristall_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 3
+inv_grid_y                  = 33
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_cristall_absorbation
+1icon_layer                 = af_cristall
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Огненный шар (af_fireball), тир 3, в field ---
+[af_fireball_bq_field_container]:af_fireball, bq_container_base
+description                 = bq_fireball_field_descr
+inv_name                    = bq_fireball_field_name
+inv_name_short              = bq_fireball_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 20
+radiation_restore_speed     = 0.003
+hit_absorbation_sect        = af_fireball_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Огненный шар (af_fireball), тир 3, в uni ---
+[af_fireball_bq_uni_container]:af_fireball, bq_container_base
+description                 = bq_fireball_uni_descr
+inv_name                    = bq_fireball_uni_name
+inv_name_short              = bq_fireball_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 20
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_fireball_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Огненный шар (af_fireball), тир 3, в sci ---
+[af_fireball_bq_sci_container]:af_fireball, bq_container_base
+description                 = bq_fireball_sci_descr
+inv_name                    = bq_fireball_sci_name
+inv_name_short              = bq_fireball_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 20
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_fireball_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Огненный шар (af_fireball), тир 3, в simk ---
+[af_fireball_bq_simk_container]:af_fireball, bq_container_base
+description                 = bq_fireball_simk_descr
+inv_name                    = bq_fireball_simk_name
+inv_name_short              = bq_fireball_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 4
+inv_grid_y                  = 33
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_fireball_absorbation
+1icon_layer                 = af_fireball
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Искра (af_electra_sparkler), тир 3, в field ---
+[af_electra_sparkler_bq_field_container]:af_electra_sparkler, bq_container_base
+description                 = bq_electra_sparkler_field_descr
+inv_name                    = bq_electra_sparkler_field_name
+inv_name_short              = bq_electra_sparkler_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 21
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_electra_sparkler_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Искра (af_electra_sparkler), тир 3, в uni ---
+[af_electra_sparkler_bq_uni_container]:af_electra_sparkler, bq_container_base
+description                 = bq_electra_sparkler_uni_descr
+inv_name                    = bq_electra_sparkler_uni_name
+inv_name_short              = bq_electra_sparkler_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 21
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_electra_sparkler_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Искра (af_electra_sparkler), тир 3, в sci ---
+[af_electra_sparkler_bq_sci_container]:af_electra_sparkler, bq_container_base
+description                 = bq_electra_sparkler_sci_descr
+inv_name                    = bq_electra_sparkler_sci_name
+inv_name_short              = bq_electra_sparkler_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 21
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_electra_sparkler_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Искра (af_electra_sparkler), тир 3, в simk ---
+[af_electra_sparkler_bq_simk_container]:af_electra_sparkler, bq_container_base
+description                 = bq_electra_sparkler_simk_descr
+inv_name                    = bq_electra_sparkler_simk_name
+inv_name_short              = bq_electra_sparkler_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 0
+inv_grid_y                  = 35
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_electra_sparkler_absorbation
+1icon_layer                 = af_electra_sparkler
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Вспышка (af_electra_flash), тир 3, в field ---
+[af_electra_flash_bq_field_container]:af_electra_flash, bq_container_base
+description                 = bq_electra_flash_field_descr
+inv_name                    = bq_electra_flash_field_name
+inv_name_short              = bq_electra_flash_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 22
+radiation_restore_speed     = 0.001
+hit_absorbation_sect        = af_electra_flash_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Вспышка (af_electra_flash), тир 3, в uni ---
+[af_electra_flash_bq_uni_container]:af_electra_flash, bq_container_base
+description                 = bq_electra_flash_uni_descr
+inv_name                    = bq_electra_flash_uni_name
+inv_name_short              = bq_electra_flash_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 22
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_electra_flash_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Вспышка (af_electra_flash), тир 3, в sci ---
+[af_electra_flash_bq_sci_container]:af_electra_flash, bq_container_base
+description                 = bq_electra_flash_sci_descr
+inv_name                    = bq_electra_flash_sci_name
+inv_name_short              = bq_electra_flash_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 22
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_electra_flash_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Вспышка (af_electra_flash), тир 3, в simk ---
+[af_electra_flash_bq_simk_container]:af_electra_flash, bq_container_base
+description                 = bq_electra_flash_simk_descr
+inv_name                    = bq_electra_flash_simk_name
+inv_name_short              = bq_electra_flash_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 1
+inv_grid_y                  = 35
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_electra_flash_absorbation
+1icon_layer                 = af_electra_flash
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Компас (af_compass), уникальный, в field ---
+[af_compass_bq_field_container]:af_compass, bq_container_base
+description                 = bq_compass_field_descr
+inv_name                    = bq_compass_field_name
+inv_name_short              = bq_compass_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 23
+radiation_restore_speed     = 0.014
+hit_absorbation_sect        = af_compass_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Компас (af_compass), уникальный, в uni ---
+[af_compass_bq_uni_container]:af_compass, bq_container_base
+description                 = bq_compass_uni_descr
+inv_name                    = bq_compass_uni_name
+inv_name_short              = bq_compass_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 23
+radiation_restore_speed     = 0.01
+hit_absorbation_sect        = af_compass_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Компас (af_compass), уникальный, в sci ---
+[af_compass_bq_sci_container]:af_compass, bq_container_base
+description                 = bq_compass_sci_descr
+inv_name                    = bq_compass_sci_name
+inv_name_short              = bq_compass_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 23
+radiation_restore_speed     = 0.004
+hit_absorbation_sect        = af_compass_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Компас (af_compass), уникальный, в simk ---
+[af_compass_bq_simk_container]:af_compass, bq_container_base
+description                 = bq_compass_simk_descr
+inv_name                    = bq_compass_simk_name
+inv_name_short              = bq_compass_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 2
+inv_grid_y                  = 35
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_compass_absorbation
+1icon_layer                 = af_compass
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Сердце Оазиса (af_oasis_heart), уникальный, в field ---
+[af_oasis_heart_bq_field_container]:af_oasis_heart, bq_container_base
+description                 = bq_oasis_heart_field_descr
+inv_name                    = bq_oasis_heart_field_name
+inv_name_short              = bq_oasis_heart_field_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aac.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 0
+inv_grid_y                  = 24
+radiation_restore_speed     = 0.014
+hit_absorbation_sect        = af_oasis_heart_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Сердце Оазиса (af_oasis_heart), уникальный, в uni ---
+[af_oasis_heart_bq_uni_container]:af_oasis_heart, bq_container_base
+description                 = bq_oasis_heart_uni_descr
+inv_name                    = bq_oasis_heart_uni_name
+inv_name_short              = bq_oasis_heart_uni_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\iam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 1
+inv_grid_y                  = 24
+radiation_restore_speed     = 0.01
+hit_absorbation_sect        = af_oasis_heart_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Сердце Оазиса (af_oasis_heart), уникальный, в sci ---
+[af_oasis_heart_bq_sci_container]:af_oasis_heart, bq_container_base
+description                 = bq_oasis_heart_sci_descr
+inv_name                    = bq_oasis_heart_sci_name
+inv_name_short              = bq_oasis_heart_sci_name
+belt                        = true
+can_trade                   = false
+visual                      = dynamics\equipments\aa\aam.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 1
+inv_grid_x                  = 2
+inv_grid_y                  = 24
+radiation_restore_speed     = 0.004
+hit_absorbation_sect        = af_oasis_heart_absorbation
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; --- Сердце Оазиса (af_oasis_heart), уникальный, в simk ---
+[af_oasis_heart_bq_simk_container]:af_oasis_heart, bq_container_base
+description                 = bq_oasis_heart_simk_descr
+inv_name                    = bq_oasis_heart_simk_name
+inv_name_short              = bq_oasis_heart_simk_name
+belt                        = false
+can_trade                   = false
+visual                      = dynamics\equipments\lead_box_closed.ogf
+icons_texture               = ui\ui_bq_field_container
+inv_scale                   = 1.0
+inv_grid_width              = 1
+inv_grid_height             = 2
+inv_grid_x                  = 3
+inv_grid_y                  = 35
+radiation_restore_speed     = 0
+hit_absorbation_sect        = af_oasis_heart_absorbation
+1icon_layer                 = af_oasis_heart
+1icon_layer_scale           = 0.5
+1icon_layer_x               = 24
+1icon_layer_y               = 24
+use1_text                   = bq_take_artifact
+use1_functor                = bq_containers.take_artifact
+
+; ==== END ARTIFACT COMBOS ====
+
+; ==== BEGIN ARTEFACT STATS (генерируется tools/gen_artifacts.js) ====
+;
+; Статы артефактов. Баланс задан в tools/artifact_balance.js и проверяется
+; через tools/check_balance.js - правила (3-4 свойства, сила по тирам,
+; радиация под контейнеры) описаны там же.
+;
+; ЗАЧЕМ ЗДЕСЬ НУЛИ. Запись "![af_x]" ДОПОЛНЯЕТ ванильную секцию, а не
+; заменяет её: незаписанные ключи остаются ванильными и складываются с
+; нашими. Поэтому перечислены ВСЕ ключи, включая нулевые.
+;
+; ЕДИНИЦЫ: в конфиге значение "на кадр", игрок видит его * 1000.
+; Например radiation_restore_speed = 0.011 это "+11" в интерфейсе.
+;
+
+; --- Светлячок и Пламя (af_fire), тир 1
+; свойства: здоровье +1.8, раны +3.6, силы +1.4, радиация +9
+![af_fire]
+cost                        = 18000
+radiation_restore_speed     = 0.009
+health_restore_speed        = 0.0018
+power_restore_speed         = 0.0014
+bleeding_restore_speed      = 0.0036
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_fire_absorbation
+
+![af_fire_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Пузырь (af_baloon), тир 1
+; свойства: радиация -10.8
+; защита:   радиозащита 36
+![af_baloon]
+cost                        = 12000
+radiation_restore_speed     = -0.0108
+health_restore_speed        = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_baloon_absorbation
+
+![af_baloon_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0.036
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Грави (af_gravi), тир 1
+; свойства: здоровье +0.6, вес +4 кг, радиация +10
+![af_gravi]
+cost                        = 12000
+radiation_restore_speed     = 0.01
+health_restore_speed        = 0.0006
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 4
+hit_absorbation_sect        = af_gravi_absorbation
+
+![af_gravi_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Золотая рыбка (af_gold_fish), тир 1
+; свойства: здоровье +0.6, вес +6 кг, радиация +14
+![af_gold_fish]
+cost                        = 18000
+radiation_restore_speed     = 0.014
+health_restore_speed        = 0.0006
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 6
+hit_absorbation_sect        = af_gold_fish_absorbation
+
+![af_gold_fish_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Глаз (af_eye), тир 1
+; свойства: здоровье +0.8, раны +4, радиация +11
+; защита:   пси 0.03
+![af_eye]
+cost                        = 12000
+radiation_restore_speed     = 0.011
+health_restore_speed        = 0.0008
+power_restore_speed         = 0
+bleeding_restore_speed      = 0.004
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_eye_absorbation
+
+![af_eye_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0
+telepatic_immunity         = 0.00003
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Ракушка (af_ice), тир 1
+; свойства: здоровье +0.8, силы +3.6, радиация +12
+; защита:   электро 0.03
+![af_ice]
+cost                        = 18000
+radiation_restore_speed     = 0.012
+health_restore_speed        = 0.0008
+power_restore_speed         = 0.0036
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_ice_absorbation
+
+![af_ice_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0.00003
+wound_immunity             = 0
+radiation_immunity         = 0
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Двойник (af_dummy_dummy), тир 1
+; свойства: здоровье +2, раны +1.4, вес +1 кг, радиация +13
+![af_dummy_dummy]
+cost                        = 12000
+radiation_restore_speed     = 0.013
+health_restore_speed        = 0.002
+power_restore_speed         = 0
+bleeding_restore_speed      = 0.0014
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 1
+hit_absorbation_sect        = af_dummy_dummy_absorbation
+
+![af_dummy_dummy_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Душа (af_soul), тир 2
+; свойства: здоровье +1.2, раны +1.4, радиация +7
+; защита:   радиозащита 4
+![af_soul]
+cost                        = 6000
+radiation_restore_speed     = 0.007
+health_restore_speed        = 0.0012
+power_restore_speed         = 0
+bleeding_restore_speed      = 0.0014
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_soul_absorbation
+
+![af_soul_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0.004
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Колобок (af_fuzz_kolobok), тир 2
+; свойства: здоровье +1.6, силы +0.9, вес +1 кг, радиация +8
+![af_fuzz_kolobok]
+cost                        = 12000
+radiation_restore_speed     = 0.008
+health_restore_speed        = 0.0016
+power_restore_speed         = 0.0009
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 1
+hit_absorbation_sect        = af_fuzz_kolobok_absorbation
+
+![af_fuzz_kolobok_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Выверт (af_vyvert), тир 2
+; свойства: здоровье +0.8, раны +1, радиация -2.2
+![af_vyvert]
+cost                        = 8000
+radiation_restore_speed     = -0.0022
+health_restore_speed        = 0.0008
+power_restore_speed         = 0
+bleeding_restore_speed      = 0.001
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_vyvert_absorbation
+
+![af_vyvert_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Ночная звезда (af_night_star), тир 2
+; свойства: здоровье +0.6, вес +2 кг, радиация +9
+![af_night_star]
+cost                        = 6000
+radiation_restore_speed     = 0.009
+health_restore_speed        = 0.0006
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 2
+hit_absorbation_sect        = af_night_star_absorbation
+
+![af_night_star_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Бусы мамы (af_dummy_glassbeads), тир 2
+; свойства: здоровье +0.8, раны +2, радиация +10
+![af_dummy_glassbeads]
+cost                        = 6000
+radiation_restore_speed     = 0.01
+health_restore_speed        = 0.0008
+power_restore_speed         = 0
+bleeding_restore_speed      = 0.002
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_dummy_glassbeads_absorbation
+
+![af_dummy_glassbeads_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Лунный свет (af_electra_moonlight), тир 2
+; свойства: здоровье +0.6, радиация +11
+; защита:   пси 0.06, радиозащита 4
+![af_electra_moonlight]
+cost                        = 6000
+radiation_restore_speed     = 0.011
+health_restore_speed        = 0.0006
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_electra_moonlight_absorbation
+
+![af_electra_moonlight_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0.004
+telepatic_immunity         = 0.00006
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Батарея (af_dummy_battery), тир 2
+; свойства: здоровье +0.6, силы +1.6, радиация +12
+; защита:   электро 0.03
+![af_dummy_battery]
+cost                        = 6000
+radiation_restore_speed     = 0.012
+health_restore_speed        = 0.0006
+power_restore_speed         = 0.0016
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_dummy_battery_absorbation
+
+![af_dummy_battery_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0.00003
+wound_immunity             = 0
+radiation_immunity         = 0
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Каменная кровь (af_blood), тир 3
+; свойства: здоровье +0.5, радиация +3
+; защита:   хим 0.02, радиозащита 2
+![af_blood]
+cost                        = 2000
+radiation_restore_speed     = 0.003
+health_restore_speed        = 0.0005
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_blood_absorbation
+
+![af_blood_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0.002
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0.00002
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Кусок мяса (af_mincer_meat), тир 3
+; свойства: здоровье +0.5, радиация +4
+; защита:   хим 0.04, радиозащита 2
+![af_mincer_meat]
+cost                        = 4000
+radiation_restore_speed     = 0.004
+health_restore_speed        = 0.0005
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_mincer_meat_absorbation
+
+![af_mincer_meat_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0.002
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0.00004
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Каменный цветок (af_cristall_flower), тир 3
+; свойства: здоровье +0.5, радиация +5
+; защита:   пси 0.02, радиозащита 2
+![af_cristall_flower]
+cost                        = 3000
+radiation_restore_speed     = 0.005
+health_restore_speed        = 0.0005
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_cristall_flower_absorbation
+
+![af_cristall_flower_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0.002
+telepatic_immunity         = 0.00002
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Медуза (af_medusa), тир 3
+; свойства: радиация -3.6
+; защита:   радиозащита 18
+![af_medusa]
+cost                        = 4000
+radiation_restore_speed     = -0.0036
+health_restore_speed        = 0
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_medusa_absorbation
+
+![af_medusa_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0.018
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Кристалл (af_cristall), тир 3
+; свойства: здоровье +0.5, радиация +6
+; защита:   термо 0.02, радиозащита 2
+![af_cristall]
+cost                        = 2000
+radiation_restore_speed     = 0.006
+health_restore_speed        = 0.0005
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_cristall_absorbation
+
+![af_cristall_absorbation]
+burn_immunity              = 0.00002
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0.002
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Огненный шар (af_fireball), тир 3
+; свойства: здоровье +0.5, радиация +7
+; защита:   термо 0.04, радиозащита 2
+![af_fireball]
+cost                        = 4000
+radiation_restore_speed     = 0.007
+health_restore_speed        = 0.0005
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_fireball_absorbation
+
+![af_fireball_absorbation]
+burn_immunity              = 0.00004
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0.002
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Искра (af_electra_sparkler), тир 3
+; свойства: здоровье +0.5, радиация +4
+; защита:   электро 0.02, радиозащита 2
+![af_electra_sparkler]
+cost                        = 2000
+radiation_restore_speed     = 0.004
+health_restore_speed        = 0.0005
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_electra_sparkler_absorbation
+
+![af_electra_sparkler_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0.00002
+wound_immunity             = 0
+radiation_immunity         = 0.002
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Вспышка (af_electra_flash), тир 3
+; свойства: здоровье +0.5, радиация +5
+; защита:   электро 0.04, радиозащита 2
+![af_electra_flash]
+cost                        = 4000
+radiation_restore_speed     = 0.005
+health_restore_speed        = 0.0005
+power_restore_speed         = 0
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_electra_flash_absorbation
+
+![af_electra_flash_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0.00004
+wound_immunity             = 0
+radiation_immunity         = 0.002
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; --- Компас (af_compass), УНИКАЛЬНЫЙ
+; свойства: силы +2, радиация +18
+; защита:   термо 0.03, хим 0.03, пси 0.03, электро 0.03
+![af_compass]
+cost                        = 50000
+radiation_restore_speed     = 0.018
+health_restore_speed        = 0
+power_restore_speed         = 0.002
+bleeding_restore_speed      = 0
+satiety_restore_speed       = 0
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_compass_absorbation
+
+![af_compass_absorbation]
+radiation_immunity          = 0
+burn_immunity               = 0.02
+chemical_burn_immunity      = 0.02
+telepatic_immunity          = 0.01
+shock_immunity              = 0.08
+wound_immunity              = 0.1
+fire_wound_immunity         = 0.1
+explosion_immunity          = 0.1
+strike_immunity             = 0.1
+
+; --- Сердце Оазиса (af_oasis_heart), УНИКАЛЬНЫЙ
+; свойства: здоровье +2, раны +2, силы +2, голод +0.1, радиация +18
+![af_oasis_heart]
+cost                        = 50000
+radiation_restore_speed     = 0.018
+health_restore_speed        = 0.002
+power_restore_speed         = 0.002
+bleeding_restore_speed      = 0.002
+satiety_restore_speed       = 0.0001
+thirst_restore_speed        = 0
+additional_inventory_weight = 0
+hit_absorbation_sect        = af_oasis_heart_absorbation
+
+![af_oasis_heart_absorbation]
+burn_immunity              = 0
+strike_immunity            = 0
+shock_immunity             = 0
+wound_immunity             = 0
+radiation_immunity         = 0
+telepatic_immunity         = 0
+chemical_burn_immunity     = 0
+explosion_immunity         = 0
+fire_wound_immunity        = 0
+
+; ==== END ARTEFACT STATS ====
+
+[bq_rad_tuner]:space_restrictor
+script_binding              = bq_inv_rad.bind
+cost                        = 0
+inv_weight                  = 0
+inv_grid_width              = 0
+inv_grid_height             = 0
+
+; ---------------------------------------------------------------------------
+; Турер механики аккумулятора (пункт 2 плана).
+;
+; Зачем: штатная рассылка RegisterScriptCallback("update", ...) в этой сборке
+; теряется при пересоздании Lua-машины (MEMO 31.3, 35.1), а у обычного игрового
+; объекта есть свой Lua-биндер, и его метод update планировщик зовёт КАЖДЫЙ кадр
+; (CGameObject::shedule_Update -> CScriptBinder::shedule_Update, см. MEMO 35.2).
+; Так же устроена механика радиации в рюкзаке (bq_rad_tuner выше).
+;
+; Сам объект создаёт скрипт scripts\bq_battery.script рядом с актором и удаляет
+; предыдущий, чтобы они не копились. Класс space_restrictor (SPC_RS_S) выбран
+; потому, что это серверный класс, он создаётся alife():create, имеет $spawn и
+; свободный ключ script_binding (system.ltx:621-626); visual ему не нужен.
+; ---------------------------------------------------------------------------
+[bq_battery_tuner]:space_restrictor
+script_binding              = bq_battery.bind
+cost                        = 0
+inv_weight                  = 0
+inv_grid_width              = 0
+inv_grid_height             = 0

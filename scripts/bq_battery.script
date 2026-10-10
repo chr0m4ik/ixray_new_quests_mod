@@ -86,12 +86,14 @@ local PSTOR_PREFIX = "bq_batt_cond_"
 -- Отладка: пишем в файл в корне игры (log() в игровой лог не попадает).
 ----------------------------------------------------------------------------
 local function dbg(msg)
-    if not DEBUG then return end
-    local f = io.open(LOG_FILE, "a")
-    if f then
-        f:write(os.date("%H:%M:%S") .. "  " .. msg .. "\n")
-        f:close()
-    end
+    -- ОТКЛЮЧЕНО ДЛЯ РЕЛИЗА: запись во внешний лог-файл не нужна пользователю.
+    -- Чтобы включить отладку - поставьте DEBUG = true и раскомментируйте тело ниже.
+    -- if not DEBUG then return end
+    -- local f = io.open(LOG_FILE, "a")
+    -- if f then
+    --     f:write(os.date("%H:%M:%S") .. "  " .. tostring(msg) .. "\n")
+    --     f:close()
+    -- end
 end
 
 ----------------------------------------------------------------------------
@@ -1058,28 +1060,77 @@ end
 -- m_AdditionalDescription НЕ сохраняется в сейве, а кэш переживает загрузку,
 -- поэтому после загрузки процент пропадал (жалоба заказчика 11.10.2026).
 -- Заодно покрываем аккумулятор, надетый В СЛОТ: перебор инвентаря его не видит.
+-- Оставшееся время работы: часы по игровым суткам из конфига предмета.
+-- Цвета: движок понимает "%cИмяЦвета" (configs\ui\color_defs.xml), сброс - "%cDEFAULT".
+local function hours_word(n)
+    local m10 = n % 10
+    local m100 = n % 100
+    if m10 == 1 and m100 ~= 11 then return "час" end
+    if m10 >= 2 and m10 <= 4 and (m100 < 12 or m100 > 14) then return "часа" end
+    return "часов"
+end
+
+local function battery_left_text(item, charge)
+    local days = nil
+    pcall(function() days = system_ini():r_float(item:section(), "discharge_days") end)
+    if days == nil then return nil end
+    local hours = math.floor(days * 24 * charge + 0.5)
+    -- Перенос строки - НАСТОЯЩИЙ (0x0A): движок превращает в переводы строк только
+    -- текст ИЗ ЛОКАЛИЗАЦИИ (это делает CStringTable), а текст из скрипта вставляется как
+    -- есть - поэтому два символа \n тут не сработают, строки слипнутся.
+    return string.format("\n%s\n%s\n%%c[255,238,155,23]Оставшееся время работы: %d %s%%c[default]",
+        game.translate_string("bq_battery_can_buy"),
+        game.translate_string("bq_battery_drop_from_corpse"),
+        hours, hours_word(hours))
+end
 local function refresh_battery_desc(actor)
     for _, item in ipairs(actor_batteries(actor)) do
         local charge = get_condition(item)
         if charge ~= nil then
             local pct = math.floor(charge * 100 + 0.5)
-            local want
-            pcall(function()
+            -- Заряд: описание = оставшееся время работы в часах (оранжевым),
+            -- с откатом на проценты, если конфиг недоступен.
+            local want = nil
+            pcall(function() want = battery_left_text(item, charge) end)
+            if want == nil then
                 local fmt = game.translate_string("bq_battery_charge_fmt")
                 if type(fmt) ~= "string" or fmt == "" then fmt = "Заряд: %d%%" end
                 want = string.format(fmt, pct)
-            end)
-            if want == nil then want = string.format("Заряд: %d%%", pct) end
+            end
             local current = nil
             pcall(function() current = item:get_item_additional_description() end)
             if current ~= want then
-                pcall(function() item:set_item_additional_description(want) end)
+                local ok_set = pcall(function() item:set_item_additional_description(want) end)
+                dbg(string.format("описание %s: set=%s текст=[%s]", item:section(), tostring(ok_set), tostring(want)))
                 local st = normalize_state()
                 st.desc = st.desc or {}
                 st.desc[item:id()] = pct
             end
         end
     end
+end
+-- Одноразовое лечение артефактов с нулевым состоянием: раньше наша механика пояса
+-- «прятала» состояние артефактов (обнуляла его), и в сейвах остались нули - в
+-- инвентаре это выглядело как 0 у свойств, хотя в конфиге значения есть (карточка
+-- показывает сырое значение, умноженное на состояние: ui_af_params.cpp:239).
+-- Теперь пояс считает движок, обнулять ничего не нужно, поэтому лечим нули по одному
+-- разу на предмет (кэш), чтобы не мешать настоящему износу артефактов.
+local artefact_fix = {}
+local function fix_zero_artefacts(actor)
+    actor:iterate_inventory(function(owner, item)
+        if not item then return end
+        local section = item:section()
+        if not is_artefact(section) then return end
+        local id = item:id()
+        if artefact_fix[id] then return end
+        local cond = get_condition(item)
+        if cond == nil then return end
+        artefact_fix[id] = true
+        if cond <= 0 then
+            set_condition(item, 1.0)
+            dbg(string.format("восстановил обнулённое состояние артефакта %s (id=%d)", section, id))
+        end
+    end, actor)
 end
 local function tick()
     local actor = db.actor
@@ -1096,7 +1147,7 @@ local function tick()
     -- убирает «скачок статов»: артефакт, положенный на пояс без аккумулятора,
     -- гасится в том же кадре, до следующего пересчёта пояса движком (100 мс).
     local ok_fast, err_fast = pcall(function()
-        fast_belt_check(actor, battery_in_slot(actor))
+        -- BQ: гейт и ослабление пояса перенесены в движок (CActor::BQBeltPower),
     end)
     if not ok_fast and now >= (st.last_error or 0) + 1000 then
         st.last_error = now
@@ -1120,8 +1171,9 @@ local function tick()
                 section or "пусто"))
         end
 
-        local stats, seen = apply_gate(actor, powered)
-        restore_orphans(seen)
+        -- BQ: состояния артефактов больше НЕ прячем - движок сам не считает их
+        -- вклад, если аккумулятора нет или он разряжен (Actor.cpp: BQBeltPower).
+        local stats = { artefacts = 0, belt = 0, hidden = 0, restored = 0 }
 
         -- Пункт 4-5: разряд аккумулятора в слоте и выпадение из трупов.
         local slot_item = actor:item_in_slot(BATTERY_SLOT)
@@ -1142,6 +1194,7 @@ local function tick()
 
         -- Описание с процентом заряда (в том числе для надетого в слот).
         pcall(function() refresh_battery_desc(actor) end)
+        pcall(function() fix_zero_artefacts(actor) end)
 
         -- HUD-панель пояса (scripts\bq_belt_hud.script): артефакты по порядку
         -- ячеек, затем аккумулятор с числом заряда; пустые ячейки не рисуются.
@@ -1154,9 +1207,9 @@ local function tick()
             end
             local batt = actor:item_in_slot(BATTERY_SLOT)
             if batt and is_battery(batt:section()) then
-                belt_hud_update(actor, belt_items, batt, get_condition(batt))
+                -- BQ: HUD-панель пояса рисует движок (CUIMainIngameWnd::UpdateBQBeltPanel)
             else
-                belt_hud_update(actor, belt_items, nil, nil)
+                -- BQ: HUD-панель пояса рисует движок
             end
         end)
         -- Диагностика раз в 5 секунд.
@@ -1263,7 +1316,7 @@ end
 -- Все аккумуляторы у актора. Перебор инвентаря может НЕ показать предмет,
 -- надетый в слот, поэтому слот проверяем отдельно - именно из-за этого заказчик
 -- не видел фразы у техника (аккумулятор был надет, счёт давал 0).
-local function actor_batteries(actor)
+function actor_batteries(actor) -- НЕ local: вызывается из refresh_battery_desc выше по файлу
     local list, seen = {}, {}
     local function add(item)
         if not item then return end

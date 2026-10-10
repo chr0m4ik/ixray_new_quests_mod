@@ -1,55 +1,15 @@
--- bq_containers.script
--- Механика контейнеров для артефактов: полевой, универсальный, научный.
+-- Контейнеры для артефактов (полевой, универсальный, научный, СИМК).
 --
--- ВЛОЖИТЬ: перетащить артефакт на пустой контейнер.
---   Контейнер и артефакт исчезают, появляется комбо-предмет
---   "<артефакт>_<контейнер>" (секции лежат в configs\misc\mod_artefacts_z_bq.ltx).
--- ДОСТАТЬ: правый клик по комбо-предмету -> "Достать артефакт".
---   Комбо-предмет исчезает, возвращаются артефакт и пустой контейнер.
+-- Вся работа с данными - в движке (класс CInventoryArtefactContainer): перенос
+-- характеристик вложенного артефакта, поглощение радиации, флаги belt/can_trade,
+-- иконка и слой. Здесь только события, звук и создание/удаление предметов.
 --
--- ПОЧЕМУ ЗАМЕНА ОТЛОЖЕННАЯ: менять инвентарь прямо внутри обработчика
--- перетаскивания нельзя, движок в этот момент сам правит список предметов
--- (проверено вылетом, MEMO 15.1 п.5). Колбэк только запоминает id, а замена
--- выполняется на следующем кадре в обработчике update.
---
--- ПОЧЕМУ КОЛЬЦО ОБХОДА, А НЕ ПРЯМАЯ ПРОВЕРКА: таблицы вида
--- ON_DROP[bq_field_container] ломаются на вложенных ключах, поэтому
--- соответствие "секция контейнера -> суффикс комбо" лежит плоским списком
--- CONTAINERS и ищется перебором: "bq_field_container" -> "field_container",
--- "bq_uni_container" -> "bq_uni_container".
---
--- ОТЛАДКА: log() из скриптов аддона в игровой лог не попадает (MEMO 13.5),
--- поэтому пишем в файл bq_containers.log в корне игры.
-
--- Секция контейнера -> суффикс комбо-секции. Имя комбо = <артефакт>_<суффикс>.
---
--- ВНИМАНИЕ: суффикс НЕ всегда равен имени секции контейнера. У полевого
--- контейнера суффикс без префикса bq_ (`af_eye_bq_field_container`), у
--- универсального и научного - с префиксом (`af_eye_bq_uni_container`).
--- Это историческое правило (шаблон из прежней версии мода), и оно совпадает
--- с именами секций в конфиге, поэтому менять его нельзя: у заказчика уже есть
--- сейвы с заспавненными комбо, и переименование секций их сломает.
--- Именно из-за этого несовпадения полевое комбо не находилось по имени.
-local CONTAINERS = {
-    { section = "bq_field_container", combo = "bq_field_container" },
-    { section = "bq_uni_container",   combo = "bq_uni_container" },
-    { section = "bq_sci_container",   combo = "bq_sci_container" },
-    -- СИМК: вмещает ОДИН артефакт и поглощает ВСЮ его радиацию. Два отличия от
-    -- остальных, и оба живут в конфиге, а не здесь:
-    --   * комбо имеет belt = false, поэтому его нельзя надеть на пояс
-    --     (движок проверяет флаг Belt: Inventory.cpp:1295-1303);
-    --   * у комбо radiation_restore_speed = 0, что для нашей механики рюкзака
-    --     и означает "поглощает всё" (отрицательные значения игнорируются).
-    { section = "bq_simk_container",  combo = "bq_simk_container" },
-}
-
--- Секции контейнеров, в которые можно класть ТОЛЬКО "чистые" артефакты
--- (комбо-предметы и другие контейнеры не принимаются - решение заказчика).
-local CLEAN_ARTIFACT_ONLY = {
-    bq_simk_container = true,
-}
-
--- Секция контейнера -> звук вложения (файлы берутся на этапе звуков).
+-- ВАЖНО (почему всё отложено): ошибка Lua внутри обработчика перетаскивания
+-- превращается в C++-исключение и роняет игру - в логе видно
+-- "luabind::detail::proxy_functor_caller<...>::operator bool() ->
+--  CUIActorMenu::OnItemDrop()". Поэтому обработчики только ставят задачу, а
+-- сами операции с предметами выполняются на следующем update (так же делала
+-- прежняя версия скрипта), и каждый шаг завёрнут в pcall с записью ошибки в лог.
 local SOUND_BY_CONTAINER = {
     bq_field_container = "interface\\inv_iam_open",
     bq_uni_container   = "interface\\inv_aac_open",
@@ -60,385 +20,186 @@ local SOUND_BY_CONTAINER = {
     bq_simk_container  = "interface\\inv_lead_open",
 }
 
--- Звук ИЗВЛЕЧЕНИЯ артефакта. У трёх прежних контейнеров он остаётся таким же,
--- как раньше (SOUND_BY_CONTAINER) - поведение не меняем. У СИМК свой звук:
--- заказчик дал отдельные файлы на открытие и закрытие.
 local SOUND_TAKE_BY_CONTAINER = {
     bq_simk_container = "interface\\inv_lead_close",
 }
 
-local LOG_FILE = "bq_containers.log"
+local LOG_FILE = "$logs$\\bq_containers.log"
 
-local pending   = nil
+-- Логирование намеренно полностью в pcall: dbg вызывается и из обработчиков
+-- ошибок, а любая ошибка Lua в этих местах роняет игру (см. комментарий выше).
+local function dbg(msg)
+    -- ОТКЛЮЧЕНО ДЛЯ РЕЛИЗА: запись во внешний лог-файл не нужна пользователю.
+    -- Чтобы включить отладку - раскомментируйте тело ниже.
+    -- local f = io.open(LOG_FILE, "a")
+    -- if f then
+    --     f:write(os.date("%H:%M:%S") .. "  " .. tostring(msg) .. "\n")
+    --     f:close()
+    -- end
+end
+
+-- Кэш звуков: объект звука нельзя отпускать, пока он играет, иначе движок выдаёт
+-- "CScriptSound::~CScriptSound: playing sound is not completed, but is destroying".
 local snd_cache = {}
 
--- ОТЛАДОЧНЫЙ ЛОГ ОТКЛЮЧЁН ДЛЯ РЕЛИЗА. Запись в файл закомментирована, но код
--- оставлен: при разработке он писал в bq_containers.log в корне игры (видно,
--- какое вложение принято, какая комбо-секция не найдена и т.п.). Обычному игроку
--- файл не нужен.
---
--- ЧТОБЫ ВКЛЮЧИТЬ ОБРАТНО: снять комментарий с блока io.open внутри dbg.
-local function dbg(msg)
-    --[[
-    local f = io.open(LOG_FILE, "a")
-    if f then
-        f:write(os.date("%H:%M:%S") .. "  " .. msg .. "\n")
-        f:close()
-    end
-    --]]
-    local _ = msg          -- аргумент оставлен, чтобы не менять вызовы dbg(...)
-end
-
--- Звук (2D). Вызов в pcall: битый звук не должен срывать замену предметов.
 local function play_sound(path)
     if not path then return end
-    local ok, err = pcall(function()
-        local snd = snd_cache[path]
-        if not snd then
-            snd = sound_object(path)
-            snd_cache[path] = snd
+    local snd = snd_cache[path]
+    if not snd then
+        local ok, obj = pcall(function() return xr_sound.get_safe_sound_object(path) end)
+        if not ok or not obj then
+            ok, obj = pcall(function() return sound_object(path) end)
         end
-        if snd then
-            snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector():set(0, 0, 0), 1.0)
-        else
-            dbg("звук не загрузился: " .. path)
+        if not ok or not obj then
+            dbg("звук не загрузился: " .. tostring(path))
+            return
+        end
+        snd = obj
+        snd_cache[path] = snd
+    end
+    local flag = sound_object and sound_object.s2d
+    local played = false
+    if flag ~= nil then
+        played = pcall(function() snd:play(db.actor, 0, flag) end)
+    end
+    if not played then
+        played = pcall(function() snd:play(db.actor) end)
+    end
+    if not played then
+        dbg("звук не проигрался: " .. tostring(path))
+    end
+end
+
+local function get_condition(item)
+    local ok, value = pcall(function() return item:condition() end)
+    if ok and type(value) == "number" then return value end
+    return nil
+end
+
+local function set_condition(item, value)
+    pcall(function() item:set_condition(value) end)
+end
+
+local CONTAINERS = {
+    bq_field_container = true,
+    bq_uni_container   = true,
+    bq_sci_container   = true,
+    bq_simk_container  = true,
+}
+
+local function cls_of(section)
+    local cls = nil
+    pcall(function()
+        local ini = system_ini()
+        if ini:section_exist(section) and ini:line_exist(section, "class") then
+            cls = ini:r_string(section, "class")
         end
     end)
-    if not ok then dbg("ошибка звука '" .. path .. "': " .. tostring(err)) end
+    return cls
 end
 
-local function container_section_of(object)
-    if not object then return nil end
-    local sec = object:section()
-    for _, item in ipairs(CONTAINERS) do
-        -- ВАЖНО: ничего не присваивать полям таблицы CONTAINERS. Ранее здесь
-        -- было item.combo = item.section, из-за чего первый элемент таблицы
-        -- портился и последующие поиски комбо ломались.
-        local candidate = item.section
-        if candidate == sec then return candidate end
-    end
-    return nil
+local function is_container(section)
+    if CONTAINERS[section] then return true end
+    return cls_of(section) == "II_BQCNT"
 end
 
--- Суффикс комбо по секции контейнера (см. таблицу CONTAINERS).
-local function combo_suffix_of(container_section)
-    for _, item in ipairs(CONTAINERS) do
-        if item.section == container_section then return item.combo end
-    end
-    return nil
+local function is_artefact(section)
+    if is_container(section) then return false end
+    local cls = cls_of(section)
+    return cls == "ARTEFACT" or cls == "SCRPTART"
 end
 
--- Секция комбо по секции артефакта и секции контейнера:
---   <артефакт> .. "_" .. <суффикс контейнера>.
--- Если комбо-секции нет (генератор её ещё не создал), вернём nil.
-local function combo_section_of(artifact_section, container_section)
-    if not artifact_section or not container_section then return nil end
-    local suffix = combo_suffix_of(container_section)
-    if not suffix then return nil end
-    local candidate = artifact_section .. "_" .. suffix
-    if system_ini():section_exist(candidate) then
-        return candidate
-    end
-    return nil
-end
+local pending = nil
 
--- Разбор секции комбо на артефакт и контейнер.
--- "af_eye_bq_field_container" -> ("af_eye", "bq_field_container")
---
--- ВАЖНО: сравниваем суффиксы от САМОГО ДЛИННОГО к короткому. Сейчас все суффиксы
--- одной длины (bq_field_container, bq_uni_container, bq_sci_container,
--- bq_simk_container), поэтому порядок ни на что не влияет. Но если однажды
--- появится суффикс, который является окончанием другого (например
--- bq_container), то при переборе в порядке таблицы короткий совпал бы первым и
--- артефакт определился бы неверно. Сортировка по длине убирает эту мину.
-local COMBO_SUFFIXES = {}
-for _, item in ipairs(CONTAINERS) do
-    COMBO_SUFFIXES[#COMBO_SUFFIXES + 1] = item
-end
-table.sort(COMBO_SUFFIXES, function(a, b) return #a.combo > #b.combo end)
-
-local function split_combo(combo_section)
-    if not combo_section then return nil, nil end
-    for _, item in ipairs(COMBO_SUFFIXES) do
-        local marker = "_" .. item.combo
-        local n = string.len(marker)
-        if string.len(combo_section) > n
-            and string.sub(combo_section, -n) == marker then
-            local artifact = string.sub(combo_section, 1, -(n + 1))
-            if system_ini():section_exist(artifact) then
-                return artifact, item.section
-            end
-        end
-    end
-    return nil, nil
-end
-
-local function owned_by_actor(object)
-    -- db.actor.id — функция, а не число, поэтому именно :id().
-    return object ~= nil and object.parent_id == db.actor:id()
-end
-
--- Проверяет, что в контейнер кладут ГОЛЫЙ артефакт, а не комбо-предмет или
--- другой контейнер. Нужно для СИМК (CLEAN_ARTIFACT_ONLY): заказчик решил, что
--- в него можно поместить только "чистый" артефакт.
---
--- Как отличить: комбо-предметы носят на себе признак "достать артефакт" -
--- use1_functor = bq_containers.take_artifact. Он есть у всех комбо и нет ни у
--- одного обычного артефакта. Плюс отсекаем сами контейнеры по таблице.
---
--- ВАЖНО: сначала section_exist/line_exist, и только потом чтение ключа.
--- Чтение несуществующего ключа даёт Debug.fatal и роняет игру (проверено
--- вылетом 08.10.2026: "Can't find variable ... in [device_pda]").
-local function is_clean_artifact(section)
-    if not section then return false end
-    local ini = system_ini()
-    if not ini:section_exist(section) then return false end
-
-    -- сам контейнер вложить нельзя
-    for _, item in ipairs(CONTAINERS) do
-        if item.section == section then return false end
-    end
-
-    -- комбо-предмет (артефакт уже в контейнере) вложить нельзя
-    if ini:line_exist(section, "use1_functor")
-        and ini:r_string(section, "use1_functor") == "bq_containers.take_artifact" then
-        return false
-    end
-
-    return true
-end
-
-local function actor_vertices()
-    return db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id()
-end
-
-----------------------------------------------------------------------------
--- Замена предметов.
---
--- ИСТОРИЯ И ПРИЧИНА ПЕРЕДЕЛКИ. Раньше замена всегда откладывалась на "следующий
--- кадр" через обработчик update. Откладывать действительно нужно: менять
--- инвентарь ПРЯМО ВНУТРИ обработчика перетаскивания нельзя, движок в этот момент
--- сам правит список (MEMO 15.1 п.5, проверено вылетом). Но в этой сборке
--- подписка на update ненадёжна: реестр колбэков живёт в локальной таблице
--- `dynamic_callbacks.lua` и пересоздаётся вместе с Lua-машиной, после чего
--- apply_pending перестаёт вызываться и замена не применяется никогда
--- (проверено логом: ни одной строки ЗАМЕНА при работающем OnItemDropped).
---
--- Поэтому порядок такой:
---   1. движок вызывает OnItemDropped ПОСЛЕ того, как сам закончил обработку
---      перетаскивания (UIActorMenu_action.cpp:184-190, уже вне правки списка) -
---      здесь пробуем выполнить замену сразу;
---   2. если не вышло (инвентарь занят, предмет не у актора) - кладём задачу в
---      pending, и её добьёт apply_pending, ЕСЛИ обработчик update работает.
--- Так механика работает и без реестра колбэков, а отложенный путь остаётся
--- страховкой, а не единственным способом.
-----------------------------------------------------------------------------
-
-local function swap(task)
-    if not task then return false end
-    if not db.actor or not alife() then return false end
-
-    local position, lvid, gvid = actor_vertices()
-
-    if task.mode == "put" then
-        local artifact  = alife():object(task.artifact_id)
-        local container = alife():object(task.container_id)
-        if not artifact or not container then
-            dbg("ОТМЕНА(put): предмет исчез")
-            return true            -- повторять бессмысленно
-        end
-        if not owned_by_actor(artifact) or not owned_by_actor(container) then
-            dbg("ОТМЕНА(put): предмет не у актора")
-            return true
-        end
-        dbg("ЗАМЕНА(put): " .. artifact:section_name()
-            .. " + " .. container:section_name() .. " -> " .. task.combo)
-        alife():release(artifact, true)
-        alife():release(container, true)
-        local created = alife():create(task.combo, position, lvid, gvid, db.actor:id())
-        if created then
-            dbg("  ГОТОВО, комбо id=" .. tostring(created.id))
-            play_sound(task.sound)
-            return true
-        end
-        dbg("  ОШИБКА: комбо не создался")
-        return true
-
-    elseif task.mode == "take" then
-        local combo = alife():object(task.combo_id)
-        if not combo then
-            dbg("ОТМЕНА(take): комбо исчез")
-            return true
-        end
-        if not owned_by_actor(combo) then
-            dbg("ОТМЕНА(take): комбо не у актора")
-            return true
-        end
-        dbg("ЗАМЕНА(take): " .. combo:section_name()
-            .. " -> " .. task.artifact .. " + " .. task.container)
-        alife():release(combo, true)
-        local artifact  = alife():create(task.artifact, position, lvid, gvid, db.actor:id())
-        local container = alife():create(task.container, position, lvid, gvid, db.actor:id())
-        if artifact and container then
-            dbg("  ГОТОВО")
-            play_sound(task.sound)
-            return true
-        end
-        dbg("  ОШИБКА: артефакт или контейнер не создался")
-        return true
-    end
-    return true
-end
-
--- Попытка выполнить замену сразу, из движкового колбэка.
--- Возвращает true, если задача решена (или решена быть не может).
-local function try_swap_now(task)
-    local ok, done = pcall(swap, task)
-    if not ok then
-        dbg("замена отложена (исключение): " .. tostring(done))
-        return false
-    end
-    return done == true
-end
-
--- Выполняется из обработчика update, если он вообще вызывается.
-local function do_apply()
+local function apply_pending()
     if not pending then return end
     local task = pending
     pending = nil
-    swap(task)
+    local ok, err = pcall(function()
+        if task.mode == "put" then
+            local container = level.object_by_id(task.container_id)
+            local artefact  = level.object_by_id(task.artifact_id)
+            if not container then return end
+            local cond = nil
+            if artefact then cond = get_condition(artefact) end
+            if cond == nil then cond = task.condition end
+            if container:bq_put_artefact(task.artifact, cond) then
+                if artefact then
+                    local se = alife():object(task.artifact_id)
+                    if se then alife():release(se, true) end
+                end
+                play_sound(task.sound)
+                dbg(string.format("вложено: %s -> %s (состояние %.3f)", task.artifact, container:section(), cond))
+            else
+                dbg("вложение не удалось: " .. tostring(task.artifact))
+            end
+        elseif task.mode == "take" then
+            local container = level.object_by_id(task.container_id)
+            if not container then return end
+            local art_section = container:bq_inner_artefact()
+            local cond = get_condition(container)
+            container:bq_clear_artefact()
+            local actor = db.actor
+            local obj = alife():create(art_section, actor:position(), actor:level_vertex_id(), actor:game_vertex_id(), actor:id())
+            if obj then
+                local itm = level.object_by_id(obj.id)
+                if itm and cond ~= nil then set_condition(itm, cond) end
+            end
+            play_sound(task.sound)
+            dbg(string.format("изъято: %s из %s (состояние %s)", art_section, container:section(), tostring(cond)))
+        end
+    end)
+    if not ok then dbg("ОШИБКА отложенного действия: " .. tostring(err)) end
 end
 
-local function apply_pending()
-    -- ВРЕМЕННАЯ ДИАГНОСТИКА: пишем по таймеру, чтобы по логу было видно,
-    -- работает ли рассылка update вообще. Убрать после разбора.
-    _G.bq_diag = _G.bq_diag or { cont_tick = 0, cont_work = 0, rad_tick = 0 }
-    _G.bq_diag.cont_tick = _G.bq_diag.cont_tick + 1
-    local now = time_global()
-    if now >= (_G.bq_diag.cont_next_log or 0) then
-        _G.bq_diag.cont_next_log = now + 5000
-        dbg("ДИАГ: контейнеры tick=" .. _G.bq_diag.cont_tick
-            .. " pending=" .. tostring(pending ~= nil)
-            .. " is_talking=" .. tostring(db.actor and db.actor:is_talking()))
-    end
-    if not pending then return end
-    _G.bq_diag.cont_work = _G.bq_diag.cont_work + 1
-    if not db.actor or not alife() then return end
-    if db.actor:is_talking() then
-        dbg("ДИАГ: apply_pending отложен, актор разговаривает")
-        return
-    end
-    local ok, err = pcall(do_apply)
-    if not ok then
-        pending = nil
-        dbg("ОШИБКА в apply_pending: " .. tostring(err))
-    end
-end
+RegisterScriptCallback("update", apply_pending)
 
-----------------------------------------------------------------------------
--- 1) Вложение: перетаскивание артефакта на пустой контейнер.
---    Колбэк включён строкой OnItemDropped в configs\mod_game_global_z_bq.ltx.
-----------------------------------------------------------------------------
+-- Перетаскивание: артефакт на контейнер (или наоборот). Только постановка задачи.
 function on_item_dropped(first, second)
-    if not db.actor or not alife() then return true end
-    if not first or not second then return true end
+    local ok, err = pcall(function()
+        if not db.actor or not first or not second then return end
 
-    local container = container_section_of(second)
-    if not container then return true end          -- цель не контейнер
+        local container, artefact = second, first
+        if is_container(first:section()) and is_artefact(second:section()) then
+            container, artefact = first, second
+        end
 
-    local artifact = first:section()
+        if not is_container(container:section()) then return end
+        if not is_artefact(artefact:section()) then return end
+        if container:bq_has_artefact() then
+            dbg("контейнер уже занят: " .. tostring(container:section()))
+            return
+        end
 
-    -- СИМК принимает только "чистый" артефакт: ни комбо-предмет, ни другой
-    -- контейнер. Остальные контейнеры работают как раньше.
-    if CLEAN_ARTIFACT_ONLY[container] and not is_clean_artifact(artifact) then
-        dbg("вложение в '" .. tostring(container) .. "' отклонено: '"
-            .. tostring(artifact) .. "' не чистый артефакт (комбо или контейнер)")
-        return true
-    end
-
-    local combo = combo_section_of(artifact, container)
-    if not combo then
-        dbg("вложение: нет комбо-секции для '" .. tostring(artifact)
-            .. "' в '" .. tostring(container) .. "'")
-        return true
-    end
-
-    local task = {
-        mode         = "put",
-        artifact_id  = first:id(),
-        container_id = second:id(),
-        combo        = combo,
-        sound        = SOUND_BY_CONTAINER[container],
-    }
-    dbg("вложение принято: '" .. tostring(artifact) .. "' + '"
-        .. tostring(container) .. "' -> '" .. combo .. "'")
-
-    -- Пробуем выполнить сразу: движок вызывает этот колбэк уже ПОСЛЕ своей
-    -- обработки перетаскивания. Если не вышло - задача уйдёт в pending.
-    if not try_swap_now(task) then
-        pending = task
-    end
+        pending = {
+            mode         = "put",
+            container_id = container:id(),
+            artifact_id  = artefact:id(),
+            artifact     = artefact:section(),
+            condition    = get_condition(artefact),
+            sound        = SOUND_BY_CONTAINER[container:section()],
+        }
+    end)
+    if not ok then dbg("ОШИБКА обработчика перетаскивания: " .. tostring(err)) end
     return true
 end
 
-----------------------------------------------------------------------------
--- 2) Доставание: кнопка на комбо-предмете (use1_functor в его секции).
---    Функция обязана вернуть false: в IX-Ray use1_functor — это УСЛОВИЕ
---    (UIActorMenuInventory.cpp:1389), и при true движок попытается "съесть"
---    предмет.
---
---    Замена выполняется сразу. Раньше она откладывалась на update, но в этой
---    сборке подписка на update не срабатывает, и доставание не работало вообще.
---    Если немедленная замена почему-то не пройдёт, задача останется в pending
---    и её добьёт apply_pending, когда обработчик update всё-таки вызовется.
-----------------------------------------------------------------------------
-function take_artifact(combo)
-    if not db.actor or not alife() or not combo then return false end
-
-    local combo_section = combo:section()
-    local artifact, container = split_combo(combo_section)
-    if not artifact or not container then
-        dbg("доставание: '" .. tostring(combo_section) .. "' не распознан как комбо")
-        return false
-    end
-
-    local task = {
-        mode      = "take",
-        combo_id  = combo:id(),
-        artifact  = artifact,
-        container = container,
-        -- При доставании контейнер ОТКРЫВАЕТСЯ, поэтому у СИМК свой звук
-        -- (inv_lead_close), а у остальных - прежний звук контейнера.
-        sound     = SOUND_TAKE_BY_CONTAINER[container] or SOUND_BY_CONTAINER[container],
-    }
-    dbg("доставание принято: '" .. combo_section .. "' -> '"
-        .. artifact .. "' + '" .. container .. "'")
-
-    if not try_swap_now(task) then
-        pending = task
-    end
+-- Действие "Достать артефакт" (use1_functor; движок показывает его только у
+-- заполненного контейнера). Возвращаем false - предмет не расходуется.
+function take_artifact(container)
+    local ok, err = pcall(function()
+        if not db.actor or not container then return end
+        if not container:bq_has_artefact() then return end
+        pending = {
+            mode         = "take",
+            container_id = container:id(),
+            sound        = SOUND_TAKE_BY_CONTAINER[container:section()] or SOUND_BY_CONTAINER[container:section()],
+        }
+    end)
+    if not ok then dbg("ОШИБКА обработчика изъятия: " .. tostring(err)) end
     return false
 end
 
-----------------------------------------------------------------------------
--- Точки входа, которые движок дёргает сам (объявлены в [callbacks]).
---
--- Их задача - только (пере)установить подписку. ВЫПОЛНЯТЬ ЗАМЕНУ ЗДЕСЬ НЕЛЬЗЯ:
--- повторный вход в Lua из C++ внутри уже исполняющегося Lua-колбэка валит игру
--- в luabind::class_rep::function_dispatcher. Именно на этом игра вылетала при
--- открытии инвентаря (08.10.2026): стек CInput::KeyboardUpdate -> lua_pcall ->
--- function_dispatcher -> lua_pcall -> function_dispatcher.
---
--- Наведение на предмет в инвентаре. Возврат этого ключа движок игнорирует
--- (UIActorMenu_action.cpp:347-357), поэтому возвращаем true.
-----------------------------------------------------------------------------
+-- Заглушка: за callback OnItemFocusReceive отвечает конфиг аддона.
 function on_item_focus(item)
-    RegisterScriptCallback("update", apply_pending)
-    return true
 end
-
-----------------------------------------------------------------------------
--- Первичная установка при исполнении модуля.
-----------------------------------------------------------------------------
-dbg("==== скрипт контейнеров загружен ====")
-RegisterScriptCallback("update", apply_pending)
