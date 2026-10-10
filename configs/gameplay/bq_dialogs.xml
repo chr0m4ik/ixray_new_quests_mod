@@ -316,4 +316,19 @@
             </phrase>
         </phrase_list>
     </dialog>
+    <!-- Зарядка аккумуляторов у техника (пункт 4). Фраза появляется, только если
+         есть что заряжать; заряжаются ВСЕ аккумуляторы игрока сразу. -->
+    <dialog id="bq_tech_charge" priority="30">
+        <precondition>bq_battery_charge.can_offer</precondition>
+        <phrase_list>
+            <phrase id="0">
+                <text>bq_dlg_tech_charge</text>
+                <next>1</next>
+            </phrase>
+            <phrase id="1">
+                <text>bq_dlg_tech_charge_pay</text>
+                <action>bq_battery_charge.charge_all</action>
+            </phrase>
+        </phrase_list>
+    </dialog>
 </game_dialogs>

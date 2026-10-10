@@ -929,6 +929,109 @@ function bq_battery_update(delta)
     tick()
 end
 
+---------------------------------------------------------------------------
+-- ЗАРЯДКА У ТЕХНИКА (идея заказчика, пункт 4).
+--
+-- Диалог bq_tech_charge (configs\gameplay\bq_dialogs.xml) привязан к технику
+-- Затона в нашем character_desc_zaton.xml и зовёт функции отсюда:
+--   <precondition>bq_battery_charge.can_offer</precondition> - показывать ли фразу;
+--   <action>bq_battery_charge.charge_all</action>           - зарядить всё.
+-- Механизм вызова: движок ищет "таблица.функция" в глобальных таблицах Lua
+-- (так же работает bq_quest.give_task), поэтому таблица объявлена ГЛОБАЛЬНОЙ.
+--
+-- Заряжаем СРАЗУ ВСЕ аккумуляторы игрока (решение заказчика), о чём сказано
+-- в самой фразе диалога.
+--
+-- ЦЕНА: доля от стоимости нового аккумулятора (cost), по таблице порогов из
+-- configs\misc\mod_battery_rules_z_bq.ltx. Чем сильнее сел, тем дороже:
+-- полностью севший дороже нового у Сыча, до 15% - примерно как новый, выше -
+-- дешевле.
+---------------------------------------------------------------------------
+local RECHARGE_SECTION = "bq_battery_recharge"
+local RECHARGE_STEPS = { 0, 15, 40, 70, 95 }
+
+local function recharge_factor(charge)
+    if charge == nil then charge = 1.0 end
+    local pct = charge * 100
+    local factor = cfg_float(RECHARGE_SECTION, "factor_0", 1.3)
+    for _, threshold in ipairs(RECHARGE_STEPS) do
+        if pct + 0.001 >= threshold then
+            factor = cfg_float(RECHARGE_SECTION, "factor_" .. threshold, factor)
+        end
+    end
+    return factor
+end
+
+-- Все аккумуляторы в инвентаре актора (в контейнерах их быть не может, но
+-- перебираем инвентарь, а не слот: заряжать нужно и те, что в рюкзаке).
+local function actor_batteries(actor)
+    local list = {}
+    actor:iterate_inventory(function(owner, item)
+        if not item then return end
+        local section = item:section()
+        if is_battery(section) then
+            list[#list + 1] = item
+        end
+    end, actor)
+    return list
+end
+
+bq_battery_charge = {}
+
+-- Сколько аккумуляторов и сколько это будет стоить (для фразы диалога).
+function bq_battery_charge.total(actor)
+    actor = actor or db.actor
+    if not actor then return 0, 0 end
+    local count, price = 0, 0
+    for _, item in ipairs(actor_batteries(actor)) do
+        local cost = 0
+        pcall(function() cost = item:cost() end)
+        local charge = get_condition(item)
+        count = count + 1
+        price = price + math.floor(cost * recharge_factor(charge))
+    end
+    return count, price
+end
+
+-- precondition диалога: показывать фразу, только если есть что заряжать.
+function bq_battery_charge.can_offer(actor, npc)
+    local count = bq_battery_charge.total(actor)
+    return count > 0
+end
+
+-- action диалога: списать деньги и зарядить ВСЕ аккумуляторы до 100%.
+function bq_battery_charge.charge_all(actor, npc)
+    actor = actor or db.actor
+    if not actor then return end
+
+    local count, price = bq_battery_charge.total(actor)
+    if count == 0 then
+        dbg("техник: заряжать нечего")
+        return
+    end
+
+    local money = 0
+    pcall(function() money = actor:money() end)
+    if money < price then
+        dbg(string.format("техник: не хватает денег (нужно %d, есть %d)", price, money))
+        return
+    end
+
+    actor:give_money(-price)
+    local charged = 0
+    for _, item in ipairs(actor_batteries(actor)) do
+        local before = get_condition(item) or 0
+        set_condition(item, 1.0)
+        forget_condition(item:id())
+        charged = charged + 1
+        dbg(string.format("техник зарядил %s (id=%d): %.0f%% -> 100%%",
+            item:section(), item:id(), before * 100))
+    end
+    dbg(string.format("техник: заряжено аккумуляторов %d за %d RU", charged, price))
+    -- Полоски в открытом окне пересчитаем сразу, чтобы заряд было видно.
+    refresh_ui()
+end
+
 -- Резервные точки загрузки из [callbacks] (mod_game_global_z_bq.ltx).
 -- Здесь НЕЛЬЗЯ делать тяжёлую работу: повторный вход в Lua из C++ внутри уже
 -- исполняющегося Lua-колбэка валит игру (проверено в MEMO 33.7/сеансе 21).

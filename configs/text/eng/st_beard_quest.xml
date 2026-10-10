@@ -354,4 +354,11 @@
 
 The container holds a single artefact and cannot be attached to the belt - it is carried in the backpack.</text>
     </string>
+    <!-- Charging accumulators at the technician (plan item 4). -->
+    <string id="bq_dlg_tech_charge">
+        <text>I see your artefact belt runs on accumulators. I can charge them all the way up - every one I find in your pack at once. The emptier it is, the more it costs: a dead one will set you back more than a new one.</text>
+    </string>
+    <string id="bq_dlg_tech_charge_pay">
+        <text>Charge them all.</text>
+    </string>
 </string_table>

@@ -1011,6 +1011,7 @@
 
 	<!-- Техник на базе сталкеров -->
 	<specific_character id="zat_a2_stalker_mechanic" team_default="1">
+        <actor_dialog>bq_tech_charge</actor_dialog>
 		<name>zat_a2_stalker_mechanic_name</name>
 		<icon>ui_inGame2_Kardan</icon>
 		<map_icon x="1" y="0">
