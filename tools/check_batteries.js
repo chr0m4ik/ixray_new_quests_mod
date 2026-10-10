@@ -595,8 +595,8 @@ console.log('\n== 8. Слот аккумулятора (пункт 2) ==');
     } else {
         for (const key of ['OnItemFocusLost', 'OnZoneTouch', 'OnBeforeHit']) {
             const value = cb.keys.get(key);
-            if (value !== 'bq_battery.on_load_trigger') {
-                err(`[callbacks] ${key} = '${value}', ожидалось 'bq_battery.on_load_trigger'`);
+            if (value !== 'bq_battery.on_load_trigger' && value !== 'bq_belt_hud.touch') {
+                err(`[callbacks] ${key} = '${value}', ожидалось 'bq_battery.on_load_trigger' или 'bq_belt_hud.touch'`);
             }
         }
         ok('резервные точки загрузки (OnItemFocusLost/OnZoneTouch/OnBeforeHit) на месте');

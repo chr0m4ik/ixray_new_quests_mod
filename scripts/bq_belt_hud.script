@@ -201,5 +201,8 @@ end
 -- в Lua просто не будет. Ссылку держим в mod_game_global_z_bq.ltx, ключ
 -- OnItemFocusLost: его результат движок игнорирует, так что вызов безвреден.
 function touch()
+    if type(bq_battery) == "table" and bq_battery.on_load_trigger then
+        pcall(bq_battery.on_load_trigger)
+    end
     return true
 end
